@@ -50,6 +50,8 @@ app/                      Next.js trading terminal
 
 **Status: 117/117 verified.** All inputs symbolic with bounded `kani::assume()`. Production-scale constants. Zero vacuous proofs. Zero verification failures. See [PROOF-SPEC.md](./PROOF-SPEC.md) for the full property specification.
 
+Additionally, a randomized E2E fuzz campaign verified conservation, OI consistency, A-monotonicity, and margin invariants across **5.9 billion instruction sequences** (deposits, withdrawals, opens, closes, liquidations, funding cranks, ADL events) with zero findings.
+
 ## Stack
 
 - **On-chain:** Rust + Anchor
