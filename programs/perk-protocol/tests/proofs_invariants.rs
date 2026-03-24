@@ -429,7 +429,8 @@ fn p3_9_warmup_release_bounded_by_reserved() {
 
     let reserved_before = pos.reserved_pnl;
 
-    advance_warmup(&mut pos, &mut market, warmup_period, market.current_slot);
+    let current_slot = market.current_slot;
+    advance_warmup(&mut pos, &mut market, warmup_period, current_slot);
 
     // Release must not exceed what was reserved
     assert!(pos.reserved_pnl <= reserved_before,
@@ -472,7 +473,8 @@ fn p3_10_warmup_release_bounded_by_slope_elapsed() {
     let cap = saturating_mul_u128_u64(slope, elapsed);
     let expected_release = core::cmp::min(reserved, cap);
 
-    advance_warmup(&mut pos, &mut market, warmup_period, market.current_slot);
+    let current_slot = market.current_slot;
+    advance_warmup(&mut pos, &mut market, warmup_period, current_slot);
 
     let actual_release = reserved - pos.reserved_pnl;
 
