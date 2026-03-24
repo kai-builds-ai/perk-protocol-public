@@ -132,6 +132,7 @@ export default function MarketExplorer() {
         solPrice={solMarket?.markPrice}
       />
 
+      <div className="max-w-7xl mx-auto w-full flex-1 flex flex-col">
       {/* Tabs */}
       <div className="flex items-center gap-0 px-4 border-b border-border bg-surface">
         {TABS.map((t) => (
@@ -241,6 +242,7 @@ export default function MarketExplorer() {
           />
         )}
       </div>
+      </div>{/* /max-w-7xl */}
     </div>
   );
 }
