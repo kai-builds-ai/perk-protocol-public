@@ -261,7 +261,7 @@ fn h3_deposit_withdraw_roundtrip() {
     // ── Phase 1: Deposit ──
     let _ = accrue_market_to(&mut m, slot, oracle_price);
     let _ = settle_side_effects(&mut p, &mut m);
-    advance_warmup(&mut p, &mut m, m.warmup_period_slots, slot);
+    let warmup_slots = m.warmup_period_slots; advance_warmup(&mut p, &mut m, warmup_slots, slot);
 
     p.deposited_collateral = p.deposited_collateral.checked_add(amount).unwrap();
     m.vault_balance = m.vault_balance.checked_add(amount as u128).unwrap();
@@ -348,7 +348,7 @@ fn h4_open_position_margin_check() {
     let settle_ok = settle_side_effects(&mut p, &mut m);
     kani::assume(settle_ok.is_ok());
 
-    advance_warmup(&mut p, &mut m, m.warmup_period_slots, slot);
+    let warmup_slots = m.warmup_period_slots; advance_warmup(&mut p, &mut m, warmup_slots, slot);
 
     // ── Simulate position opening (skip vAMM, directly set position) ──
     let old_eff = effective_position_q(&p, &m);
@@ -450,7 +450,7 @@ fn h5_close_position_pnl_settlement() {
     let settle_ok = settle_side_effects(&mut p, &mut m);
     kani::assume(settle_ok.is_ok());
 
-    advance_warmup(&mut p, &mut m, m.warmup_period_slots, slot);
+    let warmup_slots = m.warmup_period_slots; advance_warmup(&mut p, &mut m, warmup_slots, slot);
 
     // ── Capture old effective position ──
     let old_eff = effective_position_q(&p, &m);
@@ -661,7 +661,7 @@ fn h8_full_lifecycle_deposit_open_close_withdraw() {
     let settle1 = settle_side_effects(&mut p, &mut m);
     kani::assume(settle1.is_ok());
 
-    advance_warmup(&mut p, &mut m, m.warmup_period_slots, slot1);
+    let warmup_slots = m.warmup_period_slots; advance_warmup(&mut p, &mut m, warmup_slots, slot1);
 
     // Add collateral
     p.deposited_collateral = p.deposited_collateral.checked_add(deposit_amount).unwrap();
@@ -689,7 +689,7 @@ fn h8_full_lifecycle_deposit_open_close_withdraw() {
     let settle2 = settle_side_effects(&mut p, &mut m);
     kani::assume(settle2.is_ok());
 
-    advance_warmup(&mut p, &mut m, m.warmup_period_slots, slot2);
+    let warmup_slots = m.warmup_period_slots; advance_warmup(&mut p, &mut m, warmup_slots, slot2);
 
     // Side check
     kani::assume(side_allows_increase(&m, is_long));
@@ -737,7 +737,7 @@ fn h8_full_lifecycle_deposit_open_close_withdraw() {
     let settle3 = settle_side_effects(&mut p, &mut m);
     kani::assume(settle3.is_ok());
 
-    advance_warmup(&mut p, &mut m, m.warmup_period_slots, slot3);
+    let warmup_slots = m.warmup_period_slots; advance_warmup(&mut p, &mut m, warmup_slots, slot3);
 
     let old_eff_close = effective_position_q(&p, &m);
 
@@ -775,7 +775,7 @@ fn h8_full_lifecycle_deposit_open_close_withdraw() {
     let settle4 = settle_side_effects(&mut p, &mut m);
     kani::assume(settle4.is_ok());
 
-    advance_warmup(&mut p, &mut m, m.warmup_period_slots, slot4);
+    let warmup_slots = m.warmup_period_slots; advance_warmup(&mut p, &mut m, warmup_slots, slot4);
 
     settle_losses(&mut p, &mut m);
     resolve_flat_negative(&mut p, &mut m);
