@@ -48,7 +48,7 @@ app/                      Next.js trading terminal
 | Instructions | 9 | Deposit/withdraw/open/close composition + lifecycle |
 | Instructions₂ | 8 | Liquidation/funding crank/reclaim/fees/two-user zero-sum |
 
-All inputs symbolic with bounded `kani::assume()`. Production-scale constants. Zero vacuous proofs. See [PROOF-SPEC.md](./PROOF-SPEC.md) for the full property specification.
+**Status: 117/117 verified.** All inputs symbolic with bounded `kani::assume()`. Production-scale constants. Zero vacuous proofs. Zero verification failures. See [PROOF-SPEC.md](./PROOF-SPEC.md) for the full property specification.
 
 ## Stack
 
