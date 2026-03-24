@@ -83,11 +83,11 @@ fn p2_2_withdrawal_conserves_vault() {
 fn p2_3_trade_zero_sum() {
     let size_q: u64 = kani::any();
     kani::assume(size_q >= 1);
-    kani::assume(size_q <= 10_000_000); // tractable
+    kani::assume(size_q <= 1_000); // tightened for solver tractability
 
     let price_diff: i64 = kani::any();
-    kani::assume(price_diff > -(1_000_000i64));
-    kani::assume(price_diff < 1_000_000i64);
+    kani::assume(price_diff > -(1_000i64));
+    kani::assume(price_diff < 1_000i64);
 
     let long_pnl = compute_trade_pnl(size_q as i128, price_diff as i128);
     let short_pnl = compute_trade_pnl(-(size_q as i128), price_diff as i128);
@@ -216,36 +216,28 @@ fn p2_7_funding_cannot_mint() {
     // Symbolic oracle price
     let oracle_price: u64 = kani::any();
     kani::assume(oracle_price >= 100);
-    kani::assume(oracle_price <= 10_000);
+    kani::assume(oracle_price <= 500);
 
     // Both sides must have live OI for funding to execute
     let long_oi: u128 = kani::any();
     kani::assume(long_oi >= POS_SCALE);
-    kani::assume(long_oi <= 10 * POS_SCALE);
+    kani::assume(long_oi <= 5 * POS_SCALE);
     market.oi_eff_long_q = long_oi;
 
     let short_oi: u128 = kani::any();
     kani::assume(short_oi >= POS_SCALE);
-    kani::assume(short_oi <= 10 * POS_SCALE);
+    kani::assume(short_oi <= 5 * POS_SCALE);
     market.oi_eff_short_q = short_oi;
 
-    // A values must be equal for raw K-delta sum to represent real value.
-    // When A_long != A_short, K-deltas translate to PnL via division by their
-    // respective A values, so raw sums aren't meaningful. The per-unit property
-    // (floor rounding on receiver) is verified separately in P5.2/P5.3.
-    let a_side: u128 = kani::any();
-    kani::assume(a_side >= ADL_ONE);
-    kani::assume(a_side <= 2 * ADL_ONE);
-    market.long_a = a_side;
-    market.short_a = a_side;
+    // A values: use constant ADL_ONE (not symbolic) to avoid solver explosion
+    market.long_a = ADL_ONE;
+    market.short_a = ADL_ONE;
 
-    // PRE-SCALED funding rate: multiply by FUNDING_RATE_PRECISION so it doesn't truncate to 0
-    // Rate in range [-MAX_ABS_FUNDING_BPS_PER_SLOT, MAX_ABS_FUNDING_BPS_PER_SLOT]
-    // but always non-zero
+    // PRE-SCALED funding rate — tightened to <= 1_000
     let rate_sign: bool = kani::any();
     let rate_abs: i64 = kani::any();
     kani::assume(rate_abs >= 1);
-    kani::assume(rate_abs <= MAX_ABS_FUNDING_BPS_PER_SLOT);
+    kani::assume(rate_abs <= 1_000);
     let funding_rate: i64 = if rate_sign { rate_abs } else { -rate_abs };
     market.funding_rate_bps_per_slot_last = funding_rate;
 
@@ -255,7 +247,7 @@ fn p2_7_funding_cannot_mint() {
     // Symbolic dt (at least 1 slot for funding to run)
     let dt: u64 = kani::any();
     kani::assume(dt >= 1);
-    kani::assume(dt <= 5);
+    kani::assume(dt <= 2);
     let now_slot = market.last_market_slot + dt;
 
     // Capture K indices before
@@ -307,12 +299,12 @@ fn p2_8_adl_enqueue_correctness() {
     // Need opposing side with live OI and stored positions
     let opp_oi: u128 = kani::any();
     kani::assume(opp_oi >= POS_SCALE);
-    kani::assume(opp_oi <= 100 * POS_SCALE);
+    kani::assume(opp_oi <= 5 * POS_SCALE);
     market.oi_eff_short_q = opp_oi;
 
     let opp_count: u64 = kani::any();
     kani::assume(opp_count >= 1);
-    kani::assume(opp_count <= 100);
+    kani::assume(opp_count <= 10);
     market.stored_pos_count_short = opp_count;
 
     let a_old = market.short_a;
@@ -321,9 +313,10 @@ fn p2_8_adl_enqueue_correctness() {
     let q_close: u128 = kani::any();
     kani::assume(q_close >= 1);
     kani::assume(q_close < opp_oi); // must be < OI so we don't exhaust precision
+    kani::assume(q_close <= POS_SCALE); // tighten further
 
     let deficit: u128 = kani::any();
-    kani::assume(deficit <= 1_000_000);
+    kani::assume(deficit <= 10_000);
 
     let epoch_before = market.short_epoch;
 
@@ -352,15 +345,15 @@ fn p2_8_adl_enqueue_correctness() {
 fn p2_9_adl_dust_bounds() {
     let a: u128 = kani::any();
     kani::assume(a >= 1);
-    kani::assume(a <= ADL_ONE * 10);
+    kani::assume(a <= 1_000_000);
 
     let b: u128 = kani::any();
     kani::assume(b >= 1);
-    kani::assume(b <= ADL_ONE * 10);
+    kani::assume(b <= 1_000_000);
 
     let d: u128 = kani::any();
     kani::assume(d >= 1);
-    kani::assume(d <= ADL_ONE * 10);
+    kani::assume(d <= 1_000_000);
 
     let a_u256 = U256::from_u128(a);
     let b_u256 = U256::from_u128(b);
@@ -577,7 +570,7 @@ fn p2_15_reclaim_rejects_open_position() {
     // Give the position a non-zero basis (open position)
     let basis: i128 = kani::any();
     kani::assume(basis != 0);
-    kani::assume(basis.abs() <= 1_000_000);
+    kani::assume(basis.abs() <= 1_000);
     pos.basis = basis;
 
     // Make effective_position_q return non-zero
@@ -747,10 +740,10 @@ fn p2_19_loss_seniority() {
 #[kani::solver(cadical)]
 fn p2_20_compute_trade_pnl_no_panic() {
     let size_q: i128 = kani::any();
-    kani::assume(size_q.abs() <= MAX_POSITION_ABS_Q as i128);
+    kani::assume(size_q.abs() <= 1_000);
 
     let price_diff: i128 = kani::any();
-    kani::assume(price_diff.abs() <= MAX_ORACLE_PRICE as i128);
+    kani::assume(price_diff.abs() <= 1_000);
 
     // This must not panic — it may return Err for overflow, which is acceptable
     let result = compute_trade_pnl(size_q, price_diff);

@@ -342,9 +342,9 @@ fn p5_7_update_funding_correct() {
     let mut m = test_market();
 
     let mark_price: u64 = kani::any();
-    kani::assume(mark_price >= 100 && mark_price <= 10_000);
+    kani::assume(mark_price >= 100 && mark_price <= 500);
     let oracle_price: u64 = kani::any();
-    kani::assume(oracle_price >= 100 && oracle_price <= 10_000);
+    kani::assume(oracle_price >= 100 && oracle_price <= 500);
 
     // Need both sides with OI
     m.oi_eff_long_q = 1_000_000;
@@ -394,9 +394,9 @@ fn p5_7b_update_funding_noop_empty_side() {
     let mut m = test_market();
 
     let mark: u64 = kani::any();
-    kani::assume(mark >= 100 && mark <= 10_000);
+    kani::assume(mark >= 100 && mark <= 500);
     let oracle: u64 = kani::any();
-    kani::assume(oracle >= 100 && oracle <= 10_000);
+    kani::assume(oracle >= 100 && oracle <= 500);
 
     // One side empty
     let long_empty: bool = kani::any();

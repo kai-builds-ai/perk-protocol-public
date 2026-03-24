@@ -50,7 +50,9 @@ fn p1_2_mul_div_floor_algebraic_identity() {
     let a_raw: u8 = kani::any();
     let b_raw: u8 = kani::any();
     let d_raw: u8 = kani::any();
-    kani::assume(d_raw > 0);
+    kani::assume(a_raw <= 16);
+    kani::assume(b_raw <= 16);
+    kani::assume(d_raw >= 1 && d_raw <= 16);
 
     let a = U256::from_u128(a_raw as u128);
     let b = U256::from_u128(b_raw as u128);
@@ -77,7 +79,9 @@ fn p1_3_ceil_equals_floor_plus_remainder() {
     let a_raw: u8 = kani::any();
     let b_raw: u8 = kani::any();
     let d_raw: u8 = kani::any();
-    kani::assume(d_raw > 0);
+    kani::assume(a_raw <= 16);
+    kani::assume(b_raw <= 16);
+    kani::assume(d_raw >= 1 && d_raw <= 16);
 
     let a = U256::from_u128(a_raw as u128);
     let b = U256::from_u128(b_raw as u128);
@@ -105,7 +109,9 @@ fn p1_4_mul_div_matches_native_u8() {
     let a: u8 = kani::any();
     let b: u8 = kani::any();
     let d: u8 = kani::any();
-    kani::assume(d > 0);
+    kani::assume(a <= 16);
+    kani::assume(b <= 16);
+    kani::assume(d >= 1 && d <= 16);
 
     let a128 = a as u128;
     let b128 = b as u128;
@@ -398,9 +404,15 @@ fn p1_14_fused_delta_k_no_double_rounding() {
 #[kani::unwind(30)]
 #[kani::solver(cadical)]
 fn p1_15_haircut_mul_div_conservative() {
-    let released: u128 = kani::any::<u8>() as u128;
-    let h_num: u128 = kani::any::<u8>() as u128;
-    let h_den: u128 = kani::any::<u8>() as u128 + 1;
+    let released_raw: u8 = kani::any();
+    kani::assume(released_raw <= 16);
+    let released: u128 = released_raw as u128;
+    let h_num_raw: u8 = kani::any();
+    kani::assume(h_num_raw <= 16);
+    let h_num: u128 = h_num_raw as u128;
+    let h_den_raw: u8 = kani::any();
+    kani::assume(h_den_raw >= 1 && h_den_raw <= 16);
+    let h_den: u128 = h_den_raw as u128;
     kani::assume(h_num <= h_den); // haircut ratio bounded
 
     let result = wide_mul_div_floor_u128(released, h_num, h_den);

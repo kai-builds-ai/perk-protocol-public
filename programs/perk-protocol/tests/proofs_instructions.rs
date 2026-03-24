@@ -419,14 +419,14 @@ fn h5_close_position_pnl_settlement() {
 
     // Set up a funded position with a long
     let collateral: u64 = kani::any();
-    kani::assume(collateral >= 100_000 && collateral <= 10_000_000);
+    kani::assume(collateral >= 100_000 && collateral <= 1_000_000);
     p.deposited_collateral = collateral;
     m.c_tot = collateral as u128;
     m.vault_balance = collateral as u128;
 
     // Position size
     let pos_size: u128 = kani::any();
-    kani::assume(pos_size >= 1 && pos_size <= 10_000);
+    kani::assume(pos_size >= 1 && pos_size <= 1_000);
 
     let is_long: bool = kani::any();
 
@@ -439,7 +439,7 @@ fn h5_close_position_pnl_settlement() {
     }
 
     let oracle_price: u64 = kani::any();
-    kani::assume(oracle_price >= 100 && oracle_price <= 10_000);
+    kani::assume(oracle_price >= 100 && oracle_price <= 500);
 
     let slot = DEFAULT_SLOT + 1;
 

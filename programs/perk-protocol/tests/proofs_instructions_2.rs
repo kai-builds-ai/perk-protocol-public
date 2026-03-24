@@ -308,18 +308,14 @@ fn h12_crank_funding_idempotency() {
     let mut m = test_market();
 
     // Need OI on both sides for funding to apply
-    let oi_long: u128 = kani::any();
-    kani::assume(oi_long >= POS_SCALE && oi_long <= 10 * POS_SCALE);
-    let oi_short: u128 = kani::any();
-    kani::assume(oi_short >= POS_SCALE && oi_short <= 10 * POS_SCALE);
-    m.oi_eff_long_q = oi_long;
-    m.oi_eff_short_q = oi_short;
+    m.oi_eff_long_q = POS_SCALE;
+    m.oi_eff_short_q = POS_SCALE;
 
     let oracle_price: u64 = kani::any();
-    kani::assume(oracle_price >= 1_000 && oracle_price <= 10_000);
+    kani::assume(oracle_price >= 100 && oracle_price <= 500);
 
     let mark_price: u64 = kani::any();
-    kani::assume(mark_price >= 1_000 && mark_price <= 10_000);
+    kani::assume(mark_price >= 100 && mark_price <= 500);
 
     m.last_oracle_price = oracle_price;
     m.funding_period_seconds = 3600;

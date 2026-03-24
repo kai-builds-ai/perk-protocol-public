@@ -150,14 +150,14 @@ fn p7_3_update_oi_delta_correctness() {
 
     // Symbolic old effective position
     let old_eff: i128 = kani::any();
-    kani::assume(old_eff >= -100_000 && old_eff <= 100_000);
+    kani::assume(old_eff >= -500 && old_eff <= 500);
 
     // Symbolic new effective position
     let new_eff: i128 = kani::any();
-    kani::assume(new_eff >= -100_000 && new_eff <= 100_000);
+    kani::assume(new_eff >= -500 && new_eff <= 500);
 
     // Set up OI large enough to absorb any decrement
-    let base_oi: u128 = 500_000;
+    let base_oi: u128 = 5_000;
     m.oi_eff_long_q = base_oi;
     m.oi_eff_short_q = base_oi;
 

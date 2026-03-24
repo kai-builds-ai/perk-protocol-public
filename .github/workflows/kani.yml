@@ -10,6 +10,11 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      harnesses:
+        description: 'Comma-separated harness names to run (empty = all)'
+        required: false
+        default: ''
 
 env:
   CARGO_TERM_COLOR: always
@@ -26,15 +31,30 @@ jobs:
       - name: Extract harness names from proof files
         id: extract
         run: |
+          FILTER="${{ github.event.inputs.harnesses }}"
           MATRIX="[]"
-          for file in programs/perk-protocol/tests/proofs_*.rs; do
-            suite=$(basename "$file" .rs)
-            # Extract all fn names from proof files (every fn is a harness)
-            harnesses=$(grep -oP 'fn \K\w+(?=\()' "$file" || true)
-            for h in $harnesses; do
-              MATRIX=$(echo "$MATRIX" | jq -c --arg s "$suite" --arg h "$h" '. + [{"suite": $s, "harness": $h}]')
+          if [ -n "$FILTER" ]; then
+            # Run only specified harnesses
+            for h in $(echo "$FILTER" | tr ',' ' '); do
+              # Find which suite file contains this harness
+              for file in programs/perk-protocol/tests/proofs_*.rs; do
+                if grep -q "fn ${h}(" "$file"; then
+                  suite=$(basename "$file" .rs)
+                  MATRIX=$(echo "$MATRIX" | jq -c --arg s "$suite" --arg h "$h" '. + [{"suite": $s, "harness": $h}]')
+                  break
+                fi
+              done
             done
-          done
+          else
+            # Run all harnesses
+            for file in programs/perk-protocol/tests/proofs_*.rs; do
+              suite=$(basename "$file" .rs)
+              harnesses=$(grep -oP 'fn \K\w+(?=\()' "$file" || true)
+              for h in $harnesses; do
+                MATRIX=$(echo "$MATRIX" | jq -c --arg s "$suite" --arg h "$h" '. + [{"suite": $s, "harness": $h}]')
+              done
+            done
+          fi
           echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
           echo "Found $(echo "$MATRIX" | jq length) harnesses"
 
