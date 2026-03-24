@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600&display=swap');
+
+html, body {
+  background: #09090b;
+  color: #fafafa;
+  font-family: 'Space Grotesk', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Wallet adapter modal overrides */
+.wallet-adapter-modal-wrapper {
+  background: #0f0f11 !important;
+  border: 1px solid #1a1a1e !important;
+  border-radius: 2px !important;
+}
+
+.wallet-adapter-modal-button-close {
+  background: transparent !important;
+}
+
+.wallet-adapter-button {
+  background: transparent !important;
+  border: 1px solid #3f3f46 !important;
+  border-radius: 4px !important;
+  font-family: 'Space Grotesk', sans-serif !important;
+}
+
+.wallet-adapter-button:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Remove number input spinners */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* Range input track */
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px;
+  background: #27272a;
+  border-radius: 2px;
+}
+
+input[type="range"]::-moz-range-track {
+  height: 4px;
+  background: #27272a;
+  border-radius: 2px;
+}
