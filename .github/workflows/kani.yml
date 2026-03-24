@@ -78,7 +78,7 @@ jobs:
             echo "::group::⚡ $harness"
             if timeout 900 cargo kani --tests --harness "$harness" \
               --solver cadical \
-              --default-unwind 10 \
+              --default-unwind 30 \
               --output-format terse 2>&1; then
               echo "✅ $harness — VERIFIED"
               PASSED=$((PASSED + 1))

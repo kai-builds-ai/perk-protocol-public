@@ -12,7 +12,7 @@ use common::*;
 // ============================================================================
 #[cfg(kani)]
 #[kani::proof]
-#[kani::unwind(10)]
+#[kani::unwind(30)]
 #[kani::solver(cadical)]
 fn p2_1_deposit_conserves_vault() {
     let mut market = test_market();
@@ -47,7 +47,7 @@ fn p2_1_deposit_conserves_vault() {
 // ============================================================================
 #[cfg(kani)]
 #[kani::proof]
-#[kani::unwind(10)]
+#[kani::unwind(30)]
 #[kani::solver(cadical)]
 fn p2_2_withdrawal_conserves_vault() {
     let mut market = test_market();
@@ -81,7 +81,7 @@ fn p2_2_withdrawal_conserves_vault() {
 // ============================================================================
 #[cfg(kani)]
 #[kani::proof]
-#[kani::unwind(10)]
+#[kani::unwind(30)]
 #[kani::solver(cadical)]
 fn p2_3_trade_zero_sum() {
     let size_q: u64 = kani::any();
@@ -113,7 +113,7 @@ fn p2_3_trade_zero_sum() {
 // ============================================================================
 #[cfg(kani)]
 #[kani::proof]
-#[kani::unwind(10)]
+#[kani::unwind(30)]
 #[kani::solver(cadical)]
 fn p2_4_liquidation_conserves() {
     let mut market = zero_fee_market();
@@ -148,7 +148,7 @@ fn p2_4_liquidation_conserves() {
 // ============================================================================
 #[cfg(kani)]
 #[kani::proof]
-#[kani::unwind(10)]
+#[kani::unwind(30)]
 #[kani::solver(cadical)]
 fn p2_5_haircut_bounded() {
     let mut market = test_market();
@@ -190,7 +190,7 @@ fn p2_5_haircut_bounded() {
 // ============================================================================
 #[cfg(kani)]
 #[kani::proof]
-#[kani::unwind(10)]
+#[kani::unwind(30)]
 #[kani::solver(cadical)]
 fn p2_6_equity_nonneg_flat() {
     let mut pos = test_position();
@@ -307,7 +307,7 @@ fn p2_7_funding_cannot_mint() {
 // ============================================================================
 #[cfg(kani)]
 #[kani::proof]
-#[kani::unwind(10)]
+#[kani::unwind(30)]
 #[kani::solver(cadical)]
 fn p2_8_adl_enqueue_correctness() {
     let mut market = test_market();
@@ -356,7 +356,7 @@ fn p2_8_adl_enqueue_correctness() {
 // ============================================================================
 #[cfg(kani)]
 #[kani::proof]
-#[kani::unwind(10)]
+#[kani::unwind(30)]
 #[kani::solver(cadical)]
 fn p2_9_adl_dust_bounds() {
     let a: u128 = kani::any();
@@ -390,7 +390,7 @@ fn p2_9_adl_dust_bounds() {
 // ============================================================================
 #[cfg(kani)]
 #[kani::proof]
-#[kani::unwind(10)]
+#[kani::unwind(30)]
 #[kani::solver(cadical)]
 fn p2_10_insurance_epoch_cap() {
     let mut market = test_market();
@@ -436,7 +436,7 @@ fn p2_10_insurance_epoch_cap() {
 // ============================================================================
 #[cfg(kani)]
 #[kani::proof]
-#[kani::unwind(10)]
+#[kani::unwind(30)]
 #[kani::solver(cadical)]
 fn p2_11_insurance_floor() {
     let mut market = test_market();
@@ -468,7 +468,7 @@ fn p2_11_insurance_floor() {
 // ============================================================================
 #[cfg(kani)]
 #[kani::proof]
-#[kani::unwind(10)]
+#[kani::unwind(30)]
 #[kani::solver(cadical)]
 fn p2_12_absorb_respects_floor() {
     let mut market = test_market();
@@ -502,7 +502,7 @@ fn p2_12_absorb_respects_floor() {
 // ============================================================================
 #[cfg(kani)]
 #[kani::proof]
-#[kani::unwind(10)]
+#[kani::unwind(30)]
 #[kani::solver(cadical)]
 fn p2_13_fee_debt_sweep_conservation() {
     let mut market = test_market();
@@ -552,7 +552,7 @@ fn p2_13_fee_debt_sweep_conservation() {
 // ============================================================================
 #[cfg(kani)]
 #[kani::proof]
-#[kani::unwind(10)]
+#[kani::unwind(30)]
 #[kani::solver(cadical)]
 fn p2_14_fee_credits_never_min() {
     let mut pos = test_position();
@@ -583,7 +583,7 @@ fn p2_14_fee_credits_never_min() {
 // ============================================================================
 #[cfg(kani)]
 #[kani::proof]
-#[kani::unwind(10)]
+#[kani::unwind(30)]
 #[kani::solver(cadical)]
 fn p2_15_reclaim_rejects_open_position() {
     let mut market = test_market();
@@ -614,7 +614,7 @@ fn p2_15_reclaim_rejects_open_position() {
 // ============================================================================
 #[cfg(kani)]
 #[kani::proof]
-#[kani::unwind(10)]
+#[kani::unwind(30)]
 #[kani::solver(cadical)]
 fn p2_16_reclaim_rejects_nonzero_pnl() {
     let mut market = test_market();
@@ -634,7 +634,7 @@ fn p2_16_reclaim_rejects_nonzero_pnl() {
 // ============================================================================
 #[cfg(kani)]
 #[kani::proof]
-#[kani::unwind(10)]
+#[kani::unwind(30)]
 #[kani::solver(cadical)]
 fn p2_17_phantom_dust_no_revert() {
     let mut market = test_market();
@@ -669,7 +669,7 @@ fn p2_17_phantom_dust_no_revert() {
 // ============================================================================
 #[cfg(kani)]
 #[kani::proof]
-#[kani::unwind(10)]
+#[kani::unwind(30)]
 #[kani::solver(cadical)]
 fn p2_18_protected_principal() {
     let mut market = test_market();
@@ -716,7 +716,7 @@ fn p2_18_protected_principal() {
 // ============================================================================
 #[cfg(kani)]
 #[kani::proof]
-#[kani::unwind(10)]
+#[kani::unwind(30)]
 #[kani::solver(cadical)]
 fn p2_19_loss_seniority() {
     let mut market = test_market();
@@ -763,7 +763,7 @@ fn p2_19_loss_seniority() {
 // ============================================================================
 #[cfg(kani)]
 #[kani::proof]
-#[kani::unwind(10)]
+#[kani::unwind(30)]
 #[kani::solver(cadical)]
 fn p2_20_compute_trade_pnl_no_panic() {
     let size_q: i128 = kani::any();

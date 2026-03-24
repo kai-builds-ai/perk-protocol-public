@@ -29,7 +29,7 @@ use perk_protocol::engine::risk::is_above_initial_margin as risk_is_above_initia
 // ============================================================================
 
 #[kani::proof]
-#[kani::unwind(10)]
+#[kani::unwind(30)]
 #[kani::solver(cadical)]
 fn h1_deposit_conservation() {
     let mut m = zero_fee_market();
@@ -126,7 +126,7 @@ fn h1_deposit_conservation() {
 // ============================================================================
 
 #[kani::proof]
-#[kani::unwind(10)]
+#[kani::unwind(30)]
 #[kani::solver(cadical)]
 fn h2_withdraw_conservation() {
     let mut m = zero_fee_market();
@@ -227,7 +227,7 @@ fn h2_withdraw_conservation() {
 // ============================================================================
 
 #[kani::proof]
-#[kani::unwind(10)]
+#[kani::unwind(30)]
 #[kani::solver(cadical)]
 fn h3_deposit_withdraw_roundtrip() {
     let mut m = zero_fee_market();
@@ -309,7 +309,7 @@ fn h3_deposit_withdraw_roundtrip() {
 // ============================================================================
 
 #[kani::proof]
-#[kani::unwind(10)]
+#[kani::unwind(30)]
 #[kani::solver(cadical)]
 fn h4_open_position_margin_check() {
     let mut m = zero_fee_market();
@@ -411,7 +411,7 @@ fn h4_open_position_margin_check() {
 // ============================================================================
 
 #[kani::proof]
-#[kani::unwind(10)]
+#[kani::unwind(30)]
 #[kani::solver(cadical)]
 fn h5_close_position_pnl_settlement() {
     let mut m = zero_fee_market();
@@ -503,7 +503,7 @@ fn h5_close_position_pnl_settlement() {
 // ============================================================================
 
 #[kani::proof]
-#[kani::unwind(10)]
+#[kani::unwind(30)]
 #[kani::solver(cadical)]
 fn h6_withdrawal_blocked_when_underwater() {
     let mut m = zero_fee_market();
@@ -564,7 +564,7 @@ fn h6_withdrawal_blocked_when_underwater() {
 // ============================================================================
 
 #[kani::proof]
-#[kani::unwind(10)]
+#[kani::unwind(30)]
 #[kani::solver(cadical)]
 fn h7_open_position_blocked_on_wrong_side() {
     let mut m = test_market();
@@ -600,7 +600,7 @@ fn h7_open_position_blocked_on_wrong_side() {
 // ============================================================================
 
 #[kani::proof]
-#[kani::unwind(10)]
+#[kani::unwind(30)]
 #[kani::solver(cadical)]
 fn h7b_open_position_blocked_on_reset_pending() {
     let mut m = test_market();
@@ -631,7 +631,7 @@ fn h7b_open_position_blocked_on_reset_pending() {
 // ============================================================================
 
 #[kani::proof]
-#[kani::unwind(10)]
+#[kani::unwind(30)]
 #[kani::solver(cadical)]
 fn h8_full_lifecycle_deposit_open_close_withdraw() {
     let mut m = zero_fee_market();

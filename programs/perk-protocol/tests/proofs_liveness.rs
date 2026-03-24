@@ -13,7 +13,7 @@ use common::*;
 // ============================================================================
 
 #[kani::proof]
-#[kani::unwind(10)]
+#[kani::unwind(30)]
 #[kani::solver(cadical)]
 fn p4_1_maybe_finalize_auto_finalizes() {
     let mut m = test_market();
@@ -55,7 +55,7 @@ fn p4_1_maybe_finalize_auto_finalizes() {
 // ============================================================================
 
 #[kani::proof]
-#[kani::unwind(10)]
+#[kani::unwind(30)]
 #[kani::solver(cadical)]
 fn p4_1b_no_finalize_with_nonzero_counters() {
     let mut m = test_market();
@@ -88,7 +88,7 @@ fn p4_1b_no_finalize_with_nonzero_counters() {
 // ============================================================================
 
 #[kani::proof]
-#[kani::unwind(10)]
+#[kani::unwind(30)]
 #[kani::solver(cadical)]
 fn p4_2_precision_exhaustion_terminal_drain() {
     let mut m = test_market();
@@ -145,7 +145,7 @@ fn p4_2_precision_exhaustion_terminal_drain() {
 // ============================================================================
 
 #[kani::proof]
-#[kani::unwind(10)]
+#[kani::unwind(30)]
 #[kani::solver(cadical)]
 fn p4_3_bankruptcy_routes_quantity_zero_deficit() {
     let mut m = test_market();
@@ -188,7 +188,7 @@ fn p4_3_bankruptcy_routes_quantity_zero_deficit() {
 // ============================================================================
 
 #[kani::proof]
-#[kani::unwind(10)]
+#[kani::unwind(30)]
 #[kani::solver(cadical)]
 fn p4_4_pure_pnl_bankruptcy_path() {
     let mut m = test_market();
@@ -226,7 +226,7 @@ fn p4_4_pure_pnl_bankruptcy_path() {
 // ============================================================================
 
 #[kani::proof]
-#[kani::unwind(10)]
+#[kani::unwind(30)]
 #[kani::solver(cadical)]
 fn p4_5_phantom_dust_clears() {
     let mut m = test_market();

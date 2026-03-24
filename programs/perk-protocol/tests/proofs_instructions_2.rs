@@ -180,7 +180,7 @@ fn h9_liquidation_conservation() {
 // ============================================================================
 
 #[kani::proof]
-#[kani::unwind(10)]
+#[kani::unwind(30)]
 #[kani::solver(cadical)]
 fn h10_liquidation_blocked_when_solvent() {
     let mut m = test_market();
@@ -233,7 +233,7 @@ fn h10_liquidation_blocked_when_solvent() {
 // ============================================================================
 
 #[kani::proof]
-#[kani::unwind(10)]
+#[kani::unwind(30)]
 #[kani::solver(cadical)]
 fn h11_liquidation_fires_when_underwater() {
     let mut m = test_market();
@@ -302,7 +302,7 @@ fn h11_liquidation_fires_when_underwater() {
 // ============================================================================
 
 #[kani::proof]
-#[kani::unwind(10)]
+#[kani::unwind(30)]
 #[kani::solver(cadical)]
 fn h12_crank_funding_idempotency() {
     let mut m = test_market();
@@ -368,7 +368,7 @@ fn h12_crank_funding_idempotency() {
 // ============================================================================
 
 #[kani::proof]
-#[kani::unwind(10)]
+#[kani::unwind(30)]
 #[kani::solver(cadical)]
 fn h13_reclaim_rejects_active_position() {
     let mut m = test_market();
@@ -405,7 +405,7 @@ fn h13_reclaim_rejects_active_position() {
 // ============================================================================
 
 #[kani::proof]
-#[kani::unwind(10)]
+#[kani::unwind(30)]
 #[kani::solver(cadical)]
 fn h14_reclaim_succeeds_on_empty() {
     let mut m = test_market();
@@ -449,7 +449,7 @@ fn h14_reclaim_succeeds_on_empty() {
 // ============================================================================
 
 #[kani::proof]
-#[kani::unwind(10)]
+#[kani::unwind(30)]
 #[kani::solver(cadical)]
 fn h15_fee_claim_conservation() {
     let mut m = test_market();

@@ -18,7 +18,7 @@ use common::*;
 // ============================================================================
 
 #[kani::proof]
-#[kani::unwind(12)]
+#[kani::unwind(30)]
 #[kani::solver(cadical)]
 fn p5_1_accrue_market_mark_delta_nonzero_funding() {
     let mut m = test_market();
@@ -102,7 +102,7 @@ fn p5_1_accrue_market_mark_delta_nonzero_funding() {
 // ============================================================================
 
 #[kani::proof]
-#[kani::unwind(12)]
+#[kani::unwind(30)]
 #[kani::solver(cadical)]
 fn p5_2_funding_k_deltas_long_payer() {
     let mut m = test_market();
@@ -167,7 +167,7 @@ fn p5_2_funding_k_deltas_long_payer() {
 // ============================================================================
 
 #[kani::proof]
-#[kani::unwind(12)]
+#[kani::unwind(30)]
 #[kani::solver(cadical)]
 fn p5_3_funding_k_deltas_short_payer() {
     let mut m = test_market();
