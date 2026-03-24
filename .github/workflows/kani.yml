@@ -82,7 +82,7 @@ jobs:
           timeout 1800 cargo kani --tests --harness "${{ matrix.harness }}" \
             --solver cadical \
             --default-unwind 30 \
-            --no-unwinding-assertions \
+            --no-unwinding-checks \
             --output-format terse
 
   summary:
