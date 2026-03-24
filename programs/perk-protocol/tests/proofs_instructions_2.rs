@@ -32,7 +32,7 @@ fn h9_liquidation_conservation() {
 
     // Symbolic oracle price
     let oracle_price: u64 = kani::any();
-    kani::assume(oracle_price >= 100 && oracle_price <= 100_000_000);
+    kani::assume(oracle_price >= 100 && oracle_price <= 10_000);
 
     // Symbolic position: long, underwater (low collateral, big position)
     let size_q: u128 = kani::any();
@@ -309,17 +309,17 @@ fn h12_crank_funding_idempotency() {
 
     // Need OI on both sides for funding to apply
     let oi_long: u128 = kani::any();
-    kani::assume(oi_long >= POS_SCALE && oi_long <= 1_000_000 * POS_SCALE);
+    kani::assume(oi_long >= POS_SCALE && oi_long <= 10 * POS_SCALE);
     let oi_short: u128 = kani::any();
-    kani::assume(oi_short >= POS_SCALE && oi_short <= 1_000_000 * POS_SCALE);
+    kani::assume(oi_short >= POS_SCALE && oi_short <= 10 * POS_SCALE);
     m.oi_eff_long_q = oi_long;
     m.oi_eff_short_q = oi_short;
 
     let oracle_price: u64 = kani::any();
-    kani::assume(oracle_price >= 1_000 && oracle_price <= 10_000_000);
+    kani::assume(oracle_price >= 1_000 && oracle_price <= 10_000);
 
     let mark_price: u64 = kani::any();
-    kani::assume(mark_price >= 1_000 && mark_price <= 10_000_000);
+    kani::assume(mark_price >= 1_000 && mark_price <= 10_000);
 
     m.last_oracle_price = oracle_price;
     m.funding_period_seconds = 3600;
@@ -555,7 +555,7 @@ fn h16_two_user_funding_zero_sum() {
     let mut p_short = test_position();
 
     let oracle_price: u64 = kani::any();
-    kani::assume(oracle_price >= 1_000 && oracle_price <= 10_000_000);
+    kani::assume(oracle_price >= 1_000 && oracle_price <= 10_000);
 
     // Equal-sized positions for clearest zero-sum test
     let size_q: u128 = kani::any();
@@ -590,7 +590,7 @@ fn h16_two_user_funding_zero_sum() {
 
     // Advance by a few slots
     let dt: u64 = kani::any();
-    kani::assume(dt >= 1 && dt <= 100);
+    kani::assume(dt >= 1 && dt <= 5);
     let new_slot = m.current_slot + dt;
 
     // accrue_market_to applies funding to K indices

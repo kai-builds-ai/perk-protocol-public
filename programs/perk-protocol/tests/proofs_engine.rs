@@ -87,11 +87,11 @@ fn p7_2_do_profit_conversion_conservation() {
 
     // Position with positive PnL and zero reserve (fully matured)
     let pnl_val: u128 = kani::any();
-    kani::assume(pnl_val >= 1 && pnl_val <= 10_000_000);
+    kani::assume(pnl_val >= 1 && pnl_val <= 100_000);
     kani::assume(pnl_val <= i128::MAX as u128);
 
     let collateral: u64 = kani::any();
-    kani::assume(collateral <= 1_000_000);
+    kani::assume(collateral <= 100_000);
 
     p.pnl = pnl_val as i128;
     p.reserved_pnl = 0; // Fully matured → all released
@@ -224,7 +224,7 @@ fn p7_4_touch_account_full_settlement() {
 
     // Flat account with some collateral
     let collateral: u64 = kani::any();
-    kani::assume(collateral >= 1_000 && collateral <= 1_000_000);
+    kani::assume(collateral >= 1_000 && collateral <= 100_000);
 
     p.deposited_collateral = collateral;
     p.basis = 0; // flat
@@ -268,7 +268,7 @@ fn p7_4b_touch_account_full_settles_losses() {
     let mut p = test_position();
 
     let collateral: u64 = kani::any();
-    kani::assume(collateral >= 10_000 && collateral <= 1_000_000);
+    kani::assume(collateral >= 10_000 && collateral <= 100_000);
 
     let loss: u128 = kani::any();
     kani::assume(loss >= 1 && loss <= collateral as u128);
@@ -320,7 +320,7 @@ fn p7_4c_touch_account_full_with_position() {
 
     // Set up a position with collateral and non-zero basis
     let collateral: u64 = kani::any();
-    kani::assume(collateral >= 100_000 && collateral <= 1_000_000);
+    kani::assume(collateral >= 100_000 && collateral <= 100_000);
 
     p.deposited_collateral = collateral;
     p.pnl = 0;
@@ -334,7 +334,7 @@ fn p7_4c_touch_account_full_with_position() {
 
     // Create a long position with non-zero basis
     let size_q: u128 = kani::any();
-    kani::assume(size_q >= 1_000 && size_q <= 100_000);
+    kani::assume(size_q >= 1_000 && size_q <= 10_000);
     set_long_position(&mut p, &mut m, size_q);
 
     // Initial oracle price

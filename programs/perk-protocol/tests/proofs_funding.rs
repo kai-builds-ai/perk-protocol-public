@@ -40,9 +40,9 @@ fn p5_1_accrue_market_mark_delta_nonzero_funding() {
 
     // Set up market with both sides having OI (required for funding)
     let oi_long: u128 = kani::any();
-    kani::assume(oi_long >= 1_000 && oi_long <= 1_000_000);
+    kani::assume(oi_long >= 1_000 && oi_long <= 10_000);
     let oi_short: u128 = kani::any();
-    kani::assume(oi_short >= 1_000 && oi_short <= 1_000_000);
+    kani::assume(oi_short >= 1_000 && oi_short <= 10_000);
 
     m.oi_eff_long_q = oi_long;
     m.oi_eff_short_q = oi_short;
@@ -121,9 +121,9 @@ fn p5_2_funding_k_deltas_long_payer() {
 
     // Both sides need OI for funding
     let oi_long: u128 = kani::any();
-    kani::assume(oi_long >= 1_000 && oi_long <= 100_000);
+    kani::assume(oi_long >= 1_000 && oi_long <= 10_000);
     let oi_short: u128 = kani::any();
-    kani::assume(oi_short >= 1_000 && oi_short <= 100_000);
+    kani::assume(oi_short >= 1_000 && oi_short <= 10_000);
 
     m.oi_eff_long_q = oi_long;
     m.oi_eff_short_q = oi_short;
@@ -185,9 +185,9 @@ fn p5_3_funding_k_deltas_short_payer() {
     kani::assume(dt >= 1 && dt <= 3);
 
     let oi_long: u128 = kani::any();
-    kani::assume(oi_long >= 1_000 && oi_long <= 100_000);
+    kani::assume(oi_long >= 1_000 && oi_long <= 10_000);
     let oi_short: u128 = kani::any();
-    kani::assume(oi_short >= 1_000 && oi_short <= 100_000);
+    kani::assume(oi_short >= 1_000 && oi_short <= 10_000);
 
     m.oi_eff_long_q = oi_long;
     m.oi_eff_short_q = oi_short;

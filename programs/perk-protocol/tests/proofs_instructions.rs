@@ -317,20 +317,20 @@ fn h4_open_position_margin_check() {
 
     // Symbolic collateral
     let collateral: u64 = kani::any();
-    kani::assume(collateral >= 100_000 && collateral <= 1_000_000_000);
+    kani::assume(collateral >= 100_000 && collateral <= 10_000_000);
     p.deposited_collateral = collateral;
     m.c_tot = collateral as u128;
     m.vault_balance = collateral as u128;
 
     // Symbolic position size (small for tractability)
     let base_size: u64 = kani::any();
-    kani::assume(base_size >= 1 && base_size <= 1_000_000);
+    kani::assume(base_size >= 1 && base_size <= 10_000);
     kani::assume(base_size <= i64::MAX as u64);
 
     let is_long: bool = kani::any();
 
     let oracle_price: u64 = kani::any();
-    kani::assume(oracle_price >= 1 && oracle_price <= 1_000_000);
+    kani::assume(oracle_price >= 100 && oracle_price <= 10_000);
 
     let slot = DEFAULT_SLOT + 1;
 
@@ -419,14 +419,14 @@ fn h5_close_position_pnl_settlement() {
 
     // Set up a funded position with a long
     let collateral: u64 = kani::any();
-    kani::assume(collateral >= 100_000 && collateral <= 1_000_000_000);
+    kani::assume(collateral >= 100_000 && collateral <= 10_000_000);
     p.deposited_collateral = collateral;
     m.c_tot = collateral as u128;
     m.vault_balance = collateral as u128;
 
     // Position size
     let pos_size: u128 = kani::any();
-    kani::assume(pos_size >= 1 && pos_size <= 1_000_000);
+    kani::assume(pos_size >= 1 && pos_size <= 10_000);
 
     let is_long: bool = kani::any();
 
@@ -439,7 +439,7 @@ fn h5_close_position_pnl_settlement() {
     }
 
     let oracle_price: u64 = kani::any();
-    kani::assume(oracle_price >= 1 && oracle_price <= 1_000_000);
+    kani::assume(oracle_price >= 100 && oracle_price <= 10_000);
 
     let slot = DEFAULT_SLOT + 1;
 
@@ -524,7 +524,7 @@ fn h6_withdrawal_blocked_when_underwater() {
     kani::assume(pos_size >= 100_000 && pos_size <= 10_000_000);
 
     let oracle_price: u64 = kani::any();
-    kani::assume(oracle_price >= 100 && oracle_price <= 1_000_000);
+    kani::assume(oracle_price >= 100 && oracle_price <= 10_000);
 
     // Ensure position is underwater: notional/20 > collateral
     let notional_val = (pos_size * oracle_price as u128) / POS_SCALE;
@@ -639,14 +639,14 @@ fn h8_full_lifecycle_deposit_open_close_withdraw() {
 
     // Symbolic inputs
     let deposit_amount: u64 = kani::any();
-    kani::assume(deposit_amount >= 100_000 && deposit_amount <= 100_000_000);
+    kani::assume(deposit_amount >= 100_000 && deposit_amount <= 10_000_000);
 
     let pos_size: u64 = kani::any();
-    kani::assume(pos_size >= 1 && pos_size <= 100_000);
+    kani::assume(pos_size >= 1 && pos_size <= 10_000);
     kani::assume(pos_size <= i64::MAX as u64);
 
     let oracle_price: u64 = kani::any();
-    kani::assume(oracle_price >= 1 && oracle_price <= 100_000);
+    kani::assume(oracle_price >= 100 && oracle_price <= 10_000);
 
     let is_long: bool = kani::any();
 

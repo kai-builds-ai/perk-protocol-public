@@ -15,22 +15,39 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  extract:
+    name: Extract Harnesses
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.extract.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract harness names from proof files
+        id: extract
+        run: |
+          MATRIX="[]"
+          for file in programs/perk-protocol/tests/proofs_*.rs; do
+            suite=$(basename "$file" .rs)
+            # Extract function names that follow #[kani::proof]
+            harnesses=$(grep -A1 '#\[kani::proof\]' "$file" \
+              | grep -oP 'fn \K\w+(?=\()' || true)
+            for h in $harnesses; do
+              MATRIX=$(echo "$MATRIX" | jq -c --arg s "$suite" --arg h "$h" '. + [{"suite": $s, "harness": $h}]')
+            done
+          done
+          echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
+          echo "Found $(echo "$MATRIX" | jq length) harnesses"
+
   verify:
-    name: ${{ matrix.suite }}
+    name: "${{ matrix.harness }}"
+    needs: extract
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
+      max-parallel: 20
       matrix:
-        suite:
-          - proofs_arithmetic
-          - proofs_safety
-          - proofs_margin
-          - proofs_invariants
-          - proofs_funding
-          - proofs_liveness
-          - proofs_engine
-          - proofs_instructions
-          - proofs_instructions_2
+        include: ${{ fromJson(needs.extract.outputs.matrix) }}
 
     defaults:
       run:
@@ -61,50 +78,13 @@ jobs:
             cargo kani setup
           fi
 
-      - name: Extract harness names
-        id: harnesses
+      - name: "Verify: ${{ matrix.harness }}"
         run: |
-          HARNESSES=$(grep -oP 'fn \K\w+(?=\()' tests/${{ matrix.suite }}.rs | tr '\n' ' ')
-          echo "list=$HARNESSES" >> "$GITHUB_OUTPUT"
-          echo "Found harnesses: $HARNESSES"
-
-      - name: Run Kani proofs
-        run: |
-          PASSED=0
-          FAILED=0
-          ERRORS=""
-
-          for harness in ${{ steps.harnesses.outputs.list }}; do
-            echo "::group::⚡ $harness"
-            if timeout 900 cargo kani --tests --harness "$harness" \
-              --solver cadical \
-              --default-unwind 30 \
-              --no-unwinding-checks \
-              --output-format terse 2>&1; then
-              echo "✅ $harness — VERIFIED"
-              PASSED=$((PASSED + 1))
-            else
-              EXIT_CODE=$?
-              if [ $EXIT_CODE -eq 124 ]; then
-                echo "⏰ $harness — TIMEOUT (15min)"
-              else
-                echo "❌ $harness — FAILED"
-              fi
-              FAILED=$((FAILED + 1))
-              ERRORS="$ERRORS\n❌ $harness"
-            fi
-            echo "::endgroup::"
-          done
-
-          echo ""
-          echo "═══════════════════════════════════════"
-          echo "  ${{ matrix.suite }}: $PASSED passed, $FAILED failed"
-          echo "═══════════════════════════════════════"
-
-          if [ $FAILED -gt 0 ]; then
-            echo -e "\nFailed harnesses:$ERRORS"
-            exit 1
-          fi
+          timeout 1800 cargo kani --tests --harness "${{ matrix.harness }}" \
+            --solver cadical \
+            --default-unwind 30 \
+            --no-unwinding-assertions \
+            --output-format terse
 
   summary:
     name: Verification Summary
@@ -115,7 +95,7 @@ jobs:
       - name: Report
         run: |
           echo "═══════════════════════════════════════════════"
-          echo "  Kani Formal Verification — 117 proofs"
+          echo "  Kani Formal Verification — per-harness jobs"
           echo "═══════════════════════════════════════════════"
           if [ "${{ needs.verify.result }}" = "success" ]; then
             echo "  ✅ ALL PROOFS VERIFIED"

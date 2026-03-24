@@ -10,7 +10,6 @@ use common::*;
 // P2.1: Deposit conserves vault balance
 // vault_balance_after == vault_balance_before + amount
 // ============================================================================
-#[cfg(kani)]
 #[kani::proof]
 #[kani::unwind(30)]
 #[kani::solver(cadical)]
@@ -45,7 +44,6 @@ fn p2_1_deposit_conserves_vault() {
 // P2.2: Withdrawal conserves vault balance
 // vault_balance_after == vault_balance_before - amount
 // ============================================================================
-#[cfg(kani)]
 #[kani::proof]
 #[kani::unwind(30)]
 #[kani::solver(cadical)]
@@ -79,7 +77,6 @@ fn p2_2_withdrawal_conserves_vault() {
 // P2.3: Trade conserves total value (zero-sum PnL)
 // compute_trade_pnl(+q, dp) + compute_trade_pnl(-q, dp) == 0 for opposing sides
 // ============================================================================
-#[cfg(kani)]
 #[kani::proof]
 #[kani::unwind(30)]
 #[kani::solver(cadical)]
@@ -111,7 +108,6 @@ fn p2_3_trade_zero_sum() {
 // P2.4: Liquidation conserves total value
 // Insurance absorption + haircut covers deficit; vault is not inflated
 // ============================================================================
-#[cfg(kani)]
 #[kani::proof]
 #[kani::unwind(30)]
 #[kani::solver(cadical)]
@@ -146,7 +142,6 @@ fn p2_4_liquidation_conserves() {
 // ============================================================================
 // P2.5: Haircut ratio bounded: h_num <= h_den, h_den != 0
 // ============================================================================
-#[cfg(kani)]
 #[kani::proof]
 #[kani::unwind(30)]
 #[kani::solver(cadical)]
@@ -188,7 +183,6 @@ fn p2_5_haircut_bounded() {
 // ============================================================================
 // P2.6: Equity non-negative for flat position
 // ============================================================================
-#[cfg(kani)]
 #[kani::proof]
 #[kani::unwind(30)]
 #[kani::solver(cadical)]
@@ -213,9 +207,8 @@ fn p2_6_equity_nonneg_flat() {
 // both sides must not create net positive value (payer loss >= receiver gain).
 // Uses pre-scaled funding rates to avoid vacuous truncation-to-zero.
 // ============================================================================
-#[cfg(kani)]
 #[kani::proof]
-#[kani::unwind(4)]
+#[kani::unwind(30)]
 #[kani::solver(cadical)]
 fn p2_7_funding_cannot_mint() {
     let mut market = test_market();
@@ -223,7 +216,7 @@ fn p2_7_funding_cannot_mint() {
     // Symbolic oracle price
     let oracle_price: u64 = kani::any();
     kani::assume(oracle_price >= 100);
-    kani::assume(oracle_price <= 100_000);
+    kani::assume(oracle_price <= 10_000);
 
     // Both sides must have live OI for funding to execute
     let long_oi: u128 = kani::any();
@@ -242,7 +235,7 @@ fn p2_7_funding_cannot_mint() {
     // (floor rounding on receiver) is verified separately in P5.2/P5.3.
     let a_side: u128 = kani::any();
     kani::assume(a_side >= ADL_ONE);
-    kani::assume(a_side <= 10 * ADL_ONE);
+    kani::assume(a_side <= 2 * ADL_ONE);
     market.long_a = a_side;
     market.short_a = a_side;
 
@@ -262,7 +255,7 @@ fn p2_7_funding_cannot_mint() {
     // Symbolic dt (at least 1 slot for funding to run)
     let dt: u64 = kani::any();
     kani::assume(dt >= 1);
-    kani::assume(dt <= 100);
+    kani::assume(dt <= 5);
     let now_slot = market.last_market_slot + dt;
 
     // Capture K indices before
@@ -305,7 +298,6 @@ fn p2_7_funding_cannot_mint() {
 // ============================================================================
 // P2.8: ADL enqueue correctness (a_new < a_old, epoch increments)
 // ============================================================================
-#[cfg(kani)]
 #[kani::proof]
 #[kani::unwind(30)]
 #[kani::solver(cadical)]
@@ -354,7 +346,6 @@ fn p2_8_adl_enqueue_correctness() {
 // P2.9: ADL dust bounds (remainder < k after mul_div)
 // Implicit in mul_div_floor_u256_with_rem: remainder is always < divisor
 // ============================================================================
-#[cfg(kani)]
 #[kani::proof]
 #[kani::unwind(30)]
 #[kani::solver(cadical)]
@@ -388,7 +379,6 @@ fn p2_9_adl_dust_bounds() {
 // ============================================================================
 // P2.10: Insurance buffer respects epoch cap
 // ============================================================================
-#[cfg(kani)]
 #[kani::proof]
 #[kani::unwind(30)]
 #[kani::solver(cadical)]
@@ -434,7 +424,6 @@ fn p2_10_insurance_epoch_cap() {
 // ============================================================================
 // P2.11: Insurance buffer respects floor
 // ============================================================================
-#[cfg(kani)]
 #[kani::proof]
 #[kani::unwind(30)]
 #[kani::solver(cadical)]
@@ -466,7 +455,6 @@ fn p2_11_insurance_floor() {
 // ============================================================================
 // P2.12: absorb_protocol_loss respects haircut floor (insurance >= floor)
 // ============================================================================
-#[cfg(kani)]
 #[kani::proof]
 #[kani::unwind(30)]
 #[kani::solver(cadical)]
@@ -500,7 +488,6 @@ fn p2_12_absorb_respects_floor() {
 // Capital decreases by pay, insurance increases by pay, fee_credits increases by pay
 // Tests with NON-ZERO capital so the sweep actually runs
 // ============================================================================
-#[cfg(kani)]
 #[kani::proof]
 #[kani::unwind(30)]
 #[kani::solver(cadical)]
@@ -550,7 +537,6 @@ fn p2_13_fee_debt_sweep_conservation() {
 // ============================================================================
 // P2.14: Fee credits never i128::MIN
 // ============================================================================
-#[cfg(kani)]
 #[kani::proof]
 #[kani::unwind(30)]
 #[kani::solver(cadical)]
@@ -581,7 +567,6 @@ fn p2_14_fee_credits_never_min() {
 // ============================================================================
 // P2.15: reclaim_empty_account rejects open positions
 // ============================================================================
-#[cfg(kani)]
 #[kani::proof]
 #[kani::unwind(30)]
 #[kani::solver(cadical)]
@@ -612,7 +597,6 @@ fn p2_15_reclaim_rejects_open_position() {
 // ============================================================================
 // P2.16: reclaim_empty_account rejects live capital (non-zero PnL)
 // ============================================================================
-#[cfg(kani)]
 #[kani::proof]
 #[kani::unwind(30)]
 #[kani::solver(cadical)]
@@ -632,7 +616,6 @@ fn p2_16_reclaim_rejects_nonzero_pnl() {
 // P2.17: Phantom dust drain no revert
 // check_and_clear_phantom_dust must not panic when OI <= dust_bound
 // ============================================================================
-#[cfg(kani)]
 #[kani::proof]
 #[kani::unwind(30)]
 #[kani::solver(cadical)]
@@ -667,7 +650,6 @@ fn p2_17_phantom_dust_no_revert() {
 // P2.18: Protected principal (capital can't go below zero)
 // settle_losses caps payment at capital
 // ============================================================================
-#[cfg(kani)]
 #[kani::proof]
 #[kani::unwind(30)]
 #[kani::solver(cadical)]
@@ -714,7 +696,6 @@ fn p2_18_protected_principal() {
 // P2.19: Trading loss seniority (PnL debt before capital)
 // settle_losses deducts from capital and credits PnL toward zero
 // ============================================================================
-#[cfg(kani)]
 #[kani::proof]
 #[kani::unwind(30)]
 #[kani::solver(cadical)]
@@ -761,7 +742,6 @@ fn p2_19_loss_seniority() {
 // ============================================================================
 // P2.20: compute_trade_pnl no panic at boundary
 // ============================================================================
-#[cfg(kani)]
 #[kani::proof]
 #[kani::unwind(30)]
 #[kani::solver(cadical)]

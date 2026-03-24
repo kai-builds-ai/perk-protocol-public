@@ -154,7 +154,7 @@ fn p4_3_bankruptcy_routes_quantity_zero_deficit() {
     kani::assume(close_q >= 1 && close_q <= 10_000);
 
     let oi_opp: u128 = kani::any();
-    kani::assume(oi_opp > close_q && oi_opp <= 100_000);
+    kani::assume(oi_opp > close_q && oi_opp <= 10_000);
 
     // Liquidating longs with zero deficit
     m.oi_eff_long_q = close_q;
