@@ -17,7 +17,8 @@ export function TopBar({
   solPrice,
 }: TopBarProps) {
   return (
-    <div className="flex items-center justify-between h-12 px-6 border-b border-border bg-surface">
+    <div className="border-b border-border bg-surface">
+    <div className="flex items-center justify-between h-12 px-6 max-w-7xl mx-auto">
       <div className="flex items-center gap-8">
         <Link href="/" className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-[3px] overflow-hidden bg-bg flex-shrink-0"><img src="/logo.png" alt="Perk" width={32} height={32} className="mix-blend-lighten" /></div>
@@ -51,6 +52,7 @@ export function TopBar({
         </Link>
         <WalletButton />
       </div>
+    </div>
     </div>
   );
 }
