@@ -29,9 +29,8 @@ jobs:
           MATRIX="[]"
           for file in programs/perk-protocol/tests/proofs_*.rs; do
             suite=$(basename "$file" .rs)
-            # Extract function names that follow #[kani::proof]
-            harnesses=$(grep -A1 '#\[kani::proof\]' "$file" \
-              | grep -oP 'fn \K\w+(?=\()' || true)
+            # Extract all fn names from proof files (every fn is a harness)
+            harnesses=$(grep -oP 'fn \K\w+(?=\()' "$file" || true)
             for h in $harnesses; do
               MATRIX=$(echo "$MATRIX" | jq -c --arg s "$suite" --arg h "$h" '. + [{"suite": $s, "harness": $h}]')
             done
