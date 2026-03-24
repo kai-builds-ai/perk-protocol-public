@@ -1,0 +1,268 @@
+name: Kani Formal Verification
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'programs/perk-protocol/src/**'
+      - 'programs/perk-protocol/tests/**'
+      - '.github/workflows/kani.yml'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  PROGRAM_DIR: programs/perk-protocol
+
+jobs:
+  # ── Arithmetic (15 proofs) ──────────────────────────────────────────
+  proofs-arithmetic:
+    name: "Arithmetic (15 proofs)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: model-checking/kani-github-action@v1
+        with:
+          working-directory: ${{ env.PROGRAM_DIR }}
+          args: >
+            --tests
+            --harness p1_1_floor_div_signed_conservative
+            --harness p1_2_mul_div_floor_algebraic_identity
+            --harness p1_3_ceil_equals_floor_plus_remainder
+            --harness p1_4_mul_div_matches_native_u8
+            --harness p1_5_fee_debt_checked
+            --harness p1_6_saturating_mul_saturates
+            --harness p1_7_ceil_div_positive
+            --harness p1_8_wide_signed_mul_div_floor_sign
+            --harness p1_9_k_pair_difference_correct
+            --harness p1_10_k_pair_equal_returns_zero
+            --harness p1_11_zero_inputs_zero_results
+            --harness p1_12_notional_zero_for_flat
+            --harness p1_13_notional_monotone_in_price
+            --harness p1_14_fused_delta_k_no_double_rounding
+            --harness p1_15_haircut_mul_div_conservative
+
+  # ── Safety (20 proofs) ──────────────────────────────────────────────
+  proofs-safety:
+    name: "Safety (20 proofs)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: model-checking/kani-github-action@v1
+        with:
+          working-directory: ${{ env.PROGRAM_DIR }}
+          args: >
+            --tests
+            --harness p2_1_deposit_conserves_vault
+            --harness p2_2_withdrawal_conserves_vault
+            --harness p2_3_trade_zero_sum
+            --harness p2_4_liquidation_conserves
+            --harness p2_5_haircut_bounded
+            --harness p2_6_equity_nonneg_flat
+            --harness p2_7_funding_cannot_mint
+            --harness p2_8_adl_enqueue_correctness
+            --harness p2_9_adl_dust_bounds
+            --harness p2_10_insurance_epoch_cap
+            --harness p2_11_insurance_floor
+            --harness p2_12_absorb_respects_floor
+            --harness p2_13_fee_debt_sweep_conservation
+            --harness p2_14_fee_credits_never_min
+            --harness p2_15_reclaim_rejects_open_position
+            --harness p2_16_reclaim_rejects_nonzero_pnl
+            --harness p2_17_phantom_dust_no_revert
+            --harness p2_18_protected_principal
+            --harness p2_19_loss_seniority
+            --harness p2_20_compute_trade_pnl_no_panic
+
+  # ── Invariants (11 proofs) ─────────────────────────────────────────
+  proofs-invariants:
+    name: "Invariants (11 proofs)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: model-checking/kani-github-action@v1
+        with:
+          working-directory: ${{ env.PROGRAM_DIR }}
+          args: >
+            --tests
+            --harness p3_1_set_pnl_maintains_pnl_pos_tot
+            --harness p3_2_set_capital_maintains_c_tot
+            --harness p3_3_set_position_basis_q_count_tracking
+            --harness p3_4_conservation_after_deposit
+            --harness p3_5_conservation_after_loss_settlement
+            --harness p3_6_effective_position_zero_for_flat
+            --harness p3_7_effective_position_zero_for_epoch_mismatch
+            --harness p3_8_attach_updates_side_counts
+            --harness p3_8b_attach_updates_side_counts_close
+            --harness p3_9_warmup_release_bounded_by_reserved
+            --harness p3_10_warmup_release_bounded_by_slope_elapsed
+
+  # ── Liveness (6 proofs) ────────────────────────────────────────────
+  proofs-liveness:
+    name: "Liveness (6 proofs)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: model-checking/kani-github-action@v1
+        with:
+          working-directory: ${{ env.PROGRAM_DIR }}
+          args: >
+            --tests
+            --harness p4_1_maybe_finalize_auto_finalizes
+            --harness p4_1b_no_finalize_with_nonzero_counters
+            --harness p4_2_precision_exhaustion_terminal_drain
+            --harness p4_3_bankruptcy_routes_quantity_zero_deficit
+            --harness p4_4_pure_pnl_bankruptcy_path
+            --harness p4_5_phantom_dust_clears
+
+  # ── Funding (9 proofs) ─────────────────────────────────────────────
+  proofs-funding:
+    name: "Funding (9 proofs)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: model-checking/kani-github-action@v1
+        with:
+          working-directory: ${{ env.PROGRAM_DIR }}
+          args: >
+            --tests
+            --harness p5_1_accrue_market_mark_delta_nonzero_funding
+            --harness p5_2_funding_k_deltas_long_payer
+            --harness p5_3_funding_k_deltas_short_payer
+            --harness p5_4_funding_rate_clamped
+            --harness p5_5_set_funding_rate_stores_correctly
+            --harness p5_6_calculate_funding_rate_correct
+            --harness p5_6b_calculate_funding_rate_rejects_zero_oracle
+            --harness p5_7_update_funding_correct
+            --harness p5_7b_update_funding_noop_empty_side
+
+  # ── Margin (29 proofs) ─────────────────────────────────────────────
+  proofs-margin:
+    name: "Margin (29 proofs)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: model-checking/kani-github-action@v1
+        with:
+          working-directory: ${{ env.PROGRAM_DIR }}
+          args: >
+            --tests
+            --harness p6_1a_equity_maint_raw_wide_matches_spec
+            --harness p6_1b_equity_maint_flat_equals_collateral
+            --harness p6_1c_equity_maint_negative_pnl_reduces
+            --harness p6_1d_fee_debt_reduces_equity
+            --harness p6_2a_equity_net_always_nonneg
+            --harness p6_2b_equity_net_matches_clamped_maint
+            --harness p6_2c_positive_equity_passthrough
+            --harness p6_3a_init_equity_negative_pnl
+            --harness p6_3b_init_equity_fully_reserved_pnl
+            --harness p6_3c_init_equity_zero_pnl
+            --harness p6_3d_init_equity_leq_maint_equity
+            --harness p6_4a_flat_above_maintenance
+            --harness p6_4b_zero_equity_not_above_maintenance
+            --harness p6_4c_maintenance_boundary
+            --harness p6_5a_flat_above_initial
+            --harness p6_5b_im_stricter_than_mm
+            --harness p6_5c_well_collateralized_above_both
+            --harness p6_6a_positive_equity_zero_deficit
+            --harness p6_6b_negative_equity_produces_deficit
+            --harness p6_6c_liquidation_fee_split
+            --harness p6_6d_flat_not_liquidatable
+            --harness p6_7a_going_flat_always_ok
+            --harness p6_7b_opening_requires_im
+            --harness p6_7c_increase_requires_im
+            --harness p6_7d_decrease_requires_mm
+            --harness p6_8a_zero_position_always_valid
+            --harness p6_8b_oversize_position_rejected
+            --harness p6_8c_within_bounds_accepted
+            --harness p6_8d_notional_at_max_accepted
+
+  # ── Engine (10 proofs) ─────────────────────────────────────────────
+  proofs-engine:
+    name: "Engine (10 proofs)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: model-checking/kani-github-action@v1
+        with:
+          working-directory: ${{ env.PROGRAM_DIR }}
+          args: >
+            --tests
+            --harness p7_1_consume_released_pnl_conservation
+            --harness p7_2_do_profit_conversion_conservation
+            --harness p7_3_update_oi_delta_correctness
+            --harness p7_3b_update_oi_delta_rejects_underflow
+            --harness p7_4_touch_account_full_settlement
+            --harness p7_4b_touch_account_full_settles_losses
+            --harness p7_4c_touch_account_full_with_position
+            --harness p7_5_deposit_fee_credits_checked
+            --harness p7_5b_deposit_fee_credits_rejects_overflow
+            --harness p7_5c_deposit_fee_credits_rejects_min
+
+  # ── Instructions (9 harnesses) ─────────────────────────────────────
+  proofs-instructions:
+    name: "Instructions (9 harnesses)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: model-checking/kani-github-action@v1
+        with:
+          working-directory: ${{ env.PROGRAM_DIR }}
+          args: >
+            --tests
+            --harness h1_deposit_conservation
+            --harness h2_withdraw_conservation
+            --harness h3_deposit_withdraw_roundtrip
+            --harness h4_open_position_margin_check
+            --harness h5_close_position_pnl_settlement
+            --harness h6_withdrawal_blocked_when_underwater
+            --harness h7_open_position_blocked_on_wrong_side
+            --harness h7b_open_position_blocked_on_reset_pending
+            --harness h8_full_lifecycle_deposit_open_close_withdraw
+
+  # ── Instructions 2 (8 harnesses) ──────────────────────────────────
+  proofs-instructions-2:
+    name: "Instructions₂ (8 harnesses)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: model-checking/kani-github-action@v1
+        with:
+          working-directory: ${{ env.PROGRAM_DIR }}
+          args: >
+            --tests
+            --harness h9_liquidation_conservation
+            --harness h10_liquidation_blocked_when_solvent
+            --harness h11_liquidation_fires_when_underwater
+            --harness h12_crank_funding_idempotency
+            --harness h13_reclaim_rejects_active_position
+            --harness h14_reclaim_succeeds_on_empty
+            --harness h15_fee_claim_conservation
+            --harness h16_two_user_funding_zero_sum
+
+  # ── Summary ────────────────────────────────────────────────────────
+  verification-complete:
+    name: "✅ All 117 Proofs Verified"
+    runs-on: ubuntu-latest
+    needs:
+      - proofs-arithmetic
+      - proofs-safety
+      - proofs-invariants
+      - proofs-liveness
+      - proofs-funding
+      - proofs-margin
+      - proofs-engine
+      - proofs-instructions
+      - proofs-instructions-2
+    steps:
+      - run: echo "All 117 Kani proofs verified successfully."
