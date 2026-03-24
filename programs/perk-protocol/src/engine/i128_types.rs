@@ -81,7 +81,7 @@ impl I128 {
 
     #[inline]
     pub fn abs(self) -> Self {
-        Self::new(self.get().abs())
+        Self::new(self.get().saturating_abs())
     }
 
     #[inline]

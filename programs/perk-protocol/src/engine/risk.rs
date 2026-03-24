@@ -609,7 +609,7 @@ pub fn accrue_market_to(market: &mut Market, now_slot: u64, oracle_price: u64) -
     }
 
     let funding_rate = market.funding_rate_bps_per_slot_last;
-    if funding_rate.abs() > MAX_ABS_FUNDING_BPS_PER_SLOT {
+    if funding_rate.saturating_abs() > MAX_ABS_FUNDING_BPS_PER_SLOT {
         return Err(PerkError::MathOverflow.into());
     }
 

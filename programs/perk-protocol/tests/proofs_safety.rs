@@ -570,7 +570,7 @@ fn p2_15_reclaim_rejects_open_position() {
     // Give the position a non-zero basis (open position)
     let basis: i128 = kani::any();
     kani::assume(basis != 0);
-    kani::assume(basis.abs() <= 1_000);
+    kani::assume(basis.unsigned_abs() <= 1_000);
     pos.basis = basis;
 
     // Make effective_position_q return non-zero
@@ -740,10 +740,10 @@ fn p2_19_loss_seniority() {
 #[kani::solver(cadical)]
 fn p2_20_compute_trade_pnl_no_panic() {
     let size_q: i128 = kani::any();
-    kani::assume(size_q.abs() <= 1_000);
+    kani::assume(size_q.unsigned_abs() <= 1_000);
 
     let price_diff: i128 = kani::any();
-    kani::assume(price_diff.abs() <= 1_000);
+    kani::assume(price_diff.unsigned_abs() <= 1_000);
 
     // This must not panic — it may return Err for overflow, which is acceptable
     let result = compute_trade_pnl(size_q, price_diff);

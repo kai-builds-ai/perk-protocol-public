@@ -16,6 +16,10 @@ on:
         required: false
         default: ''
 
+concurrency:
+  group: kani-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   CARGO_TERM_COLOR: always
 
