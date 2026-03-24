@@ -22,8 +22,8 @@ use rand::rngs::StdRng;
 use std::time::Instant;
 
 const NUM_USERS: usize = 4;
-const MAX_ITERATIONS: u64 = 1_000_000;
-const REPORT_INTERVAL: u64 = 10_000;
+const MAX_ITERATIONS: u64 = u64::MAX; // run until time limit
+const REPORT_INTERVAL: u64 = 100_000_000;
 const RUN_DURATION_SECS: u64 = 8 * 3600; // 8 hours
 
 /// Snapshot of invariant-relevant state
