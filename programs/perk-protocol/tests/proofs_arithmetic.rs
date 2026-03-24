@@ -11,7 +11,7 @@ use common::*;
 // For positive results: floor. For negative results: round away from zero.
 // =============================================================================
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p1_1_floor_div_signed_conservative() {
     let abs_basis: u128 = kani::any::<u8>() as u128 + 1; // 1..256
@@ -44,7 +44,7 @@ fn p1_1_floor_div_signed_conservative() {
 // P1.2: mul_div_floor algebraic identity: q*d + r == a*b, r < d
 // =============================================================================
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p1_2_mul_div_floor_algebraic_identity() {
     let a_raw: u8 = kani::any();
@@ -71,7 +71,7 @@ fn p1_2_mul_div_floor_algebraic_identity() {
 // P1.3: mul_div_ceil == floor + (r != 0 ? 1 : 0)
 // =============================================================================
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p1_3_ceil_equals_floor_plus_remainder() {
     let a_raw: u8 = kani::any();
@@ -99,7 +99,7 @@ fn p1_3_ceil_equals_floor_plus_remainder() {
 // P1.4: mul_div_floor/ceil match native reference for u8 range
 // =============================================================================
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p1_4_mul_div_matches_native_u8() {
     let a: u8 = kani::any();
@@ -132,7 +132,7 @@ fn p1_4_mul_div_matches_native_u8() {
 // P1.5: fee_debt_u128_checked: negative fc → abs, positive → 0
 // =============================================================================
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p1_5_fee_debt_checked() {
     let fc: i128 = kani::any::<i16>() as i128; // tractable range
@@ -153,7 +153,7 @@ fn p1_5_fee_debt_checked() {
 // P1.6: saturating_mul_u128_u64 saturates at u128::MAX
 // =============================================================================
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p1_6_saturating_mul_saturates() {
     let a: u128 = kani::any::<u16>() as u128;
@@ -181,7 +181,7 @@ fn p1_6_saturating_mul_saturates() {
 // P1.7: ceil_div_positive_checked matches reference
 // =============================================================================
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p1_7_ceil_div_positive() {
     let n_raw: u8 = kani::any();
@@ -216,7 +216,7 @@ fn p1_7_ceil_div_positive() {
 // P1.8: wide_signed_mul_div_floor correct sign and rounding
 // =============================================================================
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p1_8_wide_signed_mul_div_floor_sign() {
     let abs_basis: u128 = kani::any::<u8>() as u128 + 1;
@@ -251,7 +251,7 @@ fn p1_8_wide_signed_mul_div_floor_sign() {
 // P1.9: wide_signed_mul_div_floor_from_k_pair correct with arbitrary K-difference
 // =============================================================================
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p1_9_k_pair_difference_correct() {
     let abs_basis: u128 = kani::any::<u8>() as u128 + 1;
@@ -273,7 +273,7 @@ fn p1_9_k_pair_difference_correct() {
 // P1.10: K-pair with equal k_now/k_then returns 0
 // =============================================================================
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p1_10_k_pair_equal_returns_zero() {
     let abs_basis: u128 = kani::any::<u16>() as u128;
@@ -288,7 +288,7 @@ fn p1_10_k_pair_equal_returns_zero() {
 // P1.11: Zero inputs produce zero results
 // =============================================================================
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p1_11_zero_inputs_zero_results() {
     let b: u128 = kani::any::<u8>() as u128;
@@ -322,7 +322,7 @@ fn p1_11_zero_inputs_zero_results() {
 // P1.12: Notional is zero for flat position
 // =============================================================================
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p1_12_notional_zero_for_flat() {
     let price: u64 = kani::any::<u16>() as u64 + 1;
@@ -338,7 +338,7 @@ fn p1_12_notional_zero_for_flat() {
 // P1.13: Notional is monotone in price
 // =============================================================================
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p1_13_notional_monotone_in_price() {
     let size_q: u8 = kani::any();
@@ -364,7 +364,7 @@ fn p1_13_notional_monotone_in_price() {
 // The delta_k computation uses a single wide multiply, not mul then div.
 // =============================================================================
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p1_14_fused_delta_k_no_double_rounding() {
     let a_val: u128 = kani::any::<u8>() as u128 + 1;
@@ -395,7 +395,7 @@ fn p1_14_fused_delta_k_no_double_rounding() {
 // wide_mul_div_floor_u128 returns ≤ exact value (floor rounding is conservative)
 // =============================================================================
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p1_15_haircut_mul_div_conservative() {
     let released: u128 = kani::any::<u8>() as u128;

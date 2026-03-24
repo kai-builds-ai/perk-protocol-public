@@ -15,7 +15,7 @@ use common::*;
 // ============================================================================
 
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p7_1_consume_released_pnl_conservation() {
     let mut m = test_market();
@@ -79,7 +79,7 @@ fn p7_1_consume_released_pnl_conservation() {
 // ============================================================================
 
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p7_2_do_profit_conversion_conservation() {
     let mut m = test_market();
@@ -143,7 +143,7 @@ fn p7_2_do_profit_conversion_conservation() {
 // ============================================================================
 
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p7_3_update_oi_delta_correctness() {
     let mut m = test_market();
@@ -190,7 +190,7 @@ fn p7_3_update_oi_delta_correctness() {
 // ============================================================================
 
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p7_3b_update_oi_delta_rejects_underflow() {
     let mut m = test_market();
@@ -398,7 +398,7 @@ fn p7_4c_touch_account_full_with_position() {
 // ============================================================================
 
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p7_5_deposit_fee_credits_checked() {
     let mut p = test_position();
@@ -432,7 +432,7 @@ fn p7_5_deposit_fee_credits_checked() {
 // ============================================================================
 
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p7_5b_deposit_fee_credits_rejects_overflow() {
     let mut p = test_position();
@@ -452,7 +452,7 @@ fn p7_5b_deposit_fee_credits_rejects_overflow() {
 // ============================================================================
 
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p7_5c_deposit_fee_credits_rejects_min() {
     let mut p = test_position();

@@ -30,7 +30,7 @@ use perk_protocol::engine::liquidation::{
 
 /// P6.1a: Equity computation matches spec formula for arbitrary position state
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p6_1a_equity_maint_raw_wide_matches_spec() {
     let collateral: u64 = kani::any();
@@ -66,7 +66,7 @@ fn p6_1a_equity_maint_raw_wide_matches_spec() {
 
 /// P6.1b: Flat position with no fees → equity = collateral
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p6_1b_equity_maint_flat_equals_collateral() {
     let collateral: u64 = kani::any();
@@ -83,7 +83,7 @@ fn p6_1b_equity_maint_flat_equals_collateral() {
 
 /// P6.1c: Underwater position (negative PNL) reduces equity
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p6_1c_equity_maint_negative_pnl_reduces() {
     let collateral: u64 = kani::any();
@@ -104,7 +104,7 @@ fn p6_1c_equity_maint_negative_pnl_reduces() {
 
 /// P6.1d: Fee debt reduces equity
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p6_1d_fee_debt_reduces_equity() {
     let collateral: u64 = kani::any();
@@ -130,7 +130,7 @@ fn p6_1d_fee_debt_reduces_equity() {
 
 /// P6.2a: Equity net is always non-negative
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p6_2a_equity_net_always_nonneg() {
     let collateral: u64 = kani::any();
@@ -154,7 +154,7 @@ fn p6_2a_equity_net_always_nonneg() {
 
 /// P6.2b: Equity net matches max(0, maint_raw)
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p6_2b_equity_net_matches_clamped_maint() {
     let collateral: u64 = kani::any();
@@ -181,7 +181,7 @@ fn p6_2b_equity_net_matches_clamped_maint() {
 
 /// P6.2c: Positive equity passes through unchanged
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p6_2c_positive_equity_passthrough() {
     let collateral: u64 = kani::any();
@@ -205,7 +205,7 @@ fn p6_2c_positive_equity_passthrough() {
 
 /// P6.3a: For negative PNL (no matured profit), init equity uses full negative PNL
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p6_3a_init_equity_negative_pnl() {
     let collateral: u64 = kani::any();
@@ -229,7 +229,7 @@ fn p6_3a_init_equity_negative_pnl() {
 
 /// P6.3b: For positive PNL fully reserved (warming up), init equity = C (min(PNL,0)=0, matured=0)
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p6_3b_init_equity_fully_reserved_pnl() {
     let collateral: u64 = kani::any();
@@ -258,7 +258,7 @@ fn p6_3b_init_equity_fully_reserved_pnl() {
 
 /// P6.3c: For zero PNL, init equity = collateral - fee_debt
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p6_3c_init_equity_zero_pnl() {
     let collateral: u64 = kani::any();
@@ -280,7 +280,7 @@ fn p6_3c_init_equity_zero_pnl() {
 
 /// P6.3d: Init equity <= maint equity (init is more conservative)
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p6_3d_init_equity_leq_maint_equity() {
     let collateral: u64 = kani::any();
@@ -318,7 +318,7 @@ fn p6_3d_init_equity_leq_maint_equity() {
 
 /// P6.4a: Flat position is always above maintenance margin
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p6_4a_flat_above_maintenance() {
     let collateral: u64 = kani::any();
@@ -341,7 +341,7 @@ fn p6_4a_flat_above_maintenance() {
 
 /// P6.4b: Zero collateral with position is NOT above maintenance
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p6_4b_zero_equity_not_above_maintenance() {
     let size: u64 = kani::any();
@@ -366,7 +366,7 @@ fn p6_4b_zero_equity_not_above_maintenance() {
 
 /// P6.4c: Maintenance margin boundary — just below threshold fails
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p6_4c_maintenance_boundary() {
     let mut market = test_market();
@@ -405,7 +405,7 @@ fn p6_4c_maintenance_boundary() {
 
 /// P6.5a: Flat position always above initial margin
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p6_5a_flat_above_initial() {
     let collateral: u64 = kani::any();
@@ -436,7 +436,7 @@ fn p6_5a_flat_above_initial() {
 /// MM check: Eq_net > MM_req → strict greater (50_051 > 50_000 ✓)
 /// IM check: Eq_init_raw >= IM_req → (50_051 >= 50_100 ✗)
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p6_5b_im_stricter_than_mm() {
     let mut market = test_market();
@@ -468,7 +468,7 @@ fn p6_5b_im_stricter_than_mm() {
 
 /// P6.5c: Well-collateralized position is above both IM and MM
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p6_5c_well_collateralized_above_both() {
     let mut market = test_market();
@@ -498,7 +498,7 @@ fn p6_5c_well_collateralized_above_both() {
 
 /// P6.6a: Positive equity → zero deficit
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p6_6a_positive_equity_zero_deficit() {
     let collateral: u64 = kani::any();
@@ -530,7 +530,7 @@ fn p6_6a_positive_equity_zero_deficit() {
 
 /// P6.6b: Negative equity → deficit = |equity|
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p6_6b_negative_equity_produces_deficit() {
     let loss: u64 = kani::any();
@@ -559,7 +559,7 @@ fn p6_6b_negative_equity_produces_deficit() {
 
 /// P6.6c: Liquidation fee split: 50% to liquidator, rest to insurance
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p6_6c_liquidation_fee_split() {
     let oracle: u64 = kani::any();
@@ -592,7 +592,7 @@ fn p6_6c_liquidation_fee_split() {
 
 /// P6.6d: Flat position cannot be liquidated (is_liquidatable returns false)
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p6_6d_flat_not_liquidatable() {
     let collateral: u64 = kani::any();
@@ -621,7 +621,7 @@ fn p6_6d_flat_not_liquidatable() {
 
 /// P6.7a: Going flat always succeeds (no margin requirement)
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p6_7a_going_flat_always_ok() {
     let old_eff: i128 = kani::any();
@@ -643,7 +643,7 @@ fn p6_7a_going_flat_always_ok() {
 
 /// P6.7b: Opening from flat requires initial margin
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p6_7b_opening_requires_im() {
     let oracle: u64 = 1_000_000;
@@ -672,7 +672,7 @@ fn p6_7b_opening_requires_im() {
 
 /// P6.7c: Increasing position requires IM
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p6_7c_increase_requires_im() {
     let oracle: u64 = 1_000_000;
@@ -695,7 +695,7 @@ fn p6_7c_increase_requires_im() {
 
 /// P6.7d: Decreasing position (but not flat) requires MM
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p6_7d_decrease_requires_mm() {
     let oracle: u64 = 1_000_000;
@@ -730,7 +730,7 @@ fn p6_7d_decrease_requires_mm() {
 
 /// P6.8a: Zero position always valid
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p6_8a_zero_position_always_valid() {
     let oracle: u64 = kani::any();
@@ -742,7 +742,7 @@ fn p6_8a_zero_position_always_valid() {
 
 /// P6.8b: Position exceeding MAX_POSITION_ABS_Q rejected
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p6_8b_oversize_position_rejected() {
     let excess: u128 = kani::any();
@@ -762,7 +762,7 @@ fn p6_8b_oversize_position_rejected() {
 
 /// P6.8c: Position within bounds accepted (small position, reasonable oracle)
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p6_8c_within_bounds_accepted() {
     let size: u64 = kani::any();
@@ -785,7 +785,7 @@ fn p6_8c_within_bounds_accepted() {
 
 /// P6.8d: Notional overflow rejected even if position size is within bounds
 #[kani::proof]
-#[kani::unwind(2)]
+#[kani::unwind(10)]
 #[kani::solver(cadical)]
 fn p6_8d_notional_at_max_accepted() {
     // Use max position with max oracle to trigger notional overflow

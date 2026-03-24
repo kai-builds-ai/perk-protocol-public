@@ -76,16 +76,16 @@ jobs:
 
           for harness in ${{ steps.harnesses.outputs.list }}; do
             echo "::group::⚡ $harness"
-            if timeout 300 cargo kani --tests --harness "$harness" \
+            if timeout 900 cargo kani --tests --harness "$harness" \
               --solver cadical \
-              --default-unwind 4 \
+              --default-unwind 10 \
               --output-format terse 2>&1; then
               echo "✅ $harness — VERIFIED"
               PASSED=$((PASSED + 1))
             else
               EXIT_CODE=$?
               if [ $EXIT_CODE -eq 124 ]; then
-                echo "⏰ $harness — TIMEOUT (5min)"
+                echo "⏰ $harness — TIMEOUT (15min)"
               else
                 echo "❌ $harness — FAILED"
               fi
