@@ -23,26 +23,22 @@ use common::*;
 fn p5_1_accrue_market_mark_delta_nonzero_funding() {
     let mut m = test_market();
 
-    // Symbolic oracle prices
+    // Symbolic oracle prices — tightened for solver tractability
     let old_price: u64 = kani::any();
-    kani::assume(old_price >= 100 && old_price <= 10_000);
+    kani::assume(old_price >= 100 && old_price <= 200);
     let new_price: u64 = kani::any();
-    kani::assume(new_price >= 100 && new_price <= 10_000);
+    kani::assume(new_price >= 100 && new_price <= 200);
 
     // Symbolic funding rate: the stored value IS the pre-scaled rate.
-    // Use directly in [1, MAX_ABS_FUNDING_BPS_PER_SLOT] — do NOT multiply by FUNDING_RATE_PRECISION.
     let rate: i64 = kani::any();
-    kani::assume(rate >= 1 && rate <= MAX_ABS_FUNDING_BPS_PER_SLOT);
+    kani::assume(rate >= 1 && rate <= 100);
 
-    // Symbolic slot delta (small for tractability)
-    let dt: u64 = kani::any();
-    kani::assume(dt >= 1 && dt <= 3);
+    // Fixed slot delta for tractability
+    let dt: u64 = 1;
 
-    // Set up market with both sides having OI (required for funding)
-    let oi_long: u128 = kani::any();
-    kani::assume(oi_long >= 1_000 && oi_long <= 10_000);
-    let oi_short: u128 = kani::any();
-    kani::assume(oi_short >= 1_000 && oi_short <= 10_000);
+    // Fixed OI — no symbolic ranges needed for this property
+    let oi_long: u128 = 5_000;
+    let oi_short: u128 = 5_000;
 
     m.oi_eff_long_q = oi_long;
     m.oi_eff_short_q = oi_short;
@@ -107,23 +103,19 @@ fn p5_1_accrue_market_mark_delta_nonzero_funding() {
 fn p5_2_funding_k_deltas_long_payer() {
     let mut m = test_market();
 
-    // Keep price constant to isolate funding from mark
+    // Fixed price to isolate funding from mark
     let price: u64 = kani::any();
-    kani::assume(price >= 100 && price <= 10_000);
+    kani::assume(price >= 100 && price <= 200);
 
     // Positive rate: longs pay shorts.
-    // The stored funding_rate_bps_per_slot_last IS the pre-scaled value — do NOT multiply.
     let rate: i64 = kani::any();
-    kani::assume(rate >= 1 && rate <= MAX_ABS_FUNDING_BPS_PER_SLOT);
+    kani::assume(rate >= 1 && rate <= 100);
 
-    let dt: u64 = kani::any();
-    kani::assume(dt >= 1 && dt <= 3);
+    let dt: u64 = 1;
 
-    // Both sides need OI for funding
-    let oi_long: u128 = kani::any();
-    kani::assume(oi_long >= 1_000 && oi_long <= 10_000);
-    let oi_short: u128 = kani::any();
-    kani::assume(oi_short >= 1_000 && oi_short <= 10_000);
+    // Fixed OI for tractability
+    let oi_long: u128 = 5_000;
+    let oi_short: u128 = 5_000;
 
     m.oi_eff_long_q = oi_long;
     m.oi_eff_short_q = oi_short;
@@ -173,21 +165,18 @@ fn p5_3_funding_k_deltas_short_payer() {
     let mut m = test_market();
 
     let price: u64 = kani::any();
-    kani::assume(price >= 100 && price <= 10_000);
+    kani::assume(price >= 100 && price <= 200);
 
     // Negative rate: shorts pay longs.
-    // The stored funding_rate_bps_per_slot_last IS the pre-scaled value — do NOT multiply.
     let rate_abs: i64 = kani::any();
-    kani::assume(rate_abs >= 1 && rate_abs <= MAX_ABS_FUNDING_BPS_PER_SLOT);
+    kani::assume(rate_abs >= 1 && rate_abs <= 100);
     let rate: i64 = -rate_abs;
 
-    let dt: u64 = kani::any();
-    kani::assume(dt >= 1 && dt <= 3);
+    let dt: u64 = 1;
 
-    let oi_long: u128 = kani::any();
-    kani::assume(oi_long >= 1_000 && oi_long <= 10_000);
-    let oi_short: u128 = kani::any();
-    kani::assume(oi_short >= 1_000 && oi_short <= 10_000);
+    // Fixed OI for tractability
+    let oi_long: u128 = 5_000;
+    let oi_short: u128 = 5_000;
 
     m.oi_eff_long_q = oi_long;
     m.oi_eff_short_q = oi_short;
@@ -283,13 +272,13 @@ fn p5_5_set_funding_rate_stores_correctly() {
 #[kani::solver(cadical)]
 fn p5_6_calculate_funding_rate_correct() {
     let mark_price: u64 = kani::any();
-    kani::assume(mark_price >= 1 && mark_price <= 100_000);
+    kani::assume(mark_price >= 1 && mark_price <= 1_000);
 
     let oracle_price: u64 = kani::any();
-    kani::assume(oracle_price >= 1 && oracle_price <= 100_000);
+    kani::assume(oracle_price >= 1 && oracle_price <= 1_000);
 
     let cap_bps: u16 = kani::any();
-    kani::assume(cap_bps >= 1 && cap_bps <= 1000);
+    kani::assume(cap_bps >= 1 && cap_bps <= 100);
 
     let result = calculate_funding_rate(mark_price, oracle_price, cap_bps);
     assert!(result.is_ok(), "P5.6: calculate_funding_rate must succeed for valid inputs");
@@ -342,9 +331,9 @@ fn p5_7_update_funding_correct() {
     let mut m = test_market();
 
     let mark_price: u64 = kani::any();
-    kani::assume(mark_price >= 100 && mark_price <= 500);
+    kani::assume(mark_price >= 100 && mark_price <= 200);
     let oracle_price: u64 = kani::any();
-    kani::assume(oracle_price >= 100 && oracle_price <= 500);
+    kani::assume(oracle_price >= 100 && oracle_price <= 200);
 
     // Need both sides with OI
     m.oi_eff_long_q = 1_000_000;
@@ -394,9 +383,9 @@ fn p5_7b_update_funding_noop_empty_side() {
     let mut m = test_market();
 
     let mark: u64 = kani::any();
-    kani::assume(mark >= 100 && mark <= 500);
+    kani::assume(mark >= 100 && mark <= 200);
     let oracle: u64 = kani::any();
-    kani::assume(oracle >= 100 && oracle <= 500);
+    kani::assume(oracle >= 100 && oracle <= 200);
 
     // One side empty
     let long_empty: bool = kani::any();

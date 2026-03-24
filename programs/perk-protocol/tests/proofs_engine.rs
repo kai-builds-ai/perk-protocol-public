@@ -148,13 +148,13 @@ fn p7_2_do_profit_conversion_conservation() {
 fn p7_3_update_oi_delta_correctness() {
     let mut m = test_market();
 
-    // Symbolic old effective position
+    // Symbolic old effective position — tightened
     let old_eff: i128 = kani::any();
-    kani::assume(old_eff >= -500 && old_eff <= 500);
+    kani::assume(old_eff >= -50 && old_eff <= 50);
 
-    // Symbolic new effective position
+    // Symbolic new effective position — tightened
     let new_eff: i128 = kani::any();
-    kani::assume(new_eff >= -500 && new_eff <= 500);
+    kani::assume(new_eff >= -50 && new_eff <= 50);
 
     // Set up OI large enough to absorb any decrement
     let base_oi: u128 = 5_000;

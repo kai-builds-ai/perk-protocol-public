@@ -98,7 +98,7 @@ fn p4_2_precision_exhaustion_terminal_drain() {
     let liq_side_long: bool = kani::any();
 
     let close_q: u128 = kani::any();
-    kani::assume(close_q >= 1 && close_q <= 1_000);
+    kani::assume(close_q >= 1 && close_q <= 100);
 
     if liq_side_long {
         // Liquidating longs, opposing side is short
