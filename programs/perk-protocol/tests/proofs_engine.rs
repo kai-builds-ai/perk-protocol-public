@@ -1,3 +1,4 @@
+#![cfg(kani)]
 /// Kani Formal Proofs — Category 7: Engine functions needing NEW proofs
 ///
 /// Properties P7.1–P7.5: Red team findings — functions with no prior coverage.

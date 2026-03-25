@@ -16,7 +16,8 @@ pub struct InitializeProtocol<'info> {
     #[account(mut)]
     pub admin: Signer<'info>,
 
-    /// CHECK: Protocol fee vault token account
+    /// CHECK: Protocol fee vault address stored for future use. Not currently used for
+    /// CPI transfers — fee claims use per-market vaults directly. Admin-only, one-time init.
     pub protocol_fee_vault: UncheckedAccount<'info>,
 
     pub system_program: Program<'info, System>,

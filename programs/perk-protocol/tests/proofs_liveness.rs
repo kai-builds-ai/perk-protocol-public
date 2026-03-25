@@ -1,3 +1,4 @@
+#![cfg(kani)]
 /// Kani Formal Proofs — Category 4: Liveness
 ///
 /// Properties P4.1–P4.5: System makes progress under all valid inputs.

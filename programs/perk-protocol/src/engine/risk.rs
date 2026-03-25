@@ -926,7 +926,14 @@ pub fn check_and_clear_phantom_dust(market: &mut Market, side: Side) {
 pub fn use_insurance_buffer(market: &mut Market, loss: u128) -> u128 {
     if loss == 0 { return 0; }
     let ins_bal = market.insurance_fund_balance as u128;
-    let available = ins_bal.saturating_sub(market.insurance_floor);
+    // ATK-09 fix: Dynamic insurance floor = max(configured_floor, 20% of insurance fund)
+    // Uses ins_bal (not vault_balance) because vault >> insurance typically, and
+    // vault_balance / 5 would lock the entire fund.
+    let dynamic_floor = core::cmp::max(
+        market.insurance_floor,
+        ins_bal / 5,
+    );
+    let available = ins_bal.saturating_sub(dynamic_floor);
 
     // M1: Enforce epoch cap on insurance payouts
     let epoch_cap = (ins_bal * INSURANCE_EPOCH_CAP_BPS as u128) / 10_000;

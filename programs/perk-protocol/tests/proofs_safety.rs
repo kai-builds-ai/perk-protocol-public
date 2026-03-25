@@ -1,3 +1,4 @@
+#![cfg(kani)]
 /// Category 2: Safety — Conservation, Bounds, No-Mint
 ///
 /// Properties P2.1 through P2.20 from PROOF-SPEC.md

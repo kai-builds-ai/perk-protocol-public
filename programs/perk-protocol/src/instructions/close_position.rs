@@ -38,6 +38,9 @@ pub struct ClosePosition<'info> {
     #[account(constraint = oracle.key() == market.oracle_address @ PerkError::InvalidOracleSource)]
     pub oracle: UncheckedAccount<'info>,
 
+    /// CHECK: Fallback oracle account (pass any account if no fallback configured)
+    pub fallback_oracle: UncheckedAccount<'info>,
+
     #[account(constraint = user.key() == user_position.authority @ PerkError::Unauthorized)]
     pub authority: Signer<'info>,
 
@@ -53,9 +56,12 @@ pub fn handler(ctx: Context<ClosePosition>, base_size_to_close: Option<u64>) -> 
     let clock = Clock::get()?;
 
     // ── Standard accrue pattern ──
-    let oracle_price = oracle::read_oracle_price(
+    let oracle_price = oracle::read_oracle_price_with_fallback(
         &market.oracle_source,
         &ctx.accounts.oracle.to_account_info(),
+        &market.fallback_oracle_source,
+        &ctx.accounts.fallback_oracle.to_account_info(),
+        &market.fallback_oracle_address,
         clock.unix_timestamp,
     )?.price;
 
@@ -90,10 +96,13 @@ pub fn handler(ctx: Context<ClosePosition>, base_size_to_close: Option<u64>) -> 
     // M2 (R4): Volume-weighted TWAP — weight by trade notional
     let current_mark = vamm::calculate_mark_price(market)?;
     let close_notional_for_twap = vamm::calculate_notional(close_size as u128, oracle_price)?;
+    // ATK-07 fix: Cap single trade's TWAP contribution to prevent manipulation
+    let max_twap_weight = market.k / 10; // 10% of vAMM invariant
+    let capped_twap_weight = core::cmp::min(close_notional_for_twap, max_twap_weight);
     market.mark_price_accumulator = market.mark_price_accumulator
-        .saturating_add((current_mark as u128).saturating_mul(close_notional_for_twap));
+        .saturating_add((current_mark as u128).saturating_mul(capped_twap_weight));
     market.twap_volume_accumulator = market.twap_volume_accumulator
-        .saturating_add(close_notional_for_twap);
+        .saturating_add(capped_twap_weight);
     market.twap_observation_count = market.twap_observation_count.saturating_add(1);
 
     // C4: Capture old effective position BEFORE any changes (preserves A/K)

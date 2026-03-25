@@ -1,36 +1,25 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import Link from "next/link";
-import { MOCK_MARKETS } from "@/lib/mock-data";
+import { useMarkets } from "@/hooks/useMarkets";
 import { formatUsdCompact } from "@/lib/format";
 import { TokenLogo } from "@/components/TokenLogo";
 
 function useStats() {
-  const [stats, setStats] = useState({
-    totalVolume: MOCK_MARKETS.reduce((s, m) => s + m.volume24h, 0),
-    totalOI: MOCK_MARKETS.reduce((s, m) => s + m.openInterest, 0),
-    totalMarkets: MOCK_MARKETS.length,
-    totalTraders: MOCK_MARKETS.reduce((s, m) => s + m.totalUsers, 0),
-  });
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setStats((prev) => ({
-        ...prev,
-        totalVolume: prev.totalVolume + Math.random() * 12000,
-        totalOI: prev.totalOI + (Math.random() - 0.5) * 5000,
-      }));
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
-
-  return stats;
+  const { markets } = useMarkets();
+  return {
+    totalVolume: markets.reduce((s, m) => s + m.volume24h, 0),
+    totalOI: markets.reduce((s, m) => s + m.openInterest, 0),
+    totalMarkets: markets.length,
+    totalTraders: markets.reduce((s, m) => s + m.totalUsers, 0),
+  };
 }
 
 export default function Landing() {
   const stats = useStats();
-  const topMarkets = MOCK_MARKETS.slice(0, 5);
+  const { markets } = useMarkets();
+  const topMarkets = markets.slice(0, 5);
 
   return (
     <div className="min-h-screen bg-bg flex flex-col">

@@ -1,3 +1,4 @@
+#![cfg(kani)]
 /// Kani Formal Proofs — Instruction-Level Compose-and-Prove Harnesses
 ///
 /// These harnesses replicate the ENGINE LOGIC of Perk's Anchor instruction

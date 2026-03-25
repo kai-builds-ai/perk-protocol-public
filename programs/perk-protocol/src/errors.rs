@@ -28,8 +28,7 @@ pub enum PerkError {
     OracleConfidenceTooWide,
     #[msg("Oracle price invalid")]
     OraclePriceInvalid,
-    #[msg("Position not found")]
-    PositionNotFound,
+    // ARCH-05: PositionNotFound removed — handled by PDA derivation (account does not exist = not found)
     #[msg("Position not liquidatable")]
     NotLiquidatable,
     #[msg("Max trigger orders reached")]
@@ -40,10 +39,8 @@ pub enum PerkError {
     TriggerOrderExpired,
     #[msg("No open position")]
     NoOpenPosition,
-    #[msg("Position already exists")]
-    PositionAlreadyExists,
-    #[msg("Reduce only violation")]
-    ReduceOnlyViolation,
+    // ARCH-05: PositionAlreadyExists removed — handled by PDA uniqueness (init fails if exists)
+    // ARCH-05: ReduceOnlyViolation removed — unused, other errors cover this case
     #[msg("Side blocked - drain only mode")]
     SideBlocked,
     #[msg("Corrupt state")]
@@ -52,8 +49,7 @@ pub enum PerkError {
     InvalidOracleSource,
     #[msg("Withdrawal would make position underwater")]
     WithdrawalWouldLiquidate,
-    #[msg("Market already exists for this token")]
-    MarketAlreadyExists,
+    // ARCH-05: MarketAlreadyExists removed — handled by PDA uniqueness (init fails if exists)
     #[msg("Funding period not elapsed")]
     FundingPeriodNotElapsed,
     #[msg("AMM peg within threshold")]
@@ -105,4 +101,19 @@ pub enum PerkError {
     AdminTransferPending,
     #[msg("Must wait at least 1 slot before closing position")]
     MinHoldingPeriodNotMet,
+    // PerkOracle errors
+    #[msg("Oracle is frozen")]
+    OracleFrozen,
+    #[msg("Oracle must be frozen for this operation")]
+    OracleNotFrozen,
+    #[msg("Insufficient oracle sources")]
+    OracleInsufficientSources,
+    #[msg("Oracle update too frequent (one per slot max)")]
+    OracleUpdateTooFrequent,
+    #[msg("Oracle gap too large — unfreeze required")]
+    OracleGapTooLarge,
+    #[msg("Primary and fallback oracles both failed")]
+    OracleFallbackFailed,
+    #[msg("Oracle circuit breaker tripped — price deviation from EMA exceeds threshold")]
+    OracleCircuitBreakerTripped,
 }

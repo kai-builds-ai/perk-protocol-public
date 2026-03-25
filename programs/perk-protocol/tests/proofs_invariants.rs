@@ -1,3 +1,4 @@
+#![cfg(kani)]
 // =============================================================================
 // Kani Formal Proofs — Category 3: Invariants (state machine properties)
 // Properties P3.1 through P3.10

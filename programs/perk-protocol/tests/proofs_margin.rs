@@ -1,3 +1,4 @@
+#![cfg(kani)]
 /// Kani Formal Proofs — Category 6: Margin & Liquidation (P6.1–P6.8)
 ///
 /// Native proofs for Perk's margin/liquidation engine.

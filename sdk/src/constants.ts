@@ -37,7 +37,7 @@ export const PEG_UPDATE_COOLDOWN_SLOTS = 100;
 export const AMM_PEG_THRESHOLD_BPS = 50;
 export const ORACLE_STALENESS_SECONDS = 15;
 export const INSURANCE_EPOCH_SECONDS = 86400;
-export const INSURANCE_EPOCH_CAP_BPS = 5000;
+export const INSURANCE_EPOCH_CAP_BPS = 3000; // ATK-09: reduced from 5000
 export const WARMUP_PERIOD_SLOTS = 1000;
 export const MIN_REMAINING_POSITION_SIZE = 100;
 export const MAX_TRIGGER_ORDER_AGE_SECONDS = 30 * 24 * 3600; // 30 days
@@ -51,6 +51,20 @@ export const LIQUIDATOR_SHARE_BPS = 5000;
 export const TRIGGER_EXECUTION_FEE_BPS = 1;
 export const MIN_DEPOSIT_AMOUNT = 1_000;
 export const MIN_A_SIDE = 1_000;
+
+export const PERK_ORACLE_SEED = Buffer.from("perk_oracle");
+
+// PerkOracle bounds (mirrored from constants.rs)
+export const MIN_ORACLE_STALENESS_SECONDS = 5;
+export const MAX_ORACLE_STALENESS_SECONDS = 300;
+export const MAX_MIN_SOURCES = 10;
+export const MAX_ORACLE_PRICE = 1_000_000_000_000; // 1e12
+export const MIN_PRICE_CHANGE_BPS = 100; // 1% minimum band when enabled
+export const MAX_PRICE_CHANGE_BPS = 9999; // 99.99% cap
+export const MIN_CIRCUIT_BREAKER_BPS = 500; // 5% minimum when enabled
+export const MAX_CIRCUIT_BREAKER_BPS = 9999; // 99.99% cap
+export const CIRCUIT_BREAKER_WINDOW_SLOTS = 50; // ~20 seconds
+export const WINDOW_BAND_MULTIPLIER = 3; // Sliding window = 3x per-update band
 
 // Pyth
 export const PYTH_PROGRAM_ID = new PublicKey(

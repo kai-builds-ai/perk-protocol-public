@@ -713,8 +713,8 @@ async function main() {
     console.log(`  TraderA open trigger orders: ${openOrders}`);
 
     if (openOrders > 0) {
-      // The first order placed was orderId = 0 (nextOrderId was 0 before placement)
-      const orderId = 0;
+      // Use the most recently placed order (nextOrderId - 1)
+      const orderId = (pos.nextOrderId as any).toNumber() - 1;
       console.log(`  Cancelling trigger order #${orderId}...`);
       try {
         const sig = await traderAClient.cancelTriggerOrder(tokenMint, orderId);

@@ -6,12 +6,16 @@ export type { PerkClientConfig } from "./client";
 export { PerkCranker } from "./cranker";
 export type { CrankerConfig, CrankerMetrics } from "./cranker";
 
+export { PerkOracleCranker } from "./oracle-cranker";
+export type { OracleCrankerConfig, OracleCrankerMetrics } from "./oracle-cranker";
+
 export {
   findProtocolAddress,
   findMarketAddress,
   findPositionAddress,
   findVaultAddress,
   findTriggerOrderAddress,
+  findPerkOracleAddress,
 } from "./pda";
 
 export {
@@ -69,6 +73,17 @@ export {
   WARMUP_PERIOD_SLOTS,
   MAX_TRIGGER_ORDERS,
   BPS_DENOMINATOR,
+  PERK_ORACLE_SEED,
+  MIN_ORACLE_STALENESS_SECONDS,
+  MAX_ORACLE_STALENESS_SECONDS,
+  MAX_MIN_SOURCES,
+  MAX_ORACLE_PRICE,
+  MIN_PRICE_CHANGE_BPS,
+  MAX_PRICE_CHANGE_BPS,
+  MIN_CIRCUIT_BREAKER_BPS,
+  MAX_CIRCUIT_BREAKER_BPS,
+  CIRCUIT_BREAKER_WINDOW_SLOTS,
+  WINDOW_BAND_MULTIPLIER,
   PYTH_PROGRAM_ID,
   PYTH_SOL_USD_FEED,
   MAX_FUNDING_DT,
@@ -96,9 +111,14 @@ export type {
   MarketAccount,
   UserPositionAccount,
   TriggerOrderAccount,
+  PerkOracleAccount,
   CreateMarketParams,
   AdminUpdateMarketParams,
   TriggerOrderParams,
+  InitPerkOracleParams,
+  UpdatePerkOracleParams,
+  UpdateOracleConfigParams,
+  SetFallbackOracleParams,
   PositionInfo,
   MarketInfo,
 } from "./types";

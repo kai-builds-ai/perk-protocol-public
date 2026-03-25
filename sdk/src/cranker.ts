@@ -1,6 +1,7 @@
 import {
   Connection,
   PublicKey,
+  SystemProgram,
   TransactionInstruction,
   ComputeBudgetProgram,
 } from "@solana/web3.js";
@@ -81,6 +82,13 @@ function wouldIncreaseOI(
   if (isLong && isEnumVariant(market.longState, "drainOnly")) return true;
   if (!isLong && isEnumVariant(market.shortState, "drainOnly")) return true;
   return false;
+}
+
+/** Resolve fallback oracle account: use the market's configured address, or SystemProgram as sentinel. */
+function resolveFallbackOracle(market: MarketAccount): PublicKey {
+  const addr = market.fallbackOracleAddress;
+  if (addr.equals(PublicKey.default)) return SystemProgram.programId;
+  return addr;
 }
 
 // ── Types ──
@@ -444,7 +452,8 @@ export class PerkCranker {
     try {
       const sig = await this.client.crankFunding(
         marketAddress,
-        market.oracleAddress
+        market.oracleAddress,
+        resolveFallbackOracle(market),
       );
       this.log(
         `Cranked funding for ${marketAddress.toBase58().slice(0, 8)}: ${sig}`
@@ -465,7 +474,8 @@ export class PerkCranker {
     try {
       const sig = await this.client.updateAmm(
         marketAddress,
-        market.oracleAddress
+        market.oracleAddress,
+        resolveFallbackOracle(market),
       );
       this.log(
         `Updated AMM peg for ${marketAddress.toBase58().slice(0, 8)}: ${sig}`
@@ -516,7 +526,8 @@ export class PerkCranker {
           marketAddress,
           market.oracleAddress,
           pos.authority,
-          rewardAccount
+          rewardAccount,
+          resolveFallbackOracle(market),
         );
         succeeded++;
         this.log(
@@ -573,7 +584,8 @@ export class PerkCranker {
             market.oracleAddress,
             order.authority,
             order.orderId,
-            rewardAccount
+            rewardAccount,
+            resolveFallbackOracle(market),
           );
           executed++;
           this.log(
@@ -611,7 +623,8 @@ export class PerkCranker {
         const sig = await this.client.reclaimEmptyAccount(
           marketAddress,
           market.oracleAddress,
-          pos.authority
+          pos.authority,
+          resolveFallbackOracle(market),
         );
         reclaimed++;
         this.log(

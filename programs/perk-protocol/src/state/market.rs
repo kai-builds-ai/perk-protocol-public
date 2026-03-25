@@ -4,6 +4,7 @@ use anchor_lang::prelude::*;
 pub enum OracleSource {
     #[default]
     Pyth,
+    PerkOracle,
     DexPool,
 }
 
@@ -48,8 +49,8 @@ pub struct Market {
 
     // Risk engine state (from Percolator)
     pub insurance_fund_balance: u64,
-    pub haircut_numerator: u128,
-    pub haircut_denominator: u128,
+    pub haircut_numerator: u128,   // DEAD FIELD — initialized but never read (haircut_ratio() computes dynamically)
+    pub haircut_denominator: u128, // DEAD FIELD — initialized but never read (haircut_ratio() computes dynamically)
 
     // ADL side state — long
     pub long_a: u128,
@@ -67,8 +68,8 @@ pub struct Market {
 
     // Funding
     pub last_funding_time: i64,
-    pub cumulative_long_funding: i128,
-    pub cumulative_short_funding: i128,
+    pub cumulative_long_funding: i128,  // DEAD FIELD — initialized but never read
+    pub cumulative_short_funding: i128, // DEAD FIELD — initialized but never read
     pub funding_period_seconds: u32,
     pub funding_rate_cap_bps: u16,
 
@@ -165,6 +166,10 @@ pub struct Market {
     // M3 fix: Market creation fee (tracked for protocol treasury)
     // (Fee is transferred at creation, this records it was paid)
     pub creation_fee_paid: u64,
+
+    // Fallback oracle (PerkOracle spec)
+    pub fallback_oracle_source: OracleSource,
+    pub fallback_oracle_address: Pubkey,
 }
 
 impl Market {

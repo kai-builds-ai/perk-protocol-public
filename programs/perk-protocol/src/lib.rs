@@ -133,4 +133,46 @@ pub mod perk_protocol {
     pub fn admin_withdraw_sol(ctx: Context<AdminWithdrawSol>, amount: u64) -> Result<()> {
         instructions::admin_withdraw_sol::handler(ctx, amount)
     }
+
+    /// Initialize a PerkOracle price feed. Admin only.
+    pub fn initialize_perk_oracle(
+        ctx: Context<InitializePerkOracle>,
+        params: InitPerkOracleParams,
+    ) -> Result<()> {
+        instructions::initialize_perk_oracle::handler(ctx, params)
+    }
+
+    /// Update a PerkOracle price feed. Authorized cranker only.
+    pub fn update_perk_oracle(
+        ctx: Context<UpdatePerkOracle>,
+        params: UpdatePerkOracleParams,
+    ) -> Result<()> {
+        instructions::update_perk_oracle::handler(ctx, params)
+    }
+
+    /// Freeze or unfreeze a PerkOracle. Admin only.
+    pub fn freeze_perk_oracle(ctx: Context<FreezePerkOracle>, frozen: bool) -> Result<()> {
+        instructions::freeze_perk_oracle::handler(ctx, frozen)
+    }
+
+    /// Transfer PerkOracle authority. Current authority only.
+    pub fn transfer_oracle_authority(ctx: Context<TransferOracleAuthority>) -> Result<()> {
+        instructions::transfer_oracle_authority::handler(ctx)
+    }
+
+    /// Set or remove fallback oracle on a market. Admin only.
+    pub fn admin_set_fallback_oracle(
+        ctx: Context<AdminSetFallbackOracle>,
+        params: SetFallbackOracleParams,
+    ) -> Result<()> {
+        instructions::admin_set_fallback_oracle::handler(ctx, params)
+    }
+
+    /// Update PerkOracle config (price banding). Admin only.
+    pub fn update_oracle_config(
+        ctx: Context<UpdateOracleConfig>,
+        params: UpdateOracleConfigParams,
+    ) -> Result<()> {
+        instructions::update_oracle_config::handler(ctx, params)
+    }
 }

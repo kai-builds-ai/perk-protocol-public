@@ -111,6 +111,14 @@ pub fn handler(ctx: Context<CreateMarket>, params: CreateMarketParams) -> Result
         &ctx.accounts.oracle.to_account_info(),
     )?;
 
+    // PerkOracle: verify the oracle's token_mint matches this market's token
+    if params.oracle_source == OracleSource::PerkOracle {
+        oracle::validate_perk_oracle_mint(
+            &ctx.accounts.oracle.to_account_info(),
+            &ctx.accounts.token_mint.key(),
+        )?;
+    }
+
     // Read initial oracle price for peg
     let clock = Clock::get()?;
     let oracle_price_result = oracle::read_oracle_price(

@@ -11,6 +11,9 @@ import {
   SolflareWalletAdapter,
 } from "@solana/wallet-adapter-wallets";
 import { SOLANA_RPC } from "@/lib/constants";
+import { PerkProvider } from "@/providers/PerkProvider";
+import { MarketsProvider } from "@/providers/MarketsProvider";
+import { Toaster } from "react-hot-toast";
 import "@solana/wallet-adapter-react-ui/styles.css";
 import "./globals.css";
 
@@ -43,7 +46,26 @@ export default function RootLayout({
       <body className="bg-bg text-text-primary min-h-screen">
         <ConnectionProvider endpoint={SOLANA_RPC}>
           <WalletProvider wallets={wallets} autoConnect>
-            <WalletModalProvider>{children}</WalletModalProvider>
+            <WalletModalProvider>
+              <PerkProvider>
+                <MarketsProvider>
+                  <Toaster
+                    position="bottom-right"
+                    containerStyle={{ zIndex: 9999 }}
+                    toastOptions={{
+                      style: {
+                        background: '#0f0f11',
+                        color: '#fafafa',
+                        border: '1px solid #1a1a1e',
+                        fontFamily: 'JetBrains Mono, monospace',
+                        fontSize: '13px',
+                      },
+                    }}
+                  />
+                  {children}
+                </MarketsProvider>
+              </PerkProvider>
+            </WalletModalProvider>
           </WalletProvider>
         </ConnectionProvider>
       </body>

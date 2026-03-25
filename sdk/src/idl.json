@@ -104,6 +104,88 @@
       ]
     },
     {
+      "name": "admin_set_fallback_oracle",
+      "docs": [
+        "Set or remove fallback oracle on a market. Admin only."
+      ],
+      "discriminator": [
+        200,
+        149,
+        112,
+        230,
+        185,
+        176,
+        152,
+        229
+      ],
+      "accounts": [
+        {
+          "name": "protocol",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market.token_mint",
+                "account": "Market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "fallback_oracle"
+        },
+        {
+          "name": "admin",
+          "signer": true,
+          "relations": [
+            "protocol"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "SetFallbackOracleParams"
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "admin_update_market",
       "docs": [
         "M4: Admin market update — update oracle, active status, trading fee."
@@ -544,6 +626,9 @@
           "name": "oracle"
         },
         {
+          "name": "fallback_oracle"
+        },
+        {
           "name": "authority",
           "signer": true,
           "relations": [
@@ -606,6 +691,9 @@
         },
         {
           "name": "oracle"
+        },
+        {
+          "name": "fallback_oracle"
         },
         {
           "name": "cranker",
@@ -824,6 +912,9 @@
           "name": "oracle"
         },
         {
+          "name": "fallback_oracle"
+        },
+        {
           "name": "user_token_account",
           "writable": true
         },
@@ -999,6 +1090,9 @@
           "name": "oracle"
         },
         {
+          "name": "fallback_oracle"
+        },
+        {
           "name": "executor_token_account",
           "writable": true
         },
@@ -1035,6 +1129,186 @@
         }
       ],
       "args": []
+    },
+    {
+      "name": "freeze_perk_oracle",
+      "docs": [
+        "Freeze or unfreeze a PerkOracle. Admin only."
+      ],
+      "discriminator": [
+        148,
+        8,
+        66,
+        182,
+        119,
+        83,
+        178,
+        216
+      ],
+      "accounts": [
+        {
+          "name": "protocol",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "perk_oracle",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  114,
+                  107,
+                  95,
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "perk_oracle.token_mint",
+                "account": "PerkOraclePrice"
+              }
+            ]
+          }
+        },
+        {
+          "name": "admin",
+          "signer": true,
+          "relations": [
+            "protocol"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "frozen",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "initialize_perk_oracle",
+      "docs": [
+        "Initialize a PerkOracle price feed. Admin only."
+      ],
+      "discriminator": [
+        47,
+        220,
+        120,
+        24,
+        102,
+        127,
+        209,
+        184
+      ],
+      "accounts": [
+        {
+          "name": "protocol",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "perk_oracle",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  114,
+                  107,
+                  95,
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "token_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_mint",
+          "docs": [
+            "Token mint to create oracle for (validated as real SPL Mint)"
+          ]
+        },
+        {
+          "name": "oracle_authority",
+          "docs": [
+            "The initial oracle authority (cranker)"
+          ]
+        },
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "protocol"
+          ]
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "InitPerkOracleParams"
+            }
+          }
+        }
+      ]
     },
     {
       "name": "initialize_position",
@@ -1181,7 +1455,10 @@
           "signer": true
         },
         {
-          "name": "protocol_fee_vault"
+          "name": "protocol_fee_vault",
+          "docs": [
+            "CPI transfers — fee claims use per-market vaults directly. Admin-only, one-time init."
+          ]
         },
         {
           "name": "system_program",
@@ -1281,6 +1558,9 @@
         },
         {
           "name": "oracle"
+        },
+        {
+          "name": "fallback_oracle"
         },
         {
           "name": "target_user"
@@ -1415,6 +1695,9 @@
         },
         {
           "name": "oracle"
+        },
+        {
+          "name": "fallback_oracle"
         },
         {
           "name": "authority",
@@ -1704,6 +1987,9 @@
           "name": "oracle"
         },
         {
+          "name": "fallback_oracle"
+        },
+        {
           "name": "position_owner"
         },
         {
@@ -1719,6 +2005,84 @@
             "Anyone can call this"
           ],
           "signer": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "transfer_oracle_authority",
+      "docs": [
+        "Transfer PerkOracle authority. Current authority only."
+      ],
+      "discriminator": [
+        121,
+        248,
+        188,
+        188,
+        98,
+        217,
+        168,
+        20
+      ],
+      "accounts": [
+        {
+          "name": "protocol",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "perk_oracle",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  114,
+                  107,
+                  95,
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "perk_oracle.token_mint",
+                "account": "PerkOraclePrice"
+              }
+            ]
+          }
+        },
+        {
+          "name": "signer",
+          "docs": [
+            "Signer must be either the current oracle authority or the protocol admin"
+          ],
+          "signer": true
+        },
+        {
+          "name": "new_authority"
         }
       ],
       "args": []
@@ -1767,11 +2131,162 @@
           "name": "oracle"
         },
         {
+          "name": "fallback_oracle"
+        },
+        {
           "name": "caller",
           "signer": true
         }
       ],
       "args": []
+    },
+    {
+      "name": "update_oracle_config",
+      "docs": [
+        "Update PerkOracle config (price banding). Admin only."
+      ],
+      "discriminator": [
+        83,
+        16,
+        11,
+        254,
+        57,
+        99,
+        156,
+        58
+      ],
+      "accounts": [
+        {
+          "name": "protocol",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "perk_oracle",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  114,
+                  107,
+                  95,
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "perk_oracle.token_mint",
+                "account": "PerkOraclePrice"
+              }
+            ]
+          }
+        },
+        {
+          "name": "admin",
+          "signer": true,
+          "relations": [
+            "protocol"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "UpdateOracleConfigParams"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "update_perk_oracle",
+      "docs": [
+        "Update a PerkOracle price feed. Authorized cranker only."
+      ],
+      "discriminator": [
+        120,
+        68,
+        244,
+        104,
+        150,
+        124,
+        65,
+        139
+      ],
+      "accounts": [
+        {
+          "name": "perk_oracle",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  114,
+                  107,
+                  95,
+                  111,
+                  114,
+                  97,
+                  99,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "perk_oracle.token_mint",
+                "account": "PerkOraclePrice"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "perk_oracle"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "UpdatePerkOracleParams"
+            }
+          }
+        }
+      ]
     },
     {
       "name": "withdraw",
@@ -1866,6 +2381,9 @@
           "name": "oracle"
         },
         {
+          "name": "fallback_oracle"
+        },
+        {
           "name": "user_token_account",
           "writable": true
         },
@@ -1928,6 +2446,19 @@
         227,
         198,
         154
+      ]
+    },
+    {
+      "name": "PerkOraclePrice",
+      "discriminator": [
+        215,
+        196,
+        234,
+        180,
+        130,
+        99,
+        25,
+        5
       ]
     },
     {
@@ -2038,193 +2569,208 @@
     },
     {
       "code": 6013,
-      "name": "PositionNotFound",
-      "msg": "Position not found"
-    },
-    {
-      "code": 6014,
       "name": "NotLiquidatable",
       "msg": "Position not liquidatable"
     },
     {
-      "code": 6015,
+      "code": 6014,
       "name": "MaxTriggerOrdersReached",
       "msg": "Max trigger orders reached"
     },
     {
-      "code": 6016,
+      "code": 6015,
       "name": "TriggerConditionNotMet",
       "msg": "Trigger condition not met"
     },
     {
-      "code": 6017,
+      "code": 6016,
       "name": "TriggerOrderExpired",
       "msg": "Trigger order expired"
     },
     {
-      "code": 6018,
+      "code": 6017,
       "name": "NoOpenPosition",
       "msg": "No open position"
     },
     {
-      "code": 6019,
-      "name": "PositionAlreadyExists",
-      "msg": "Position already exists"
-    },
-    {
-      "code": 6020,
-      "name": "ReduceOnlyViolation",
-      "msg": "Reduce only violation"
-    },
-    {
-      "code": 6021,
+      "code": 6018,
       "name": "SideBlocked",
       "msg": "Side blocked - drain only mode"
     },
     {
-      "code": 6022,
+      "code": 6019,
       "name": "CorruptState",
       "msg": "Corrupt state"
     },
     {
-      "code": 6023,
+      "code": 6020,
       "name": "InvalidOracleSource",
       "msg": "Invalid oracle source"
     },
     {
-      "code": 6024,
+      "code": 6021,
       "name": "WithdrawalWouldLiquidate",
       "msg": "Withdrawal would make position underwater"
     },
     {
-      "code": 6025,
-      "name": "MarketAlreadyExists",
-      "msg": "Market already exists for this token"
-    },
-    {
-      "code": 6026,
+      "code": 6022,
       "name": "FundingPeriodNotElapsed",
       "msg": "Funding period not elapsed"
     },
     {
-      "code": 6027,
+      "code": 6023,
       "name": "AmmPegWithinThreshold",
       "msg": "AMM peg within threshold"
     },
     {
-      "code": 6028,
+      "code": 6024,
       "name": "InvalidAmount",
       "msg": "Invalid collateral amount"
     },
     {
-      "code": 6029,
+      "code": 6025,
       "name": "PositionFlipNotAllowed",
       "msg": "Position flip not allowed — close first, then reopen"
     },
     {
-      "code": 6030,
+      "code": 6026,
       "name": "PegCooldownNotElapsed",
       "msg": "AMM peg update cooldown not elapsed"
     },
     {
-      "code": 6031,
+      "code": 6027,
       "name": "InsuranceEpochCapExceeded",
       "msg": "Insurance fund epoch payout cap exceeded"
     },
     {
-      "code": 6032,
+      "code": 6028,
       "name": "PositionSizeLimitExceeded",
       "msg": "Position size exceeds market limit"
     },
     {
-      "code": 6033,
+      "code": 6029,
       "name": "OiLimitExceeded",
       "msg": "Open interest exceeds market limit"
     },
     {
-      "code": 6034,
+      "code": 6030,
       "name": "DexPoolOracleNotSupported",
       "msg": "DexPool oracle source not yet supported"
     },
     {
-      "code": 6035,
+      "code": 6031,
       "name": "PositionNotInitialized",
       "msg": "Position not initialized — call initialize_position first"
     },
     {
-      "code": 6036,
+      "code": 6032,
       "name": "InsufficientOiForFunding",
       "msg": "Insufficient OI on both sides for funding"
     },
     {
-      "code": 6037,
+      "code": 6033,
       "name": "NoFeesToClaim",
       "msg": "No fees to claim"
     },
     {
-      "code": 6038,
+      "code": 6034,
       "name": "DepositBelowMinimum",
       "msg": "Deposit below minimum amount"
     },
     {
-      "code": 6039,
+      "code": 6035,
       "name": "RemainingPositionTooSmall",
       "msg": "Remaining position size below minimum after partial close"
     },
     {
-      "code": 6040,
+      "code": 6036,
       "name": "TriggerOrderTooOld",
       "msg": "Trigger order too old (exceeded max age)"
     },
     {
-      "code": 6041,
+      "code": 6037,
       "name": "InvalidTokenDecimals",
       "msg": "Token mint decimals out of supported range"
     },
     {
-      "code": 6042,
+      "code": 6038,
       "name": "WarmupPeriodTooSmall",
       "msg": "Warmup period below minimum"
     },
     {
-      "code": 6043,
+      "code": 6039,
       "name": "PositionNotEmpty",
       "msg": "Position is not empty — cannot reclaim"
     },
     {
-      "code": 6044,
+      "code": 6040,
       "name": "PositionHasOpenOrders",
       "msg": "Position has open trigger orders — cannot reclaim"
     },
     {
-      "code": 6045,
+      "code": 6041,
       "name": "VaultInsufficient",
       "msg": "Vault insufficient for transfer"
     },
     {
-      "code": 6046,
+      "code": 6042,
       "name": "ReclaimTooSoon",
       "msg": "Account too young to reclaim"
     },
     {
-      "code": 6047,
+      "code": 6043,
       "name": "ReclaimFeeDebt",
       "msg": "Account has outstanding fee debt — cannot reclaim"
     },
     {
-      "code": 6048,
+      "code": 6044,
       "name": "ReclaimCollateralAboveDust",
       "msg": "Account collateral above dust threshold — cannot reclaim"
     },
     {
-      "code": 6049,
+      "code": 6045,
       "name": "AdminTransferPending",
       "msg": "Admin transfer already pending — accept or cancel first"
     },
     {
-      "code": 6050,
+      "code": 6046,
       "name": "MinHoldingPeriodNotMet",
       "msg": "Must wait at least 1 slot before closing position"
+    },
+    {
+      "code": 6047,
+      "name": "OracleFrozen",
+      "msg": "Oracle is frozen"
+    },
+    {
+      "code": 6048,
+      "name": "OracleNotFrozen",
+      "msg": "Oracle must be frozen for this operation"
+    },
+    {
+      "code": 6049,
+      "name": "OracleInsufficientSources",
+      "msg": "Insufficient oracle sources"
+    },
+    {
+      "code": 6050,
+      "name": "OracleUpdateTooFrequent",
+      "msg": "Oracle update too frequent (one per slot max)"
+    },
+    {
+      "code": 6051,
+      "name": "OracleGapTooLarge",
+      "msg": "Oracle gap too large — unfreeze required"
+    },
+    {
+      "code": 6052,
+      "name": "OracleFallbackFailed",
+      "msg": "Primary and fallback oracles both failed"
+    },
+    {
+      "code": 6053,
+      "name": "OracleCircuitBreakerTripped",
+      "msg": "Oracle circuit breaker tripped — price deviation from EMA exceeds threshold"
     }
   ],
   "types": [
@@ -2296,6 +2842,37 @@
           {
             "name": "initial_k",
             "type": "u128"
+          }
+        ]
+      }
+    },
+    {
+      "name": "InitPerkOracleParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "min_sources",
+            "type": "u8"
+          },
+          {
+            "name": "max_staleness_seconds",
+            "type": "u32"
+          },
+          {
+            "name": "max_price_change_bps",
+            "docs": [
+              "Max allowed price change per update in basis points. 0 = no banding (memecoins).",
+              "3000 = 30% max change per update (deep liquidity tokens)."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "circuit_breaker_deviation_bps",
+            "docs": [
+              "Circuit breaker: max deviation from EMA in bps. 0 = disabled."
+            ],
+            "type": "u16"
           }
         ]
       }
@@ -2655,6 +3232,18 @@
           {
             "name": "creation_fee_paid",
             "type": "u64"
+          },
+          {
+            "name": "fallback_oracle_source",
+            "type": {
+              "defined": {
+                "name": "OracleSource"
+              }
+            }
+          },
+          {
+            "name": "fallback_oracle_address",
+            "type": "pubkey"
           }
         ]
       }
@@ -2668,7 +3257,83 @@
             "name": "Pyth"
           },
           {
+            "name": "PerkOracle"
+          },
+          {
             "name": "DexPool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PerkOraclePrice",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "token_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "price",
+            "type": "u64"
+          },
+          {
+            "name": "confidence",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          },
+          {
+            "name": "num_sources",
+            "type": "u8"
+          },
+          {
+            "name": "min_sources",
+            "type": "u8"
+          },
+          {
+            "name": "last_slot",
+            "type": "u64"
+          },
+          {
+            "name": "ema_price",
+            "type": "u64"
+          },
+          {
+            "name": "max_staleness_seconds",
+            "type": "u32"
+          },
+          {
+            "name": "is_frozen",
+            "type": "bool"
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          },
+          {
+            "name": "total_updates",
+            "type": "u64"
+          },
+          {
+            "name": "_reserved",
+            "type": {
+              "array": [
+                "u8",
+                64
+              ]
+            }
           }
         ]
       }
@@ -2735,6 +3400,26 @@
             "type": {
               "option": "pubkey"
             }
+          }
+        ]
+      }
+    },
+    {
+      "name": "SetFallbackOracleParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "fallback_oracle_source",
+            "type": {
+              "defined": {
+                "name": "OracleSource"
+              }
+            }
+          },
+          {
+            "name": "fallback_oracle_address",
+            "type": "pubkey"
           }
         ]
       }
@@ -2891,6 +3576,70 @@
           },
           {
             "name": "TakeProfit"
+          }
+        ]
+      }
+    },
+    {
+      "name": "UpdateOracleConfigParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "max_price_change_bps",
+            "docs": [
+              "New max price change per update in bps. 0 = no banding."
+            ],
+            "type": {
+              "option": "u16"
+            }
+          },
+          {
+            "name": "min_sources",
+            "docs": [
+              "Minimum number of sources required for oracle updates."
+            ],
+            "type": {
+              "option": "u8"
+            }
+          },
+          {
+            "name": "max_staleness_seconds",
+            "docs": [
+              "Maximum staleness in seconds before oracle is considered stale."
+            ],
+            "type": {
+              "option": "u32"
+            }
+          },
+          {
+            "name": "circuit_breaker_deviation_bps",
+            "docs": [
+              "Circuit breaker: max deviation from EMA in bps. 0 = disabled."
+            ],
+            "type": {
+              "option": "u16"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "UpdatePerkOracleParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "price",
+            "type": "u64"
+          },
+          {
+            "name": "confidence",
+            "type": "u64"
+          },
+          {
+            "name": "num_sources",
+            "type": "u8"
           }
         ]
       }

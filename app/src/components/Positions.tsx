@@ -1,14 +1,52 @@
 "use client";
 
-import React, { memo } from "react";
-import { UserPosition } from "@/types";
+import React, { memo, useState, useCallback } from "react";
+import { UserPosition, Market } from "@/types";
 import { formatUsd, formatPct } from "@/lib/format";
+import { usePerk } from "@/providers/PerkProvider";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { PublicKey } from "@solana/web3.js";
+import toast from "react-hot-toast";
 
 interface PositionsProps {
   positions: UserPosition[];
+  market?: Market;
 }
 
-export const Positions = memo(function Positions({ positions }: PositionsProps) {
+export const Positions = memo(function Positions({ positions, market }: PositionsProps) {
+  const { client } = usePerk();
+  const { publicKey } = useWallet();
+  const [closingIndex, setClosingIndex] = useState<number | null>(null);
+
+  const handleClose = useCallback(
+    async (posIndex: number) => {
+      if (!client || !publicKey || !market) {
+        toast.error("Please connect your wallet.");
+        return;
+      }
+
+      const confirmed = window.confirm(
+        "Are you sure you want to close this position? This will close the entire position."
+      );
+      if (!confirmed) return;
+
+      setClosingIndex(posIndex);
+      try {
+        const tokenMint = new PublicKey(market.tokenMint);
+        const oracle = new PublicKey(market.oracleAddress);
+        const sig = await client.closePosition(tokenMint, oracle);
+        toast.success("Position closed!\nTX: " + sig.slice(0, 16) + "...");
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error("Close position failed:", err);
+        toast.error("Failed to close position: " + message);
+      } finally {
+        setClosingIndex(null);
+      }
+    },
+    [client, publicKey, market]
+  );
+
   if (positions.length === 0) {
     return (
       <div className="p-3 text-xs text-text-tertiary font-sans">
@@ -39,8 +77,9 @@ export const Positions = memo(function Positions({ positions }: PositionsProps) 
           {positions.map((p, i) => {
             const isLong = p.baseSize > 0;
             const pnlPositive = p.pnl >= 0;
+            const isClosing = closingIndex === i;
             return (
-              <tr key={i} className="border-b border-border hover:bg-white/[0.02]">
+              <tr key={`${p.authority}-${p.market}`} className="border-b border-border hover:bg-white/[0.02]">
                 <td className="px-3 py-2 font-sans text-white">{p.marketSymbol}-PERP</td>
                 <td className={`px-3 py-2 font-sans font-medium ${isLong ? "text-profit" : "text-loss"}`}>
                   {isLong ? "LONG" : "SHORT"}
@@ -71,8 +110,16 @@ export const Positions = memo(function Positions({ positions }: PositionsProps) 
                     <button className="px-1.5 py-0.5 text-[10px] font-sans text-text-secondary border border-zinc-800 rounded-[4px] hover:text-white hover:border-zinc-600 transition-colors duration-100">
                       SL
                     </button>
-                    <button className="px-1.5 py-0.5 text-[10px] font-sans text-loss/80 border border-loss/30 rounded-[4px] hover:text-loss hover:border-loss/50 transition-colors duration-100">
-                      Close
+                    <button
+                      onClick={() => handleClose(i)}
+                      disabled={isClosing || !market}
+                      className={`px-1.5 py-0.5 text-[10px] font-sans rounded-[4px] border transition-colors duration-100 ${
+                        isClosing
+                          ? "text-zinc-600 border-zinc-800 cursor-not-allowed"
+                          : "text-loss/80 border-loss/30 hover:text-loss hover:border-loss/50"
+                      }`}
+                    >
+                      {isClosing ? "..." : "Close"}
                     </button>
                   </div>
                 </td>

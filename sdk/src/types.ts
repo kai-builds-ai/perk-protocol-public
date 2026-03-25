@@ -5,7 +5,8 @@ import BN from "bn.js";
 
 export enum OracleSource {
   Pyth = 0,
-  DexPool = 1,
+  PerkOracle = 1,
+  DexPool = 2,
 }
 
 export enum Side {
@@ -141,6 +142,8 @@ export interface MarketAccount {
   twapObservationCount: number;
   twapVolumeAccumulator: BN;
   creationFeePaid: BN;
+  fallbackOracleSource: OracleSource;
+  fallbackOracleAddress: PublicKey;
 }
 
 export interface UserPositionAccount {
@@ -180,6 +183,54 @@ export interface TriggerOrderAccount {
   createdAt: BN;
   expiry: BN;
   bump: number;
+}
+
+export interface PerkOracleAccount {
+  bump: number;
+  tokenMint: PublicKey;
+  authority: PublicKey;
+  price: BN;
+  confidence: BN;
+  timestamp: BN;
+  numSources: number;
+  minSources: number;
+  lastSlot: BN;
+  emaPrice: BN;
+  maxStalenessSeconds: number;
+  isFrozen: boolean;
+  createdAt: BN;
+  totalUpdates: BN;
+}
+
+export interface InitPerkOracleParams {
+  minSources: number;
+  maxStalenessSeconds: number;
+  /** Max price change per update in basis points. 0 = no banding (memecoins). 3000 = 30%. */
+  maxPriceChangeBps: number;
+  /** Circuit breaker: max deviation from EMA in bps. 0 = disabled. Must be 0 or [500, 9999]. */
+  circuitBreakerDeviationBps: number;
+}
+
+export interface UpdatePerkOracleParams {
+  price: BN;
+  confidence: BN;
+  numSources: number;
+}
+
+export interface UpdateOracleConfigParams {
+  /** Max price change per update in basis points. 0 = no banding. null = don't change. */
+  maxPriceChangeBps: number | null;
+  /** Minimum sources required. null = don't change. */
+  minSources: number | null;
+  /** Max staleness in seconds. null = don't change. */
+  maxStalenessSeconds: number | null;
+  /** Circuit breaker: max deviation from EMA in bps. 0 = disabled. null = don't change. */
+  circuitBreakerDeviationBps: number | null;
+}
+
+export interface SetFallbackOracleParams {
+  fallbackOracleSource: OracleSource;
+  fallbackOracleAddress: PublicKey;
 }
 
 // ── Instruction Params ──

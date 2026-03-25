@@ -35,6 +35,9 @@ pub struct ReclaimEmptyAccount<'info> {
     #[account(constraint = oracle.key() == market.oracle_address @ PerkError::InvalidOracleSource)]
     pub oracle: UncheckedAccount<'info>,
 
+    /// CHECK: Fallback oracle account (pass any account if no fallback configured)
+    pub fallback_oracle: UncheckedAccount<'info>,
+
     /// CHECK: The original owner of the position (used for PDA derivation)
     pub position_owner: UncheckedAccount<'info>,
 
@@ -56,9 +59,12 @@ pub fn handler(ctx: Context<ReclaimEmptyAccount>) -> Result<()> {
     let clock = Clock::get()?;
 
     // ── H1 + C5: Standard accrue → settle → warmup BEFORE checking emptiness ──
-    let oracle_price = oracle::read_oracle_price(
+    let oracle_price = oracle::read_oracle_price_with_fallback(
         &market.oracle_source,
         &ctx.accounts.oracle.to_account_info(),
+        &market.fallback_oracle_source,
+        &ctx.accounts.fallback_oracle.to_account_info(),
+        &market.fallback_oracle_address,
         clock.unix_timestamp,
     )?.price;
 

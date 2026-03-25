@@ -1,15 +1,11 @@
-pub mod i128_types;
 pub mod wide_math;
 pub mod vamm;
 pub mod risk;
 pub mod funding;
-pub mod margin;
 pub mod liquidation;
 pub mod oracle;
 pub mod warmup;
 
-// Selective re-exports to avoid ambiguity between risk:: and margin:: functions
-pub use i128_types::*;
 pub use wide_math::*;
 pub use vamm::*;
 pub use funding::*;
@@ -17,7 +13,6 @@ pub use oracle::*;
 pub use warmup::*;
 
 // Re-export risk (primary engine) and liquidation directly
-// margin functions accessed via margin:: prefix to avoid collisions
 pub use risk::{
     Side, side_of_i128, opposite_side, i128_clamp_pos,
     haircut_ratio, released_pos, effective_matured_pnl,

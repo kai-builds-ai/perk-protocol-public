@@ -21,6 +21,9 @@ pub struct UpdateAmm<'info> {
     #[account(constraint = oracle.key() == market.oracle_address @ PerkError::InvalidOracleSource)]
     pub oracle: UncheckedAccount<'info>,
 
+    /// CHECK: Fallback oracle account (pass any account if no fallback configured)
+    pub fallback_oracle: UncheckedAccount<'info>,
+
     pub caller: Signer<'info>,
 }
 
@@ -35,9 +38,12 @@ pub fn handler(ctx: Context<UpdateAmm>) -> Result<()> {
     require!(slots_since_last >= PEG_UPDATE_COOLDOWN_SLOTS, PerkError::PegCooldownNotElapsed);
 
     // Read oracle price
-    let oracle_price = oracle::read_oracle_price(
+    let oracle_price = oracle::read_oracle_price_with_fallback(
         &market.oracle_source,
         &ctx.accounts.oracle.to_account_info(),
+        &market.fallback_oracle_source,
+        &ctx.accounts.fallback_oracle.to_account_info(),
+        &market.fallback_oracle_address,
         clock.unix_timestamp,
     )?.price;
 
@@ -56,10 +62,13 @@ pub fn handler(ctx: Context<UpdateAmm>) -> Result<()> {
     // M2 (R4): No trade notional for peg updates — use weight=1 (plain observation)
     let pre_update_mark = vamm::calculate_mark_price(market)?;
     let peg_twap_weight: u128 = 1_000_000; // Fixed weight for non-trade observations
+    // ATK-07 fix: Cap TWAP contribution to prevent manipulation (applies even to peg updates)
+    let max_twap_weight = market.k / 10; // 10% of vAMM invariant
+    let capped_twap_weight = core::cmp::min(peg_twap_weight, max_twap_weight);
     market.mark_price_accumulator = market.mark_price_accumulator
-        .saturating_add((pre_update_mark as u128).saturating_mul(peg_twap_weight));
+        .saturating_add((pre_update_mark as u128).saturating_mul(capped_twap_weight));
     market.twap_volume_accumulator = market.twap_volume_accumulator
-        .saturating_add(peg_twap_weight);
+        .saturating_add(capped_twap_weight);
     market.twap_observation_count = market.twap_observation_count.saturating_add(1);
 
     // Calculate and apply new peg

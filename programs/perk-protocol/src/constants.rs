@@ -69,7 +69,7 @@ pub const FUNDING_RATE_PRECISION: i64 = 1_000_000;
 pub const PEG_UPDATE_COOLDOWN_SLOTS: u64 = 100;
 
 // H6: Insurance fund epoch payout cap (50% of balance per epoch)
-pub const INSURANCE_EPOCH_CAP_BPS: u16 = 5000;
+pub const INSURANCE_EPOCH_CAP_BPS: u16 = 3000; // 30% — reduced from 50% for better survivability under sustained attack
 
 // H3 fix: Insurance epoch is 24 hours, decoupled from funding period.
 // Prevents timing attack where crank_funding resets the insurance counter.
@@ -110,3 +110,28 @@ pub const DUST_THRESHOLD: u64 = 1000;
 // Medium fix: Token mint decimal bounds
 pub const MIN_TOKEN_DECIMALS: u8 = 0;
 pub const MAX_TOKEN_DECIMALS: u8 = 18;
+
+// PerkOracle bounds
+pub const MIN_ORACLE_STALENESS_SECONDS: u32 = 5;
+pub const MAX_ORACLE_STALENESS_SECONDS: u32 = 300; // 5 minutes
+pub const MAX_MIN_SOURCES: u8 = 10;
+pub const MIN_PRICE_CHANGE_BPS: u16 = 100;  // 1% minimum band — prevents tight-band DoS
+pub const MAX_PRICE_CHANGE_BPS: u16 = 9999; // 99.99% — cap for the per-oracle banding field
+
+// PerkOraclePrice _reserved field offsets
+pub const RESERVED_OFFSET_UNFREEZE_PENDING: usize = 0;       // [0]: u8 flag
+pub const RESERVED_OFFSET_MAX_PRICE_CHANGE_BPS: usize = 1;   // [1..3]: u16 LE
+pub const RESERVED_OFFSET_PRE_FREEZE_PRICE: usize = 3;       // [3..11]: u64 LE
+pub const RESERVED_OFFSET_WINDOW_REF_PRICE: usize = 11;      // [11..19]: u64 LE
+pub const RESERVED_OFFSET_WINDOW_REF_SLOT: usize = 19;       // [19..27]: u64 LE
+pub const RESERVED_OFFSET_CIRCUIT_BREAKER_BPS: usize = 27;   // [27..29]: u16 LE
+// [29..64]: unused (35 bytes)
+
+// Circuit breaker bounds (ATK-05 R2 fix)
+pub const MIN_CIRCUIT_BREAKER_BPS: u16 = 500;   // 5% minimum when enabled
+pub const MAX_CIRCUIT_BREAKER_BPS: u16 = 9999;  // 99.99% cap
+
+/// Circuit breaker sliding window duration in slots (~20 seconds)
+pub const CIRCUIT_BREAKER_WINDOW_SLOTS: u64 = 50;
+/// Sliding window max deviation multiplier (3x per-update band)
+pub const WINDOW_BAND_MULTIPLIER: u64 = 3;

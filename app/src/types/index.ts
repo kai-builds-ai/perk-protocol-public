@@ -2,6 +2,7 @@
 
 export enum OracleSource {
   Pyth = "Pyth",
+  PerkOracle = "PerkOracle",
   DexPool = "DexPool",
 }
 

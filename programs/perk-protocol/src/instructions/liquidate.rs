@@ -35,6 +35,9 @@ pub struct Liquidate<'info> {
     #[account(constraint = oracle.key() == market.oracle_address @ PerkError::InvalidOracleSource)]
     pub oracle: UncheckedAccount<'info>,
 
+    /// CHECK: Fallback oracle account (pass any account if no fallback configured)
+    pub fallback_oracle: UncheckedAccount<'info>,
+
     /// CHECK: Target user whose position is being liquidated
     pub target_user: UncheckedAccount<'info>,
 
@@ -68,11 +71,26 @@ pub fn handler(ctx: Context<Liquidate>) -> Result<()> {
     let clock = Clock::get()?;
 
     // ── Standard accrue pattern ──
-    let oracle_price = oracle::read_oracle_price(
+    let oracle_price = oracle::read_oracle_price_with_fallback(
         &market.oracle_source,
         &ctx.accounts.oracle.to_account_info(),
+        &market.fallback_oracle_source,
+        &ctx.accounts.fallback_oracle.to_account_info(),
+        &market.fallback_oracle_address,
         clock.unix_timestamp,
     )?.price;
+    // ATK-03 R2: Removed 5-second freshness check. It shadowed the fallback oracle
+    // (primary at 7s passes its own 15s limit but fails the 5s check, fallback never tried).
+    // Oracle integrity is protected by the circuit breaker + per-update banding instead.
+
+    // ATK-04 R2 defense-in-depth: Reset insurance epoch if 24h elapsed.
+    // Primary reset is in crank_funding, but this ensures epoch resets even if
+    // crank_funding hasn't been called (low-activity markets).
+    let epoch_elapsed = clock.unix_timestamp.saturating_sub(market.insurance_epoch_start);
+    if epoch_elapsed >= crate::constants::INSURANCE_EPOCH_SECONDS {
+        market.insurance_epoch_start = clock.unix_timestamp;
+        market.insurance_epoch_payout = 0;
+    }
 
     risk::accrue_market_to(market, clock.slot, oracle_price)?;
     risk::settle_side_effects(position, market)?;

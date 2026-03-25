@@ -8,8 +8,7 @@ pub use perk_protocol::state::user_position::*;
 pub use perk_protocol::engine::*;
 pub use perk_protocol::engine::risk::*;
 pub use perk_protocol::engine::wide_math::*;
-pub use perk_protocol::engine::i128_types::*;
-pub use perk_protocol::engine::margin::*;
+// Removed: i128_types and margin (deleted during dead code cleanup)
 pub use perk_protocol::engine::liquidation::*;
 pub use perk_protocol::engine::funding::*;
 pub use perk_protocol::engine::warmup::*;

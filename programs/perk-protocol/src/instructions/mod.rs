@@ -17,6 +17,12 @@ pub mod reclaim_empty_account;
 pub mod admin_update_market;
 pub mod admin_transfer;
 pub mod admin_withdraw_sol;
+pub mod initialize_perk_oracle;
+pub mod update_perk_oracle;
+pub mod freeze_perk_oracle;
+pub mod transfer_oracle_authority;
+pub mod update_oracle_config;
+pub mod admin_set_fallback_oracle;
 
 #[allow(ambiguous_glob_reexports)]
 pub use initialize_protocol::*;
@@ -38,3 +44,9 @@ pub use reclaim_empty_account::*;
 pub use admin_update_market::*;
 pub use admin_transfer::*;
 pub use admin_withdraw_sol::*;
+pub use initialize_perk_oracle::*;
+pub use update_perk_oracle::*;
+pub use freeze_perk_oracle::*;
+pub use transfer_oracle_authority::*;
+pub use update_oracle_config::*;
+pub use admin_set_fallback_oracle::*;

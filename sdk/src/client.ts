@@ -24,6 +24,7 @@ import {
   findPositionAddress,
   findVaultAddress,
   findTriggerOrderAddress,
+  findPerkOracleAddress,
 } from "./pda";
 import {
   Side,
@@ -36,6 +37,11 @@ import {
   UserPositionAccount,
   ProtocolAccount,
   TriggerOrderAccount,
+  PerkOracleAccount,
+  InitPerkOracleParams,
+  UpdatePerkOracleParams,
+  UpdateOracleConfigParams,
+  SetFallbackOracleParams,
 } from "./types";
 import IDL from "./idl.json";
 
@@ -47,6 +53,7 @@ const SIDE_MAP = {
 
 const ORACLE_SOURCE_MAP = {
   [OracleSource.Pyth]: { pyth: {} },
+  [OracleSource.PerkOracle]: { perkOracle: {} },
   [OracleSource.DexPool]: { dexPool: {} },
 };
 
@@ -114,6 +121,10 @@ export class PerkClient {
     orderId: number | BN
   ): PublicKey {
     return findTriggerOrderAddress(market, user, orderId, this.programId)[0];
+  }
+
+  getPerkOracleAddress(tokenMint: PublicKey): PublicKey {
+    return findPerkOracleAddress(tokenMint, this.programId)[0];
   }
 
   // ═══════════════════════════════════════════════
@@ -197,6 +208,18 @@ export class PerkClient {
         address: a.publicKey,
         account: a.account as unknown as TriggerOrderAccount,
       }));
+  }
+
+  /** Fetch a PerkOracle account. */
+  async fetchPerkOracle(tokenMint: PublicKey): Promise<PerkOracleAccount> {
+    const address = this.getPerkOracleAddress(tokenMint);
+    return (await this.accounts.perkOraclePrice.fetch(address)) as unknown as PerkOracleAccount;
+  }
+
+  /** Fetch a PerkOracle account, returning null if not found. */
+  async fetchPerkOracleNullable(tokenMint: PublicKey): Promise<PerkOracleAccount | null> {
+    const address = this.getPerkOracleAddress(tokenMint);
+    return (await this.accounts.perkOraclePrice.fetchNullable(address)) as unknown as PerkOracleAccount | null;
   }
 
   // ═══════════════════════════════════════════════
@@ -350,7 +373,8 @@ export class PerkClient {
   async deposit(
     tokenMint: PublicKey,
     oracle: PublicKey,
-    amount: BN
+    amount: BN,
+    fallbackOracle?: PublicKey,
   ): Promise<TransactionSignature> {
     const protocol = this.getProtocolAddress();
     const market = this.getMarketAddress(tokenMint);
@@ -365,6 +389,7 @@ export class PerkClient {
         market,
         userPosition: position,
         oracle,
+        fallbackOracle: fallbackOracle ?? SystemProgram.programId,
         userTokenAccount: userAta,
         vault,
         user: this.wallet.publicKey,
@@ -378,7 +403,8 @@ export class PerkClient {
   async withdraw(
     tokenMint: PublicKey,
     oracle: PublicKey,
-    amount: BN
+    amount: BN,
+    fallbackOracle?: PublicKey,
   ): Promise<TransactionSignature> {
     const protocol = this.getProtocolAddress();
     const market = this.getMarketAddress(tokenMint);
@@ -393,6 +419,7 @@ export class PerkClient {
         market,
         userPosition: position,
         oracle,
+        fallbackOracle: fallbackOracle ?? SystemProgram.programId,
         userTokenAccount: userAta,
         vault,
         authority: this.wallet.publicKey,
@@ -409,7 +436,8 @@ export class PerkClient {
     side: Side,
     baseSize: BN,
     leverage: number,
-    maxSlippageBps: number = 500
+    maxSlippageBps: number = 500,
+    fallbackOracle?: PublicKey,
   ): Promise<TransactionSignature> {
     // Input validation — catch bad values before they hit Borsh serialization
     if (leverage < MIN_LEVERAGE || leverage > MAX_LEVERAGE) {
@@ -431,6 +459,7 @@ export class PerkClient {
         market,
         userPosition: position,
         oracle,
+        fallbackOracle: fallbackOracle ?? SystemProgram.programId,
         authority: this.wallet.publicKey,
         user: this.wallet.publicKey,
       })
@@ -441,7 +470,8 @@ export class PerkClient {
   async closePosition(
     tokenMint: PublicKey,
     oracle: PublicKey,
-    baseSizeToClose?: BN
+    baseSizeToClose?: BN,
+    fallbackOracle?: PublicKey,
   ): Promise<TransactionSignature> {
     const protocol = this.getProtocolAddress();
     const market = this.getMarketAddress(tokenMint);
@@ -454,6 +484,7 @@ export class PerkClient {
         market,
         userPosition: position,
         oracle,
+        fallbackOracle: fallbackOracle ?? SystemProgram.programId,
         authority: this.wallet.publicKey,
         user: this.wallet.publicKey,
       })
@@ -560,13 +591,15 @@ export class PerkClient {
   /** Crank funding rate update. */
   async crankFunding(
     marketAddress: PublicKey,
-    oracle: PublicKey
+    oracle: PublicKey,
+    fallbackOracle?: PublicKey,
   ): Promise<TransactionSignature> {
     return this.program.methods
       .crankFunding()
       .accounts({
         market: marketAddress,
         oracle,
+        fallbackOracle: fallbackOracle ?? SystemProgram.programId,
         cranker: this.wallet.publicKey,
       })
       .preInstructions(this.preInstructions).rpc();
@@ -577,7 +610,8 @@ export class PerkClient {
     marketAddress: PublicKey,
     oracle: PublicKey,
     targetUser: PublicKey,
-    liquidatorTokenAccount: PublicKey
+    liquidatorTokenAccount: PublicKey,
+    fallbackOracle?: PublicKey,
   ): Promise<TransactionSignature> {
     const protocol = this.getProtocolAddress();
     const position = this.getPositionAddress(marketAddress, targetUser);
@@ -590,6 +624,7 @@ export class PerkClient {
         market: marketAddress,
         userPosition: position,
         oracle,
+        fallbackOracle: fallbackOracle ?? SystemProgram.programId,
         targetUser,
         liquidatorTokenAccount,
         vault,
@@ -605,7 +640,8 @@ export class PerkClient {
     oracle: PublicKey,
     targetUser: PublicKey,
     orderId: number | BN,
-    executorTokenAccount: PublicKey
+    executorTokenAccount: PublicKey,
+    fallbackOracle?: PublicKey,
   ): Promise<TransactionSignature> {
     const protocol = this.getProtocolAddress();
     const position = this.getPositionAddress(marketAddress, targetUser);
@@ -624,6 +660,7 @@ export class PerkClient {
         userPosition: position,
         triggerOrder,
         oracle,
+        fallbackOracle: fallbackOracle ?? SystemProgram.programId,
         executorTokenAccount,
         vault,
         executor: this.wallet.publicKey,
@@ -635,13 +672,15 @@ export class PerkClient {
   /** Update the vAMM peg multiplier (permissionless). */
   async updateAmm(
     marketAddress: PublicKey,
-    oracle: PublicKey
+    oracle: PublicKey,
+    fallbackOracle?: PublicKey,
   ): Promise<TransactionSignature> {
     return this.program.methods
       .updateAmm()
       .accounts({
         market: marketAddress,
         oracle,
+        fallbackOracle: fallbackOracle ?? SystemProgram.programId,
         caller: this.wallet.publicKey,
       })
       .preInstructions(this.preInstructions).rpc();
@@ -651,7 +690,8 @@ export class PerkClient {
   async reclaimEmptyAccount(
     marketAddress: PublicKey,
     oracle: PublicKey,
-    positionOwner: PublicKey
+    positionOwner: PublicKey,
+    fallbackOracle?: PublicKey,
   ): Promise<TransactionSignature> {
     const position = this.getPositionAddress(marketAddress, positionOwner);
 
@@ -661,9 +701,251 @@ export class PerkClient {
         market: marketAddress,
         userPosition: position,
         oracle,
+        fallbackOracle: fallbackOracle ?? SystemProgram.programId,
         positionOwner,
         rentReceiver: positionOwner, // On-chain enforces rentReceiver == position.authority
         caller: this.wallet.publicKey,
+      })
+      .preInstructions(this.preInstructions).rpc();
+  }
+
+  // ═══════════════════════════════════════════════
+  // PerkOracle Instructions
+  // ═══════════════════════════════════════════════
+
+  /** Initialize a PerkOracle price feed. Admin only. */
+  async initializePerkOracle(
+    tokenMint: PublicKey,
+    oracleAuthority: PublicKey,
+    params: InitPerkOracleParams,
+  ): Promise<TransactionSignature> {
+    // ── Client-side validation (ATK-01) ──
+    // Type safety: reject NaN, Infinity, floats
+    for (const [name, val] of Object.entries({
+      circuitBreakerDeviationBps: params.circuitBreakerDeviationBps,
+      maxPriceChangeBps: params.maxPriceChangeBps,
+      minSources: params.minSources,
+      maxStalenessSeconds: params.maxStalenessSeconds,
+    })) {
+      if (!Number.isFinite(val) || !Number.isInteger(val)) {
+        throw new Error(`${name} must be a finite integer, got ${val}`);
+      }
+    }
+    // u16 range checks
+    if (params.circuitBreakerDeviationBps < 0 || params.circuitBreakerDeviationBps > 65535) {
+      throw new Error(`circuitBreakerDeviationBps out of u16 range`);
+    }
+    if (params.maxPriceChangeBps < 0 || params.maxPriceChangeBps > 65535) {
+      throw new Error(`maxPriceChangeBps out of u16 range`);
+    }
+    // Bounds checks
+    if (params.circuitBreakerDeviationBps !== 0) {
+      if (params.circuitBreakerDeviationBps < 500 || params.circuitBreakerDeviationBps > 9999) {
+        throw new Error(`circuitBreakerDeviationBps must be 0 (disabled) or between 500 and 9999, got ${params.circuitBreakerDeviationBps}`);
+      }
+    }
+    if (params.maxPriceChangeBps !== 0) {
+      if (params.maxPriceChangeBps < 100 || params.maxPriceChangeBps > 9999) {
+        throw new Error(`maxPriceChangeBps must be 0 (disabled) or between 100 and 9999, got ${params.maxPriceChangeBps}`);
+      }
+    }
+    if (params.minSources < 1 || params.minSources > 10) {
+      throw new Error(`minSources must be between 1 and 10, got ${params.minSources}`);
+    }
+    if (params.maxStalenessSeconds < 5 || params.maxStalenessSeconds > 300) {
+      throw new Error(`maxStalenessSeconds must be between 5 and 300, got ${params.maxStalenessSeconds}`);
+    }
+
+    const protocol = this.getProtocolAddress();
+    const perkOracle = this.getPerkOracleAddress(tokenMint);
+
+    return this.program.methods
+      .initializePerkOracle({
+        minSources: params.minSources,
+        maxStalenessSeconds: params.maxStalenessSeconds,
+        maxPriceChangeBps: params.maxPriceChangeBps,
+        circuitBreakerDeviationBps: params.circuitBreakerDeviationBps,
+      })
+      .accounts({
+        protocol,
+        perkOracle,
+        tokenMint,
+        oracleAuthority,
+        admin: this.wallet.publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .preInstructions(this.preInstructions).rpc();
+  }
+
+  /** Update a PerkOracle price feed. Authorized cranker only. */
+  async updatePerkOracle(
+    tokenMint: PublicKey,
+    params: UpdatePerkOracleParams,
+  ): Promise<TransactionSignature> {
+    const perkOracle = this.getPerkOracleAddress(tokenMint);
+
+    return this.program.methods
+      .updatePerkOracle({
+        price: params.price,
+        confidence: params.confidence,
+        numSources: params.numSources,
+      })
+      .accounts({
+        perkOracle,
+        authority: this.wallet.publicKey,
+      })
+      .preInstructions(this.preInstructions).rpc();
+  }
+
+  /** Build updatePerkOracle instructions without sending. Used for Jito bundle submission. */
+  async buildUpdatePerkOracleIx(
+    tokenMint: PublicKey,
+    params: UpdatePerkOracleParams,
+  ): Promise<TransactionInstruction[]> {
+    const perkOracle = this.getPerkOracleAddress(tokenMint);
+
+    const mainIx = await this.program.methods
+      .updatePerkOracle({
+        price: params.price,
+        confidence: params.confidence,
+        numSources: params.numSources,
+      })
+      .accounts({
+        perkOracle,
+        authority: this.wallet.publicKey,
+      })
+      .instruction();
+
+    return [...this.preInstructions, mainIx];
+  }
+
+  /** Freeze or unfreeze a PerkOracle. Admin only. */
+  async freezePerkOracle(
+    tokenMint: PublicKey,
+    frozen: boolean,
+  ): Promise<TransactionSignature> {
+    const protocol = this.getProtocolAddress();
+    const perkOracle = this.getPerkOracleAddress(tokenMint);
+
+    return this.program.methods
+      .freezePerkOracle(frozen)
+      .accounts({
+        protocol,
+        perkOracle,
+        admin: this.wallet.publicKey,
+      })
+      .preInstructions(this.preInstructions).rpc();
+  }
+
+  /** Transfer PerkOracle authority. Current authority or admin. */
+  async transferOracleAuthority(
+    tokenMint: PublicKey,
+    newAuthority: PublicKey,
+  ): Promise<TransactionSignature> {
+    const protocol = this.getProtocolAddress();
+    const perkOracle = this.getPerkOracleAddress(tokenMint);
+
+    return this.program.methods
+      .transferOracleAuthority()
+      .accounts({
+        protocol,
+        perkOracle,
+        signer: this.wallet.publicKey,
+        newAuthority,
+      })
+      .preInstructions(this.preInstructions).rpc();
+  }
+
+  /** Update PerkOracle config (price banding). Admin only. */
+  async updateOracleConfig(
+    tokenMint: PublicKey,
+    params: UpdateOracleConfigParams,
+  ): Promise<TransactionSignature> {
+    // ── Client-side validation (ATK-01) ──
+    // Type safety: reject NaN, Infinity, floats for non-null fields
+    for (const [name, val] of Object.entries(params)) {
+      if (val !== null && typeof val === 'number' && (!Number.isFinite(val) || !Number.isInteger(val))) {
+        throw new Error(`${name} must be null or a finite integer, got ${val}`);
+      }
+    }
+    // u16 range checks
+    if (params.circuitBreakerDeviationBps !== null) {
+      if (params.circuitBreakerDeviationBps < 0 || params.circuitBreakerDeviationBps > 65535) {
+        throw new Error(`circuitBreakerDeviationBps out of u16 range`);
+      }
+    }
+    if (params.maxPriceChangeBps !== null) {
+      if (params.maxPriceChangeBps < 0 || params.maxPriceChangeBps > 65535) {
+        throw new Error(`maxPriceChangeBps out of u16 range`);
+      }
+    }
+    // Bounds checks
+    if (params.circuitBreakerDeviationBps !== null && params.circuitBreakerDeviationBps !== 0) {
+      if (params.circuitBreakerDeviationBps < 500 || params.circuitBreakerDeviationBps > 9999) {
+        throw new Error(`circuitBreakerDeviationBps must be 0, null, or between 500 and 9999`);
+      }
+    }
+    if (params.maxPriceChangeBps !== null && params.maxPriceChangeBps !== 0) {
+      if (params.maxPriceChangeBps < 100 || params.maxPriceChangeBps > 9999) {
+        throw new Error(`maxPriceChangeBps must be 0, null, or between 100 and 9999`);
+      }
+    }
+    if (params.minSources !== null) {
+      if (params.minSources < 1 || params.minSources > 10) {
+        throw new Error(`minSources must be null or between 1 and 10`);
+      }
+    }
+    if (params.maxStalenessSeconds !== null) {
+      if (params.maxStalenessSeconds < 5 || params.maxStalenessSeconds > 300) {
+        throw new Error(`maxStalenessSeconds must be null or between 5 and 300`);
+      }
+    }
+
+    const protocol = this.getProtocolAddress();
+    const perkOracle = this.getPerkOracleAddress(tokenMint);
+
+    return this.program.methods
+      .updateOracleConfig({
+        maxPriceChangeBps: params.maxPriceChangeBps,
+        minSources: params.minSources,
+        maxStalenessSeconds: params.maxStalenessSeconds,
+        circuitBreakerDeviationBps: params.circuitBreakerDeviationBps,
+      })
+      .accounts({
+        protocol,
+        perkOracle,
+        admin: this.wallet.publicKey,
+      })
+      .preInstructions(this.preInstructions).rpc();
+  }
+
+  /** Set or remove fallback oracle on a market. Admin only. */
+  async adminSetFallbackOracle(
+    tokenMint: PublicKey,
+    params: SetFallbackOracleParams,
+  ): Promise<TransactionSignature> {
+    const protocol = this.getProtocolAddress();
+    const market = this.getMarketAddress(tokenMint);
+
+    // When removing fallback (address = default/zeros), pass SystemProgram as the
+    // account since Solana won't accept the null address as a transaction account.
+    // The on-chain handler checks params.fallback_oracle_address == default and
+    // short-circuits before reading the account, so the sentinel is never dereferenced.
+    const isRemoving = params.fallbackOracleAddress.equals(PublicKey.default);
+    const fallbackAccount = isRemoving
+      ? SystemProgram.programId
+      : params.fallbackOracleAddress;
+
+    return this.program.methods
+      .adminSetFallbackOracle({
+        fallbackOracleSource: ORACLE_SOURCE_MAP[params.fallbackOracleSource],
+        fallbackOracleAddress: params.fallbackOracleAddress,
+      })
+      .accounts({
+        protocol,
+        market,
+        fallbackOracle: fallbackAccount,
+        admin: this.wallet.publicKey,
       })
       .preInstructions(this.preInstructions).rpc();
   }

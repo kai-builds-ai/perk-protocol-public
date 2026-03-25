@@ -63,8 +63,8 @@ export default function TradingView() {
           </div>
           {/* Positions + Orders below chart */}
           <div className="border-t border-border overflow-auto max-h-[240px]">
-            <Positions positions={positions} />
-            <TriggerOrders orders={triggerOrders} />
+            <Positions positions={positions} market={displayMarket} />
+            <TriggerOrders orders={triggerOrders} market={displayMarket} />
           </div>
         </div>
         {/* Right: Trade Panel */}

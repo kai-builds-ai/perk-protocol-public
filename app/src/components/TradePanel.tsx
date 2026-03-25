@@ -1,13 +1,27 @@
 "use client";
 
-import React, { useState, useMemo, useCallback, useEffect } from "react";
+import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { Market, OrderTab, Side } from "@/types";
 import { LeverageSlider } from "./LeverageSlider";
 import { formatUsd } from "@/lib/format";
+import { usePerk } from "@/providers/PerkProvider";
+import toast from "react-hot-toast";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { PublicKey } from "@solana/web3.js";
+import { BN } from "@coral-xyz/anchor";
+import {
+  Side as SdkSide,
+  TriggerOrderType as SdkTriggerOrderType,
+  LEVERAGE_SCALE,
+  POS_SCALE,
+  PRICE_SCALE,
+} from "@perk/sdk";
 
 interface TradePanelProps {
   market: Market;
 }
+
+const MAX_SLIPPAGE_BPS = 100; // 1%
 
 export function TradePanel({ market }: TradePanelProps) {
   const [tab, setTab] = useState<OrderTab>("market");
@@ -15,6 +29,11 @@ export function TradePanel({ market }: TradePanelProps) {
   const [size, setSize] = useState("");
   const [leverage, setLeverage] = useState(5);
   const [triggerPrice, setTriggerPrice] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const submitLockRef = useRef(false); // M-01 fix: synchronous lock for double-click
+
+  const { client } = usePerk();
+  const { publicKey } = useWallet();
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -25,9 +44,6 @@ export function TradePanel({ market }: TradePanelProps) {
       if (e.key === "Escape") {
         setSize("");
         setTriggerPrice("");
-      }
-      if (e.key === "Enter") {
-        // Submit order (mock)
       }
     };
     window.addEventListener("keydown", handler);
@@ -49,17 +65,129 @@ export function TradePanel({ market }: TradePanelProps) {
       side === Side.Long
         ? entryPrice - liqDistance / sizeNum
         : entryPrice + liqDistance / sizeNum;
-    const slippage = sizeNum * 0.0008;
-    return { entryPrice, fee, liqPrice: Math.max(0, liqPrice), slippage };
+    // M-04 fix: estimate slippage from vAMM constant product (x*y=k)
+    // After a buy of `dx` base: new_price = k / (base - dx)^2 * peg
+    // Slippage ≈ dx / base for small trades, higher for large
+    const slippagePct = market.baseReserve > 0
+      ? Math.abs(sizeNum) / market.baseReserve
+      : 0;
+    return { entryPrice, fee, liqPrice: Math.max(0, liqPrice), slippage: slippagePct };
   }, [sizeNum, market, leverage, side, tab, triggerPrice]);
 
   const isLong = side === Side.Long;
 
-  const handleSubmit = useCallback(() => {
-    // Mock submit
-    setSize("");
-    setTriggerPrice("");
-  }, []);
+  const handleSubmit = useCallback(async () => {
+    // M-01 fix: synchronous lock prevents double-submit
+    if (submitLockRef.current) return;
+    // H-02/H-03 fix: client-side validation (reject NaN, Infinity, zero, negative)
+    if (!Number.isFinite(sizeNum) || sizeNum <= 0) return;
+    if (!market.active) {
+      toast.error("This market is currently inactive.");
+      return;
+    }
+    if (leverage > market.maxLeverage) {
+      toast.error(`Max leverage for this market is ${market.maxLeverage}x.`);
+      return;
+    }
+
+    if (!client || !publicKey) {
+      toast.error("Please connect your wallet first.");
+      return;
+    }
+
+    submitLockRef.current = true;
+    setIsSubmitting(true);
+    try {
+      const tokenMint = new PublicKey(market.tokenMint);
+      const oracle = new PublicKey(market.oracleAddress);
+      const sdkSide = side === Side.Long ? SdkSide.Long : SdkSide.Short;
+
+      if (tab === "market") {
+        // Ensure position account exists
+        const marketAddr = client.getMarketAddress(tokenMint);
+        try {
+          await client.fetchPosition(marketAddr, publicKey);
+        } catch {
+          // Position doesn't exist — initialize it
+          await client.initializePosition(tokenMint);
+        }
+
+        const baseSize = new BN(Math.floor(sizeNum * POS_SCALE));
+        const leverageScaled = Math.floor(leverage * LEVERAGE_SCALE);
+
+        const sig = await client.openPosition(
+          tokenMint,
+          oracle,
+          sdkSide,
+          baseSize,
+          leverageScaled,
+          MAX_SLIPPAGE_BPS,
+        );
+        toast.success("Position opened!\nTX: " + sig.slice(0, 16) + "...");
+        setSize("");
+      } else {
+        // Limit or Stop/TP trigger order
+        const price = parseFloat(triggerPrice);
+        if (!price) {
+          toast.error("Enter a trigger price.");
+          submitLockRef.current = false;
+          setIsSubmitting(false);
+          return;
+        }
+
+        // Determine order type
+        let orderType: SdkTriggerOrderType;
+        let reduceOnly = false;
+
+        if (tab === "limit") {
+          orderType = SdkTriggerOrderType.Limit;
+        } else {
+          // Stop/TP tab — determine type from trigger price vs mark price
+          const isBelowMark = price < market.markPrice;
+          if (side === Side.Long) {
+            // Long: trigger below mark = StopLoss, above = TakeProfit
+            orderType = isBelowMark
+              ? SdkTriggerOrderType.StopLoss
+              : SdkTriggerOrderType.TakeProfit;
+          } else {
+            // Short: trigger above mark = StopLoss, below = TakeProfit
+            orderType = isBelowMark
+              ? SdkTriggerOrderType.TakeProfit
+              : SdkTriggerOrderType.StopLoss;
+          }
+          reduceOnly = true;
+        }
+
+        // Ensure position account exists for trigger orders
+        const marketAddr = client.getMarketAddress(tokenMint);
+        try {
+          await client.fetchPosition(marketAddr, publicKey);
+        } catch {
+          await client.initializePosition(tokenMint);
+        }
+
+        const sig = await client.placeTriggerOrder(tokenMint, {
+          orderType,
+          side: sdkSide,
+          size: new BN(Math.floor(sizeNum * POS_SCALE)),
+          triggerPrice: new BN(Math.floor(price * PRICE_SCALE)),
+          leverage: Math.floor(leverage * LEVERAGE_SCALE),
+          reduceOnly,
+          expiry: new BN(0), // no expiry
+        });
+        toast.success("Order placed!\nTX: " + sig.slice(0, 16) + "...");
+        setSize("");
+        setTriggerPrice("");
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("Trade failed:", err);
+      toast.error("Trade failed: " + message);
+    } finally {
+      submitLockRef.current = false;
+      setIsSubmitting(false);
+    }
+  }, [client, publicKey, sizeNum, side, leverage, tab, triggerPrice, market]);
 
   const tabs: OrderTab[] = ["market", "limit", "stop"];
 
@@ -118,7 +246,8 @@ export function TradePanel({ market }: TradePanelProps) {
               value={size}
               onChange={(e) => setSize(e.target.value)}
               placeholder="0.00"
-              className="flex-1 bg-transparent px-3 py-2 text-sm font-mono text-white outline-none placeholder:text-text-tertiary"
+              disabled={isSubmitting}
+              className="flex-1 bg-transparent px-3 py-2 text-sm font-mono text-white outline-none placeholder:text-text-tertiary disabled:opacity-50"
             />
             <span className="pr-3 text-sm font-sans text-text-secondary">
               {market.symbol}
@@ -138,7 +267,8 @@ export function TradePanel({ market }: TradePanelProps) {
                 value={triggerPrice}
                 onChange={(e) => setTriggerPrice(e.target.value)}
                 placeholder={market.markPrice.toString()}
-                className="flex-1 bg-transparent px-3 py-2 text-sm font-mono text-white outline-none placeholder:text-text-tertiary"
+                disabled={isSubmitting}
+                className="flex-1 bg-transparent px-3 py-2 text-sm font-mono text-white outline-none placeholder:text-text-tertiary disabled:opacity-50"
               />
               <span className="pr-3 text-sm font-sans text-text-secondary">
                 USD
@@ -170,16 +300,20 @@ export function TradePanel({ market }: TradePanelProps) {
         {/* Submit */}
         <button
           onClick={handleSubmit}
-          disabled={!sizeNum}
+          disabled={!sizeNum || isSubmitting}
           className={`w-full py-3 text-sm font-sans font-medium rounded-[4px] border transition-colors duration-100 ${
-            !sizeNum
+            !sizeNum || isSubmitting
               ? "text-zinc-600 border-zinc-800 cursor-not-allowed"
               : isLong
               ? "bg-profit/10 border-profit/50 text-profit hover:bg-profit/20"
               : "bg-loss/10 border-loss/50 text-loss hover:bg-loss/20"
           }`}
         >
-          {isLong ? "Open Long" : "Open Short"}
+          {isSubmitting
+            ? "Submitting..."
+            : isLong
+            ? "Open Long"
+            : "Open Short"}
         </button>
       </div>
     </div>

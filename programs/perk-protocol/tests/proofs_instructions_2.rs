@@ -1,3 +1,4 @@
+#![cfg(kani)]
 /// Kani Formal Proofs — Instructions Set 2: Liquidation & Admin Handlers
 ///
 /// Harnesses H9–H16: compose-and-prove for liquidate, crank_funding,

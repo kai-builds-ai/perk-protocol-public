@@ -7,6 +7,7 @@ import {
   POSITION_SEED,
   VAULT_SEED,
   TRIGGER_SEED,
+  PERK_ORACLE_SEED,
 } from "./constants";
 
 /** Derive the protocol PDA. */
@@ -46,6 +47,17 @@ export function findVaultAddress(
 ): [PublicKey, number] {
   return PublicKey.findProgramAddressSync(
     [VAULT_SEED, market.toBuffer()],
+    programId
+  );
+}
+
+/** Derive the PerkOracle PDA for a token mint. */
+export function findPerkOracleAddress(
+  tokenMint: PublicKey,
+  programId: PublicKey = PERK_PROGRAM_ID
+): [PublicKey, number] {
+  return PublicKey.findProgramAddressSync(
+    [PERK_ORACLE_SEED, tokenMint.toBuffer()],
     programId
   );
 }

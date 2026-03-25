@@ -12,14 +12,14 @@ pub struct InitializePosition<'info> {
         seeds = [b"protocol"],
         bump = protocol.bump,
     )]
-    pub protocol: Account<'info, Protocol>,
+    pub protocol: Box<Account<'info, Protocol>>,
 
     #[account(
         mut,
         seeds = [b"market", market.token_mint.as_ref()],
         bump = market.bump,
     )]
-    pub market: Account<'info, Market>,
+    pub market: Box<Account<'info, Market>>,
 
     #[account(
         init,
@@ -28,7 +28,7 @@ pub struct InitializePosition<'info> {
         seeds = [b"position", market.key().as_ref(), user.key().as_ref()],
         bump,
     )]
-    pub user_position: Account<'info, UserPosition>,
+    pub user_position: Box<Account<'info, UserPosition>>,
 
     #[account(mut)]
     pub user: Signer<'info>,

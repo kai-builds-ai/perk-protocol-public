@@ -36,6 +36,9 @@ pub struct Withdraw<'info> {
     #[account(constraint = oracle.key() == market.oracle_address @ PerkError::InvalidOracleSource)]
     pub oracle: UncheckedAccount<'info>,
 
+    /// CHECK: Fallback oracle account (pass any account if no fallback configured)
+    pub fallback_oracle: UncheckedAccount<'info>,
+
     #[account(
         mut,
         constraint = user_token_account.mint == market.token_mint,
@@ -69,9 +72,12 @@ pub fn handler(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
     let clock = Clock::get()?;
 
     // ── Standard accrue pattern ──
-    let oracle_price = oracle::read_oracle_price(
+    let oracle_price = oracle::read_oracle_price_with_fallback(
         &market.oracle_source,
         &ctx.accounts.oracle.to_account_info(),
+        &market.fallback_oracle_source,
+        &ctx.accounts.fallback_oracle.to_account_info(),
+        &market.fallback_oracle_address,
         clock.unix_timestamp,
     )?.price;
 

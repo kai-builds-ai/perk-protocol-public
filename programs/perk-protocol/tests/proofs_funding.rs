@@ -1,3 +1,4 @@
+#![cfg(kani)]
 /// Kani Formal Proofs — Category 5: Funding
 ///
 /// Properties P5.1–P5.7: Funding rate mechanics, K-coefficient updates,

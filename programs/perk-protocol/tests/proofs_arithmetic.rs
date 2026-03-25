@@ -1,3 +1,4 @@
+#![cfg(kani)]
 // =============================================================================
 // Kani Formal Proofs — Category 1: Arithmetic (wide_math, i128_types)
 // Properties P1.1 through P1.15
