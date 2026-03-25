@@ -125,7 +125,7 @@ export default function MarketExplorer() {
   ];
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col h-screen max-w-7xl mx-auto w-full">
       <TopBar
         totalVolume={totalVolume}
         totalMarkets={markets.length}
