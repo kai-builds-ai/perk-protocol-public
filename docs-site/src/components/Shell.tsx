@@ -50,6 +50,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         <span>© {new Date().getFullYear()} Perk Protocol</span>
         <div className="flex gap-4">
           <a href="https://perk.fund" className="hover:text-zinc-400 transition-colors">perk.fund</a>
+          <a href="https://x.com/PERK_FUND" className="hover:text-zinc-400 transition-colors">X</a>
           <a href="https://github.com/kai-builds-ai/perk-protocol-public" className="hover:text-zinc-400 transition-colors">GitHub</a>
         </div>
       </footer>
