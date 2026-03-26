@@ -34,6 +34,14 @@ const TOKEN_DECIMALS: Record<string, number> = {
   // Default for unknown PF tokens is 6 (pump.fun standard)
 };
 
+// Runtime cache for on-chain decimals (populated by fetchTokenDecimals)
+const runtimeDecimals: Record<string, number> = {};
+
 export function getTokenDecimals(mint: string): number {
-  return TOKEN_DECIMALS[mint] ?? 6;
+  return TOKEN_DECIMALS[mint] ?? runtimeDecimals[mint] ?? 6;
+}
+
+/** Cache on-chain decimals for a mint (called by MarketsProvider). */
+export function setTokenDecimals(mint: string, decimals: number): void {
+  runtimeDecimals[mint] = decimals;
 }

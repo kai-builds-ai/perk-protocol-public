@@ -10,6 +10,8 @@ import {
   createAssociatedTokenAccountInstruction,
   createCloseAccountInstruction,
   getAccount,
+  TokenAccountNotFoundError,
+  TokenInvalidAccountOwnerError,
 } from "@solana/spl-token";
 import { usePerk } from "@/providers/PerkProvider";
 import { Market } from "@/types";
@@ -37,6 +39,23 @@ export function MyMarketsPanel({ markets }: MyMarketsPanelProps) {
     setClaimedMarkets(new Set());
   }, [publicKey]);
 
+  // P-06: Clear optimistic override when new fees accrue from polling
+  React.useEffect(() => {
+    setClaimedMarkets((prev) => {
+      if (prev.size === 0) return prev;
+      const next = new Set(prev);
+      let changed = false;
+      for (const addr of prev) {
+        const m = markets.find((mk) => mk.address === addr);
+        if (m && m.creatorClaimableFees > 0) {
+          next.delete(addr);
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [markets]);
+
   const handleClaim = useCallback(
     async (market: Market) => {
       if (!client || !publicKey || claimLockRef.current) return;
@@ -56,7 +75,8 @@ export function MyMarketsPanel({ markets }: MyMarketsPanelProps) {
         // CF-01: Create ATA if it doesn't exist (first-time claimers)
         try {
           await getAccount(connection, recipientATA);
-        } catch {
+        } catch (e) {
+          if (!(e instanceof TokenAccountNotFoundError) && !(e instanceof TokenInvalidAccountOwnerError)) throw e;
           const createAtaTx = new Transaction().add(
             createAssociatedTokenAccountInstruction(
               publicKey,

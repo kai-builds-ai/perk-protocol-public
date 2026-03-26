@@ -13,7 +13,9 @@ import {
 } from "@perk/sdk";
 import { Market, OracleSource } from "@/types";
 import { usePerk } from "@/providers/PerkProvider";
-import { TOKEN_META, getTokenDecimals } from "@/lib/token-meta";
+import { TOKEN_META, getTokenDecimals, setTokenDecimals } from "@/lib/token-meta";
+import { useConnection } from "@solana/wallet-adapter-react";
+import { getMint } from "@solana/spl-token";
 
 // ── Mapping helpers ──
 
@@ -111,11 +113,14 @@ const POLL_INTERVAL = 10_000;
 
 export function MarketsProvider({ children }: { children: React.ReactNode }) {
   const { readonlyClient, client } = usePerk();
+  const { connection } = useConnection();
   const [markets, setMarkets] = useState<Market[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   // H-03 fix: generation counter prevents stale fetches from overwriting state
   const generationRef = useRef(0);
+  // P-07: Track mints we've already fetched decimals for
+  const resolvedDecimalsRef = useRef<Set<string>>(new Set());
 
   const fetchMarkets = useCallback(async () => {
     const gen = ++generationRef.current;
@@ -124,6 +129,24 @@ export function MarketsProvider({ children }: { children: React.ReactNode }) {
       const raw = await perkClient.fetchAllMarkets();
       // Only apply if this is still the latest generation
       if (gen !== generationRef.current) return;
+
+      // P-07: Fetch on-chain decimals for unknown mints before mapping
+      const unknownMints = raw
+        .map((r) => r.account.tokenMint.toBase58())
+        .filter((mint) => getTokenDecimals(mint) === 6 && !resolvedDecimalsRef.current.has(mint));
+      const uniqueUnknown = [...new Set(unknownMints)];
+      await Promise.all(
+        uniqueUnknown.map(async (mint) => {
+          try {
+            const mintInfo = await getMint(connection, new PublicKey(mint));
+            setTokenDecimals(mint, mintInfo.decimals);
+          } catch {
+            // RPC failure — fall back to default 6
+          }
+          resolvedDecimalsRef.current.add(mint);
+        })
+      );
+
       const mapped = raw.map((r) => toFrontendMarket(r.address, r.account));
       mapped.sort((a, b) => a.marketIndex - b.marketIndex);
       setMarkets(mapped);
@@ -135,7 +158,7 @@ export function MarketsProvider({ children }: { children: React.ReactNode }) {
     } finally {
       if (gen === generationRef.current) setLoading(false);
     }
-  }, [client, readonlyClient]);
+  }, [client, readonlyClient, connection]);
 
   useEffect(() => {
     fetchMarkets();
