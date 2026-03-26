@@ -186,9 +186,9 @@ export default function Landing() {
             <div className="space-y-2.5 pt-1">
               <Detail label="Rust" value="5,820 lines" />
               <Detail label="Audits" value="7 rounds" />
-              <Detail label="Bugs fixed" value="82" />
+              <Detail label="Verification" value="117 proofs" />
               <Detail label="Math" value="U256 / I256" />
-              <Detail label="Oracle" value="Pyth Pull" />
+              <Detail label="Oracle" value="Pyth + PerkOracle" />
               <Detail label="AMM" value="vAMM (x·y=k)" />
             </div>
           </div>
