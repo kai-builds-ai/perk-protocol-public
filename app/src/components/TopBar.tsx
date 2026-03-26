@@ -19,7 +19,7 @@ export function TopBar({
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <div className="relative">
+    <div className="relative sticky top-0 z-50 bg-surface">
       <div className="flex items-center justify-between h-12 px-4 md:px-6 border-b border-border bg-surface">
         <div className="flex items-center gap-4 md:gap-8 min-w-0">
           <Link href="/" className="flex items-center gap-2 flex-shrink-0">
@@ -56,12 +56,14 @@ export function TopBar({
           {/* Hamburger — visible below md */}
           <button
             onClick={() => setMenuOpen((v) => !v)}
-            className="md:hidden flex flex-col justify-center items-center w-10 h-10 gap-1.5 flex-shrink-0"
+            className="md:hidden flex items-center justify-center w-10 h-10 flex-shrink-0"
             aria-label="Toggle menu"
           >
-            <span className={`block w-5 h-px bg-white transition-transform duration-150 ${menuOpen ? "translate-y-[3.5px] rotate-45" : ""}`} />
-            <span className={`block w-5 h-px bg-white transition-opacity duration-150 ${menuOpen ? "opacity-0" : ""}`} />
-            <span className={`block w-5 h-px bg-white transition-transform duration-150 ${menuOpen ? "-translate-y-[3.5px] -rotate-45" : ""}`} />
+            {menuOpen ? (
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round"><line x1="4" y1="4" x2="16" y2="16"/><line x1="16" y1="4" x2="4" y2="16"/></svg>
+            ) : (
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round"><line x1="3" y1="5" x2="17" y2="5"/><line x1="3" y1="10" x2="17" y2="10"/><line x1="3" y1="15" x2="17" y2="15"/></svg>
+            )}
           </button>
         </div>
       </div>

@@ -19,7 +19,7 @@ function useStats() {
 function LandingNav() {
   const [menuOpen, setMenuOpen] = useState(false);
   return (
-    <nav className="border-b border-border relative">
+    <nav className="border-b border-border relative sticky top-0 z-50 bg-bg">
       <div className="flex items-center justify-between px-4 md:px-8 h-14 max-w-7xl mx-auto">
         <div className="flex items-center gap-6 md:gap-10">
           <div className="flex items-center gap-2.5">
@@ -36,10 +36,12 @@ function LandingNav() {
           <Link href="/markets" className="text-sm font-sans font-medium border border-white/80 text-white px-5 py-2 hover:bg-white/10 rounded-[4px] transition-colors duration-100 hidden sm:inline-block">
             Launch App
           </Link>
-          <button onClick={() => setMenuOpen((v) => !v)} className="md:hidden flex flex-col justify-center items-center w-10 h-10 gap-1.5 flex-shrink-0" aria-label="Toggle menu">
-            <span className={`block w-5 h-px bg-white transition-transform duration-150 ${menuOpen ? "translate-y-[3.5px] rotate-45" : ""}`} />
-            <span className={`block w-5 h-px bg-white transition-opacity duration-150 ${menuOpen ? "opacity-0" : ""}`} />
-            <span className={`block w-5 h-px bg-white transition-transform duration-150 ${menuOpen ? "-translate-y-[3.5px] -rotate-45" : ""}`} />
+          <button onClick={() => setMenuOpen((v) => !v)} className="md:hidden flex items-center justify-center w-10 h-10 flex-shrink-0" aria-label="Toggle menu">
+            {menuOpen ? (
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round"><line x1="4" y1="4" x2="16" y2="16"/><line x1="16" y1="4" x2="4" y2="16"/></svg>
+            ) : (
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round"><line x1="3" y1="5" x2="17" y2="5"/><line x1="3" y1="10" x2="17" y2="10"/><line x1="3" y1="15" x2="17" y2="15"/></svg>
+            )}
           </button>
         </div>
       </div>
