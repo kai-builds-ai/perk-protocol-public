@@ -15,7 +15,8 @@ $PERK is the native SPL token of the Perk Protocol. It serves as the economic co
 | Launch | pump.fun fair launch |
 | Presale | None |
 | VC allocation | None |
-| Team allocation | TBD (vested) |
+| Team allocation | 20% (vested) |
+| Treasury | 10% |
 
 ---
 
