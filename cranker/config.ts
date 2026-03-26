@@ -54,9 +54,10 @@ export function loadConfig(): CrankerConfig {
     throw new Error("PERK_RPC_URL is required");
   }
 
-  const keypairPath = process.env.PERK_KEYPAIR_PATH;
-  if (!keypairPath) {
-    throw new Error("PERK_KEYPAIR_PATH is required");
+  const keypairPath = process.env.PERK_KEYPAIR_PATH ?? "";
+  const keypairJson = process.env.PERK_KEYPAIR_JSON;
+  if (!keypairPath && !keypairJson) {
+    throw new Error("PERK_KEYPAIR_PATH or PERK_KEYPAIR_JSON is required");
   }
 
   const config: CrankerConfig = {
@@ -108,6 +109,16 @@ export function loadConfig(): CrankerConfig {
 }
 
 export function loadKeypair(keypairPath: string): Keypair {
+  // Support PERK_KEYPAIR_JSON env var for cloud deployments (Railway, etc.)
+  const keypairJson = process.env.PERK_KEYPAIR_JSON;
+  if (keypairJson) {
+    const secretKey = new Uint8Array(JSON.parse(keypairJson));
+    return Keypair.fromSecretKey(secretKey);
+  }
+
+  if (!keypairPath) {
+    throw new Error("No keypair path or PERK_KEYPAIR_JSON provided");
+  }
   const resolved = path.resolve(keypairPath);
   const raw = fs.readFileSync(resolved, "utf-8");
   const secretKey = new Uint8Array(JSON.parse(raw));
