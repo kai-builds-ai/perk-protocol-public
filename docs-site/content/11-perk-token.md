@@ -92,7 +92,7 @@ At launch, all protocol parameters are admin-configurable. Governance transfer w
 | Standard | SPL Token |
 | Launch platform | pump.fun |
 | Total supply | 1,000,000,000 |
-| Decimals | TBD |
+| Decimals | 6 |
 | Mint authority | Revoked after launch |
 
 ---
