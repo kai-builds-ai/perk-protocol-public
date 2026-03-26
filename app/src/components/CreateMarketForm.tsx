@@ -68,44 +68,52 @@ export function CreateMarketForm() {
   const { connection } = useConnection();
   const router = useRouter();
 
-  // Fetch Jupiter strict token list on mount
+  // Search Jupiter tokens API on query change (debounced)
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout>>();
   useEffect(() => {
-    let cancelled = false;
-    async function fetchTokens() {
+    if (!search || search.length < 2) {
+      setJupiterTokens([]);
+      setTokensLoading(false);
+      setTokensError(false);
+      return;
+    }
+    setTokensLoading(true);
+    clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(async () => {
       try {
-        const res = await fetch("https://token.jup.ag/strict");
+        const res = await fetch(
+          `https://api.jup.ag/tokens/v2/search?query=${encodeURIComponent(search)}&limit=20`,
+          { headers: { "x-api-key": process.env.NEXT_PUBLIC_JUPITER_API_KEY || "" } }
+        );
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data: Array<{
-          address: string;
+          id: string;
           symbol: string;
           name: string;
           decimals: number;
-          logoURI: string;
+          icon: string;
+          isVerified: boolean;
         }> = await res.json();
-        if (!cancelled) {
-          setJupiterTokens(
-            data.map((t) => ({
-              mint: t.address,
+        setJupiterTokens(
+          data
+            .filter((t) => t.isVerified)
+            .map((t) => ({
+              mint: t.id,
               symbol: t.symbol,
               name: t.name,
               decimals: t.decimals,
-              logoUrl: t.logoURI || null,
+              logoUrl: t.icon || null,
             }))
-          );
-          setTokensLoading(false);
-        }
+        );
+        setTokensError(false);
       } catch {
-        if (!cancelled) {
-          setTokensError(true);
-          setTokensLoading(false);
-        }
+        setTokensError(true);
+      } finally {
+        setTokensLoading(false);
       }
-    }
-    fetchTokens();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    }, 300);
+    return () => clearTimeout(searchTimerRef.current);
+  }, [search]);
 
   // Outside-click dismiss
   useEffect(() => {
@@ -121,18 +129,8 @@ export function CreateMarketForm() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const filtered = useMemo(() => {
-    if (!search) return jupiterTokens.slice(0, 20);
-    const q = search.toLowerCase();
-    return jupiterTokens
-      .filter(
-        (t) =>
-          t.symbol.toLowerCase().includes(q) ||
-          t.name.toLowerCase().includes(q) ||
-          t.mint.toLowerCase().includes(q)
-      )
-      .slice(0, 20);
-  }, [search, jupiterTokens]);
+  // Jupiter search is server-side, results are already filtered
+  const filtered = jupiterTokens;
 
   // Resolve a pasted mint address
   const handleSearchChange = useCallback(
