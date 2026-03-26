@@ -8,6 +8,14 @@ import { getDocBySlug, getAllSlugs } from '@/lib/docs';
 import { getPrevNext } from '@/lib/navigation';
 import { PrevNext } from '@/components/PrevNext';
 
+const mdxComponents = {
+  table: (props: React.HTMLAttributes<HTMLTableElement>) => (
+    <div className="table-wrapper">
+      <table {...props} />
+    </div>
+  ),
+};
+
 interface PageProps {
   params: { slug: string };
 }
@@ -48,6 +56,7 @@ export default function DocPage({ params }: PageProps) {
     <article className="doc-content">
       <MDXRemote
         source={content}
+        components={mdxComponents}
         options={{
           mdxOptions: {
             remarkPlugins: [remarkGfm],

@@ -15,7 +15,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   }, [pathname]);
 
   return (
-    <div className="min-h-screen bg-bg text-zinc-300 font-sans max-w-5xl mx-auto flex flex-col">
+    <div className="min-h-screen bg-bg text-zinc-300 font-sans max-w-5xl mx-auto flex flex-col overflow-x-hidden">
       <TopBar onMenuToggle={() => setMenuOpen(!menuOpen)} menuOpen={menuOpen} />
 
       <div className="flex flex-1">

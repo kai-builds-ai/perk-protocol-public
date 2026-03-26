@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+html, body {
+  overflow-x: hidden;
+}
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap');
 
 /* highlight.js one-dark inspired theme */
@@ -115,8 +119,12 @@
   @apply bg-transparent p-0 text-sm;
 }
 
+.doc-content .table-wrapper {
+  @apply overflow-x-auto my-4;
+}
+
 .doc-content table {
-  @apply w-full my-4 border-collapse text-sm;
+  @apply w-full border-collapse text-sm;
 }
 
 .doc-content thead {
