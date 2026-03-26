@@ -15,10 +15,10 @@ export function Shell({ children }: { children: React.ReactNode }) {
   }, [pathname]);
 
   return (
-    <div className="min-h-screen bg-bg text-zinc-300 font-sans">
+    <div className="min-h-screen bg-bg text-zinc-300 font-sans max-w-5xl mx-auto">
       <TopBar onMenuToggle={() => setMenuOpen(!menuOpen)} menuOpen={menuOpen} />
 
-      <div className="max-w-5xl mx-auto flex">
+      <div className="flex">
         {/* Desktop sidebar */}
         <aside className="hidden lg:block w-56 shrink-0 border-r border-zinc-800 sticky top-12 h-[calc(100vh-3rem)] overflow-y-auto">
           <Sidebar />
