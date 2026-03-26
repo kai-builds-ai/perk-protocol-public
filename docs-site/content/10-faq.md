@@ -18,7 +18,7 @@ Yes. All code — on-chain program, SDK, cranker, and frontend — is MIT licens
 
 ### What blockchain is Perk on?
 
-Solana. Program ID: `5mqYowuNCA8iKFjqn6XKA7vURuaKEUUmPK5QJiCbHyMW`
+Solana. Program ID: `3L72e4b8wKJ8ReMpLUeXxVNrRGpiK6m4VYxeSnecpNW2`
 
 ---
 
@@ -153,7 +153,7 @@ The code is MIT-licensed and fully open source. Check the [GitHub repository](ht
 
 ### What's the program ID?
 
-`5mqYowuNCA8iKFjqn6XKA7vURuaKEUUmPK5QJiCbHyMW`
+`3L72e4b8wKJ8ReMpLUeXxVNrRGpiK6m4VYxeSnecpNW2`
 
 ### What framework is the program built with?
 

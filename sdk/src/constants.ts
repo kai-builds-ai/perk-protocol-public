@@ -3,7 +3,7 @@ import BN from "bn.js";
 
 // Program ID
 export const PERK_PROGRAM_ID = new PublicKey(
-  "5mqYowuNCA8iKFjqn6XKA7vURuaKEUUmPK5QJiCbHyMW"
+  "3L72e4b8wKJ8ReMpLUeXxVNrRGpiK6m4VYxeSnecpNW2"
 );
 
 // PDA Seeds

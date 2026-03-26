@@ -26,7 +26,7 @@ import { TxRateLimiter } from "../rate-limiter";
 // ─────────────────────────────────────────────
 
 const RPC_URL = "https://api.devnet.solana.com";
-const PROGRAM_ID = new PublicKey("5mqYowuNCA8iKFjqn6XKA7vURuaKEUUmPK5QJiCbHyMW");
+const PROGRAM_ID = new PublicKey("3L72e4b8wKJ8ReMpLUeXxVNrRGpiK6m4VYxeSnecpNW2");
 const TOKEN_DECIMALS = 6;
 const SOL_MINT = "So11111111111111111111111111111111111111112";
 

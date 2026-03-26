@@ -62,7 +62,7 @@ Additionally, a randomized E2E fuzz campaign verified conservation, OI consisten
 
 ## Program
 
-Deployed to devnet: `5mqYowuNCA8iKFjqn6XKA7vURuaKEUUmPK5QJiCbHyMW`
+Deployed to devnet: `3L72e4b8wKJ8ReMpLUeXxVNrRGpiK6m4VYxeSnecpNW2`
 
 ## License
 

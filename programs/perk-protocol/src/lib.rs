@@ -9,7 +9,7 @@ pub mod instructions;
 use instructions::*;
 use state::Side;
 
-declare_id!("5mqYowuNCA8iKFjqn6XKA7vURuaKEUUmPK5QJiCbHyMW");
+declare_id!("3L72e4b8wKJ8ReMpLUeXxVNrRGpiK6m4VYxeSnecpNW2");
 
 #[program]
 pub mod perk_protocol {

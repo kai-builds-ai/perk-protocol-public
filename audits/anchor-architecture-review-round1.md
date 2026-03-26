@@ -2,7 +2,7 @@
 
 **Date:** 2025-03-25  
 **Reviewer:** Kai (automated architecture review)  
-**Program:** perk-protocol `5mqYowuNCA8iKFjqn6XKA7vURuaKEUUmPK5QJiCbHyMW`  
+**Program:** perk-protocol `3L72e4b8wKJ8ReMpLUeXxVNrRGpiK6m4VYxeSnecpNW2`  
 **Anchor:** 0.32.1  
 
 ---

@@ -62,7 +62,7 @@ export function loadConfig(): CrankerConfig {
 
   const config: CrankerConfig = {
     rpcUrl,
-    programId: process.env.PERK_PROGRAM_ID ?? "5mqYowuNCA8iKFjqn6XKA7vURuaKEUUmPK5QJiCbHyMW",
+    programId: process.env.PERK_PROGRAM_ID ?? "3L72e4b8wKJ8ReMpLUeXxVNrRGpiK6m4VYxeSnecpNW2",
     keypairPath,
     birdeyeApiKey: process.env.BIRDEYE_API_KEY,
     jupiterApiKey: process.env.JUPITER_API_KEY,

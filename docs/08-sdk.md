@@ -402,7 +402,7 @@ All on-chain constants are mirrored in the SDK:
 
 ```typescript
 import {
-  PERK_PROGRAM_ID,        // 5mqYowuNCA8iKFjqn6XKA7vURuaKEUUmPK5QJiCbHyMW
+  PERK_PROGRAM_ID,        // 3L72e4b8wKJ8ReMpLUeXxVNrRGpiK6m4VYxeSnecpNW2
   PRICE_SCALE,             // 1_000_000
   CREATOR_FEE_SHARE_BPS,   // 1000 (10%)
   MAINTENANCE_MARGIN_BPS,  // 500 (5%)

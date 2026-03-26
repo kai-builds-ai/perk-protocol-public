@@ -6,7 +6,7 @@
 
 Perk is a permissionless perpetual futures protocol on Solana. It lets anyone create a leveraged trading market for any SPL token — no governance approval, no whitelist, no waiting. Market creators earn 10% of all trading fees on their market for the lifetime of the market.
 
-**Program ID:** `5mqYowuNCA8iKFjqn6XKA7vURuaKEUUmPK5QJiCbHyMW`
+**Program ID:** `3L72e4b8wKJ8ReMpLUeXxVNrRGpiK6m4VYxeSnecpNW2`
 
 **GitHub:** [github.com/kai-builds-ai/perk-protocol-public](https://github.com/kai-builds-ai/perk-protocol-public)
 
