@@ -38,10 +38,21 @@ export function Shell({ children }: { children: React.ReactNode }) {
         )}
 
         {/* Content */}
-        <main className="flex-1 min-w-0">
-          <div className="max-w-3xl mx-auto px-6 py-8 lg:px-10">
+        <main className="flex-1 min-w-0 flex flex-col min-h-[calc(100vh-3rem)]">
+          <div className="max-w-3xl mx-auto px-6 py-8 lg:px-10 flex-1 w-full">
             {children}
           </div>
+
+          {/* Footer */}
+          <footer className="max-w-3xl mx-auto px-6 lg:px-10 w-full">
+            <div className="border-t border-zinc-800 py-6 flex items-center justify-between text-xs text-zinc-600">
+              <span>© {new Date().getFullYear()} Perk Protocol</span>
+              <div className="flex gap-4">
+                <a href="https://perk.fund" className="hover:text-zinc-400 transition-colors">perk.fund</a>
+                <a href="https://github.com/perk-protocol" className="hover:text-zinc-400 transition-colors">GitHub</a>
+              </div>
+            </div>
+          </footer>
         </main>
       </div>
     </div>
