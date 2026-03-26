@@ -63,17 +63,26 @@ export default function AdminPage() {
   const { publicKey, connected } = useWallet();
   const { client, readonlyClient } = usePerk();
   const [onChainAdmin, setOnChainAdmin] = useState<string | null>(null);
+  const [protocolExists, setProtocolExists] = useState(true);
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
     readonlyClient.fetchProtocol()
-      .then(p => setOnChainAdmin(p.admin.toBase58()))
-      .catch(() => setOnChainAdmin(null))
+      .then(p => { setOnChainAdmin(p.admin.toBase58()); setProtocolExists(true); })
+      .catch(() => { setOnChainAdmin(null); setProtocolExists(false); })
       .finally(() => setChecking(false));
   }, [readonlyClient]);
 
   if (!connected) return <ConnectWalletScreen />;
   if (checking) return <div className="min-h-screen bg-bg flex items-center justify-center"><div className="font-mono text-sm text-text-secondary animate-pulse">Verifying admin...</div></div>;
+  if (!protocolExists) return (
+    <div className="min-h-screen bg-bg flex items-center justify-center">
+      <div className="border border-border rounded-[2px] bg-surface p-8 max-w-sm w-full text-center space-y-4">
+        <div className="font-mono text-sm text-loss">PROTOCOL NOT INITIALIZED</div>
+        <p className="text-sm text-text-secondary font-sans">The protocol account does not exist yet. Deploy and initialize the program first.</p>
+      </div>
+    </div>
+  );
   if (!onChainAdmin || publicKey?.toBase58() !== onChainAdmin) return <UnauthorizedScreen address={publicKey?.toBase58() ?? ''} />;
   return <AdminDashboard client={client} readonlyClient={readonlyClient} />;
 }
@@ -428,6 +437,10 @@ function WithdrawSol({
       const [whole, frac = ''] = amount.split('.');
       const padded = (frac + '000000000').slice(0, 9);
       const lamports = new BN(whole + padded);
+      if (lamports.isZero()) {
+        toast.error('Amount too small');
+        return;
+      }
       const sig = await client.adminWithdrawSol(lamports);
       toast.success(`Withdrew ${amount} SOL — ${truncatePubkey(sig)}`);
       setAmount('');
@@ -913,7 +926,6 @@ function UpdateOracleConfigPanel({
 
   const handleUpdate = async () => {
     if (submittingRef.current) return;
-    submittingRef.current = true;
     const params: UpdateOracleConfigParams = {
       maxPriceChangeBps: maxPriceChangeBps ? parseInt(maxPriceChangeBps, 10) : null,
       minSources: minSources ? parseInt(minSources, 10) : null,
@@ -929,6 +941,8 @@ function UpdateOracleConfigPanel({
       }
     }
 
+    if (!confirm('Update oracle configuration for this market?')) return;
+    submittingRef.current = true;
     setSubmitting(true);
     try {
       const sig = await client.updateOracleConfig(market.account.tokenMint, params);
@@ -1025,6 +1039,7 @@ function FreezePerkOracle({
 
   const handleToggle = async (freeze: boolean) => {
     if (submittingRef.current) return;
+    if (!confirm(`${freeze ? 'Freeze' : 'Unfreeze'} this oracle? ${freeze ? 'Price updates will stop.' : ''}`)) return;
     submittingRef.current = true;
     setSubmitting(true);
     try {
@@ -1129,6 +1144,7 @@ function SetFallbackOraclePanel({
 
   const handleRemove = async () => {
     if (submittingRef.current) return;
+    if (!confirm('Remove fallback oracle? The market will rely solely on the primary oracle.')) return;
     submittingRef.current = true;
     setSubmitting(true);
     try {
