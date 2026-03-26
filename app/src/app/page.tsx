@@ -172,17 +172,7 @@ export default function Landing() {
                 risk engine — the math designed by Solana&apos;s creator for on-chain perpetual futures.
                 U256 wide math, oracle-based mark-to-market, auto-deleveraging with epoch resets, insurance fund, and normative bounds on every state transition.
               </p>
-              <p className="text-sm text-text-secondary font-sans leading-relaxed max-w-xl">
-                We&apos;re the only external team to find and fix a bug in the original Percolator — a warmup slope reset skip during liquidation.{" "}
-                <a
-                  href="https://github.com/aeyakovenko/percolator/issues/22"
-                  className="text-white underline decoration-zinc-600 hover:decoration-white transition-colors"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Issue #22 →
-                </a>
-              </p>
+
             </div>
             <div className="w-px bg-border self-stretch hidden lg:block" />
             <div className="space-y-2.5 pt-1">
