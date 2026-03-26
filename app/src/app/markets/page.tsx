@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import React, { useState, useMemo, useCallback, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { TopBar } from "@/components/TopBar";
@@ -31,7 +31,7 @@ function saveWatchlist(set: Set<string>) {
   localStorage.setItem("perk-watchlist-v2", JSON.stringify(Array.from(set)));
 }
 
-export default function MarketExplorer() {
+function MarketExplorerInner() {
   const { markets } = useMarkets();
   const { publicKey } = useWallet();
   const searchParams = useSearchParams();
@@ -275,5 +275,13 @@ export default function MarketExplorer() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function MarketExplorer() {
+  return (
+    <Suspense>
+      <MarketExplorerInner />
+    </Suspense>
   );
 }
