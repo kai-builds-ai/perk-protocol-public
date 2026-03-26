@@ -206,9 +206,9 @@ export default function Landing() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="border border-border rounded-[2px] p-5 space-y-2">
-                <div className="font-mono text-sm text-white">Permissionless</div>
+                <div className="font-mono text-sm text-white">Sub-Second Execution</div>
                 <p className="text-sm text-text-secondary font-sans leading-relaxed">
-                  No governance votes. No applications. Anyone can create a perpetual market for any SPL token in one transaction.
+                  Built natively on Solana. 400ms block times, ~$0.001 per trade. No bridges, no L2 complexity, no waiting.
                 </p>
               </div>
               <div className="border border-border rounded-[2px] p-5 space-y-2">
@@ -303,9 +303,9 @@ export default function Landing() {
                 </div>
               </div>
               <div className="border border-border rounded-[2px] p-5 space-y-3">
-                <div className="font-mono text-2xl text-white">7</div>
+                <div className="font-mono text-2xl text-white">0</div>
                 <div className="text-sm font-sans text-text-secondary">
-                  Rounds of security audits across on-chain program, SDK, cranker, and frontend. Red team, invariant analysis, architecture review. Zero critical findings remaining.
+                  Critical findings remaining. Every vulnerability discovered across seven audit rounds has been resolved. Red team, invariant analysis, architecture review — all clear.
                 </div>
               </div>
             </div>
