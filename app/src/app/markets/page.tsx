@@ -1,12 +1,14 @@
 "use client";
 
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import { useWallet } from "@solana/wallet-adapter-react";
 import { TopBar } from "@/components/TopBar";
 import { MarketTable } from "@/components/MarketTable";
 import { useMarkets } from "@/hooks/useMarkets";
 import { Market, OracleSource } from "@/types";
 
-type Tab = "trending" | "new" | "gainers" | "losers" | "all" | "watchlist";
+type Tab = "trending" | "new" | "gainers" | "losers" | "all" | "watchlist" | "mine";
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "trending", label: "Trending" },
@@ -31,8 +33,17 @@ function saveWatchlist(set: Set<string>) {
 
 export default function MarketExplorer() {
   const { markets } = useMarkets();
+  const { publicKey } = useWallet();
+  const searchParams = useSearchParams();
   const [filter, setFilter] = useState("");
   const [tab, setTab] = useState<Tab>("trending");
+
+  // Handle ?filter=mine from wallet dropdown
+  useEffect(() => {
+    if (searchParams.get("filter") === "mine" && publicKey) {
+      setTab("mine");
+    }
+  }, [searchParams, publicKey]);
   const [watchlist, setWatchlist] = useState<Set<string>>(getWatchlist);
   const [oracleFilter, setOracleFilter] = useState<"all" | "pyth" | "dex">("all");
   const [minVolume, setMinVolume] = useState<number>(0);
@@ -102,13 +113,21 @@ export default function MarketExplorer() {
         list = list.filter((m) => watchlist.has(m.address));
         list.sort((a, b) => b.volume24h - a.volume24h);
         break;
+      case "mine":
+        if (publicKey) {
+          list = list.filter((m) => m.creator === publicKey.toBase58());
+        } else {
+          list = [];
+        }
+        list.sort((a, b) => b.createdAt - a.createdAt);
+        break;
       case "all":
       default:
         break;
     }
 
     return list;
-  }, [markets, filter, tab, oracleFilter, minVolume, leverageFilter, watchlist]);
+  }, [markets, filter, tab, oracleFilter, minVolume, leverageFilter, watchlist, publicKey]);
 
   const volumeChips = [
     { label: "All", value: 0 },
@@ -147,6 +166,18 @@ export default function MarketExplorer() {
             {t.label}
           </button>
         ))}
+        {publicKey && (
+          <button
+            onClick={() => setTab("mine")}
+            className={`px-4 py-2.5 text-sm font-sans transition-colors duration-100 border-b-2 whitespace-nowrap flex-shrink-0 ${
+              tab === "mine"
+                ? "text-white border-white"
+                : "text-text-secondary border-transparent hover:text-text-primary"
+            }`}
+          >
+            My Markets
+          </button>
+        )}
       </div>
 
       {/* Filters row */}
