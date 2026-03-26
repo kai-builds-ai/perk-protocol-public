@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   title: 'Perk Docs — Permissionless Perpetual Futures on Solana',
   description: 'Documentation for Perk Protocol — permissionless perpetual futures on Solana.',
   icons: {
-    icon: '/favicon.svg',
+    icon: '/logo.png',
   },
 };
 
