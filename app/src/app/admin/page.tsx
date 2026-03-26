@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { PublicKey } from '@solana/web3.js';
@@ -15,11 +15,17 @@ import {
   UpdateOracleConfigParams,
   AdminUpdateMarketParams,
   PerkOracleAccount,
+  LEVERAGE_SCALE,
+  MIN_LEVERAGE,
+  MAX_LEVERAGE,
+  MIN_TRADING_FEE_BPS,
+  MAX_TRADING_FEE_BPS,
 } from '@perk/sdk';
 
 // ── Constants ──
 
-const ADMIN_PUBKEY = 'CxtsPjsmDFnjxtX25UWznyB8mgzAsHdFueGspcUM69LX';
+// Reference only — admin is now fetched on-chain
+// const ADMIN_PUBKEY = 'CxtsPjsmDFnjxtX25UWznyB8mgzAsHdFueGspcUM69LX';
 const LAMPORTS_PER_SOL = 1_000_000_000;
 
 // ── Helpers ──
@@ -29,8 +35,10 @@ function truncatePubkey(key: string): string {
 }
 
 function lamportsToSol(lamports: BN): string {
-  const num = Number(lamports.toString()) / LAMPORTS_PER_SOL;
-  return num.toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 9 });
+  const str = lamports.toString().padStart(10, '0');
+  const whole = str.slice(0, -9) || '0';
+  const frac = str.slice(-9).replace(/0+$/, '') || '0';
+  return `${whole}.${frac}`;
 }
 
 function oracleSourceLabel(source: OracleSource): string {
@@ -54,17 +62,19 @@ interface MarketWithAddress {
 export default function AdminPage() {
   const { publicKey, connected } = useWallet();
   const { client, readonlyClient } = usePerk();
+  const [onChainAdmin, setOnChainAdmin] = useState<string | null>(null);
+  const [checking, setChecking] = useState(true);
 
-  const isAdmin = connected && publicKey?.toBase58() === ADMIN_PUBKEY;
+  useEffect(() => {
+    readonlyClient.fetchProtocol()
+      .then(p => setOnChainAdmin(p.admin.toBase58()))
+      .catch(() => setOnChainAdmin(null))
+      .finally(() => setChecking(false));
+  }, [readonlyClient]);
 
-  if (!connected) {
-    return <ConnectWalletScreen />;
-  }
-
-  if (!isAdmin) {
-    return <UnauthorizedScreen address={publicKey?.toBase58() ?? ''} />;
-  }
-
+  if (!connected) return <ConnectWalletScreen />;
+  if (checking) return <div className="min-h-screen bg-bg flex items-center justify-center"><div className="font-mono text-sm text-text-secondary animate-pulse">Verifying admin...</div></div>;
+  if (!onChainAdmin || publicKey?.toBase58() !== onChainAdmin) return <UnauthorizedScreen address={publicKey?.toBase58() ?? ''} />;
   return <AdminDashboard client={client} readonlyClient={readonlyClient} />;
 }
 
@@ -100,7 +110,7 @@ function UnauthorizedScreen({ address }: { address: string }) {
           Connected: <span className="font-mono text-white">{truncatePubkey(address)}</span>
         </p>
         <p className="text-xs text-text-tertiary font-sans">
-          Expected: <span className="font-mono">{truncatePubkey(ADMIN_PUBKEY)}</span>
+          This wallet is not the protocol admin.
         </p>
         <div className="flex justify-center pt-2">
           <WalletMultiButton />
@@ -123,6 +133,7 @@ function AdminDashboard({
   const [markets, setMarkets] = useState<MarketWithAddress[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedMarket, setSelectedMarket] = useState<MarketWithAddress | null>(null);
+  const [fetchError, setFetchError] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -130,11 +141,17 @@ function AdminDashboard({
         readonlyClient.fetchProtocol(),
         readonlyClient.fetchAllMarkets(),
       ]);
+      setFetchError(false);
       setProtocol(proto);
       setMarkets(mkts);
+      setSelectedMarket(prev => {
+        if (!prev) return null;
+        return mkts.find(m => m.address.equals(prev.address)) ?? null;
+      });
     } catch (err) {
       console.error('Failed to fetch protocol data:', err);
       toast.error('Failed to fetch protocol data');
+      setFetchError(true);
     } finally {
       setLoading(false);
     }
@@ -149,6 +166,19 @@ function AdminDashboard({
       <div className="min-h-screen bg-bg flex items-center justify-center">
         <div className="font-mono text-sm text-text-secondary animate-pulse">
           Loading protocol state...
+        </div>
+      </div>
+    );
+  }
+
+  if (fetchError) {
+    return (
+      <div className="min-h-screen bg-bg flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="font-mono text-sm text-loss">Failed to fetch protocol data</div>
+          <button onClick={fetchData} className="font-mono text-xs px-4 py-2 rounded-[2px] border border-border text-white hover:bg-white/5 transition-colors">
+            Retry
+          </button>
         </div>
       </div>
     );
@@ -199,6 +229,7 @@ function AdminDashboard({
         {/* Section 4: Market Edit Panel */}
         {selectedMarket && client && (
           <MarketEditPanel
+            key={selectedMarket.address.toBase58()}
             client={client}
             market={selectedMarket}
             onRefresh={fetchData}
@@ -330,8 +361,12 @@ function PauseToggle({
   onRefresh: () => Promise<void>;
 }) {
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
 
   const handleToggle = async () => {
+    if (submittingRef.current) return;
+    if (!confirm(`${paused ? 'Unpause' : 'Pause'} the entire protocol? ${paused ? '' : 'All trading will stop.'}`)) return;
+    submittingRef.current = true;
     setSubmitting(true);
     try {
       const sig = await client.adminPause(!paused);
@@ -341,6 +376,7 @@ function PauseToggle({
       toast.error(`Failed: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setSubmitting(false);
+      submittingRef.current = false;
     }
   };
 
@@ -376,24 +412,31 @@ function WithdrawSol({
 }) {
   const [amount, setAmount] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
 
   const handleWithdraw = async () => {
+    if (submittingRef.current) return;
     const parsed = parseFloat(amount);
     if (isNaN(parsed) || parsed <= 0) {
       toast.error('Enter a valid SOL amount');
       return;
     }
+    if (!confirm(`Withdraw ${amount} SOL from the protocol?`)) return;
+    submittingRef.current = true;
     setSubmitting(true);
     try {
-      const lamports = new BN(Math.floor(parsed * LAMPORTS_PER_SOL));
+      const [whole, frac = ''] = amount.split('.');
+      const padded = (frac + '000000000').slice(0, 9);
+      const lamports = new BN(whole + padded);
       const sig = await client.adminWithdrawSol(lamports);
-      toast.success(`Withdrew ${parsed} SOL — ${truncatePubkey(sig)}`);
+      toast.success(`Withdrew ${amount} SOL — ${truncatePubkey(sig)}`);
       setAmount('');
       await onRefresh();
     } catch (err) {
       toast.error(`Failed: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setSubmitting(false);
+      submittingRef.current = false;
     }
   };
 
@@ -433,8 +476,10 @@ function TransferAdmin({
 }) {
   const [newAdmin, setNewAdmin] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
 
   const handleTransfer = async () => {
+    if (submittingRef.current) return;
     let pubkey: PublicKey;
     try {
       pubkey = new PublicKey(newAdmin);
@@ -442,6 +487,8 @@ function TransferAdmin({
       toast.error('Invalid public key');
       return;
     }
+    if (!confirm(`Propose ${truncatePubkey(newAdmin)} as new admin? This begins the admin transfer process.`)) return;
+    submittingRef.current = true;
     setSubmitting(true);
     try {
       const sig = await client.proposeAdmin(pubkey);
@@ -452,6 +499,7 @@ function TransferAdmin({
       toast.error(`Failed: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setSubmitting(false);
+      submittingRef.current = false;
     }
   };
 
@@ -537,7 +585,7 @@ function MarketsTable({
                       </span>
                     </Td>
                     <Td>{oracleSourceLabel(m.account.oracleSource)}</Td>
-                    <Td align="right" mono>{m.account.maxLeverage}x</Td>
+                    <Td align="right" mono>{m.account.maxLeverage / LEVERAGE_SCALE}x</Td>
                     <Td align="right" mono>{m.account.tradingFeeBps}</Td>
                     <Td align="right" mono>{m.account.k.toString().slice(0, 8)}...</Td>
                     <Td align="right">
@@ -648,9 +696,13 @@ function ToggleActive({
   onRefresh: () => Promise<void>;
 }) {
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
   const active = market.account.active;
 
   const handleToggle = async () => {
+    if (submittingRef.current) return;
+    if (!confirm(`${active ? 'Deactivate' : 'Activate'} this market?`)) return;
+    submittingRef.current = true;
     setSubmitting(true);
     try {
       const params: AdminUpdateMarketParams = {
@@ -666,6 +718,7 @@ function ToggleActive({
       toast.error(`Failed: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setSubmitting(false);
+      submittingRef.current = false;
     }
   };
 
@@ -703,13 +756,16 @@ function UpdateFee({
 }) {
   const [feeBps, setFeeBps] = useState(market.account.tradingFeeBps.toString());
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
 
   const handleUpdate = async () => {
+    if (submittingRef.current) return;
     const parsed = parseInt(feeBps, 10);
-    if (isNaN(parsed) || parsed < 0 || parsed > 65535) {
-      toast.error('Fee must be 0–65535 bps');
+    if (isNaN(parsed) || parsed < MIN_TRADING_FEE_BPS || parsed > MAX_TRADING_FEE_BPS) {
+      toast.error(`Fee must be ${MIN_TRADING_FEE_BPS}–${MAX_TRADING_FEE_BPS} bps`);
       return;
     }
+    submittingRef.current = true;
     setSubmitting(true);
     try {
       const params: AdminUpdateMarketParams = {
@@ -725,6 +781,7 @@ function UpdateFee({
       toast.error(`Failed: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setSubmitting(false);
+      submittingRef.current = false;
     }
   };
 
@@ -765,22 +822,25 @@ function UpdateMaxLeverage({
   market: MarketWithAddress;
   onRefresh: () => Promise<void>;
 }) {
-  const [leverage, setLeverage] = useState(market.account.maxLeverage.toString());
+  const [leverage, setLeverage] = useState((market.account.maxLeverage / LEVERAGE_SCALE).toString());
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
 
   const handleUpdate = async () => {
+    if (submittingRef.current) return;
     const parsed = parseInt(leverage, 10);
-    if (isNaN(parsed) || parsed < 1) {
-      toast.error('Enter a valid max leverage');
+    if (isNaN(parsed) || parsed * LEVERAGE_SCALE < MIN_LEVERAGE || parsed * LEVERAGE_SCALE > MAX_LEVERAGE) {
+      toast.error(`Leverage must be ${MIN_LEVERAGE / LEVERAGE_SCALE}x–${MAX_LEVERAGE / LEVERAGE_SCALE}x`);
       return;
     }
+    submittingRef.current = true;
     setSubmitting(true);
     try {
       const params: AdminUpdateMarketParams = {
         oracleAddress: null,
         active: null,
         tradingFeeBps: null,
-        maxLeverage: parsed,
+        maxLeverage: parsed * LEVERAGE_SCALE,
       };
       const sig = await client.adminUpdateMarket(market.account.tokenMint, null, params);
       toast.success(`Max leverage updated to ${parsed}x — ${truncatePubkey(sig)}`);
@@ -789,6 +849,7 @@ function UpdateMaxLeverage({
       toast.error(`Failed: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setSubmitting(false);
+      submittingRef.current = false;
     }
   };
 
@@ -814,7 +875,7 @@ function UpdateMaxLeverage({
         </button>
       </div>
       <p className="text-xs text-text-tertiary font-sans">
-        Current: {market.account.maxLeverage}x
+        Current: {market.account.maxLeverage / LEVERAGE_SCALE}x
       </p>
     </div>
   );
@@ -829,13 +890,30 @@ function UpdateOracleConfigPanel({
   market: MarketWithAddress;
   onRefresh: () => Promise<void>;
 }) {
+  const isPerkOracle = market.account.oracleSource === OracleSource.PerkOracle;
   const [maxPriceChangeBps, setMaxPriceChangeBps] = useState('');
   const [minSources, setMinSources] = useState('');
   const [maxStaleness, setMaxStaleness] = useState('');
   const [circuitBreakerBps, setCircuitBreakerBps] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
+
+  if (!isPerkOracle) {
+    return (
+      <div className="bg-surface px-5 py-5 space-y-3">
+        <div className="font-mono text-xs text-text-tertiary uppercase tracking-wider">
+          Oracle Config
+        </div>
+        <p className="text-xs text-text-secondary font-sans">
+          N/A — Market uses {oracleSourceLabel(market.account.oracleSource)}
+        </p>
+      </div>
+    );
+  }
 
   const handleUpdate = async () => {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     const params: UpdateOracleConfigParams = {
       maxPriceChangeBps: maxPriceChangeBps ? parseInt(maxPriceChangeBps, 10) : null,
       minSources: minSources ? parseInt(minSources, 10) : null,
@@ -864,6 +942,7 @@ function UpdateOracleConfigPanel({
       toast.error(`Failed: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setSubmitting(false);
+      submittingRef.current = false;
     }
   };
 
@@ -904,7 +983,7 @@ function UpdateOracleConfigPanel({
       </div>
       <button
         onClick={handleUpdate}
-        disabled={submitting}
+        disabled={submitting || (!maxPriceChangeBps && !minSources && !maxStaleness && !circuitBreakerBps)}
         className="w-full font-mono text-xs px-4 py-2 rounded-[2px] border border-border text-white hover:bg-white/5 transition-colors disabled:opacity-50"
       >
         {submitting ? 'Submitting...' : 'Update Oracle Config'}
@@ -926,6 +1005,7 @@ function FreezePerkOracle({
   onRefresh: () => Promise<void>;
 }) {
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
   const [frozen, setFrozen] = useState<boolean | null>(null);
   const [loadingState, setLoadingState] = useState(false);
 
@@ -934,17 +1014,18 @@ function FreezePerkOracle({
 
   useEffect(() => {
     if (!isPerkOracle) return;
+    let cancelled = false;
     setLoadingState(true);
-    client
-      .fetchPerkOracleNullable(market.account.tokenMint)
-      .then((oracle: PerkOracleAccount | null) => {
-        setFrozen(oracle?.isFrozen ?? null);
-      })
-      .catch(() => setFrozen(null))
-      .finally(() => setLoadingState(false));
+    client.fetchPerkOracleNullable(market.account.tokenMint)
+      .then((oracle: PerkOracleAccount | null) => { if (!cancelled) setFrozen(oracle?.isFrozen ?? null); })
+      .catch(() => { if (!cancelled) setFrozen(null); })
+      .finally(() => { if (!cancelled) setLoadingState(false); });
+    return () => { cancelled = true; };
   }, [client, market.account.tokenMint, isPerkOracle]);
 
   const handleToggle = async (freeze: boolean) => {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setSubmitting(true);
     try {
       const sig = await client.freezePerkOracle(market.account.tokenMint, freeze);
@@ -955,6 +1036,7 @@ function FreezePerkOracle({
       toast.error(`Failed: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setSubmitting(false);
+      submittingRef.current = false;
     }
   };
 
@@ -1011,11 +1093,13 @@ function SetFallbackOraclePanel({
   const [address, setAddress] = useState('');
   const [source, setSource] = useState<OracleSource>(OracleSource.Pyth);
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
 
   const currentFallback = market.account.fallbackOracleAddress.toBase58();
   const hasCurrentFallback = currentFallback !== PublicKey.default.toBase58();
 
   const handleSet = async () => {
+    if (submittingRef.current) return;
     let pubkey: PublicKey;
     try {
       pubkey = new PublicKey(address);
@@ -1024,6 +1108,7 @@ function SetFallbackOraclePanel({
       return;
     }
 
+    submittingRef.current = true;
     setSubmitting(true);
     try {
       const params: SetFallbackOracleParams = {
@@ -1038,10 +1123,13 @@ function SetFallbackOraclePanel({
       toast.error(`Failed: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setSubmitting(false);
+      submittingRef.current = false;
     }
   };
 
   const handleRemove = async () => {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setSubmitting(true);
     try {
       const params: SetFallbackOracleParams = {
@@ -1055,6 +1143,7 @@ function SetFallbackOraclePanel({
       toast.error(`Failed: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setSubmitting(false);
+      submittingRef.current = false;
     }
   };
 
