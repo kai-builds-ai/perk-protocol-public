@@ -32,6 +32,11 @@ export function MyMarketsPanel({ markets }: MyMarketsPanelProps) {
   const [claimedMarkets, setClaimedMarkets] = useState<Set<string>>(new Set());
   const claimLockRef = useRef(false);
 
+  // Reset optimistic state on wallet change
+  React.useEffect(() => {
+    setClaimedMarkets(new Set());
+  }, [publicKey]);
+
   const handleClaim = useCallback(
     async (market: Market) => {
       if (!client || !publicKey || claimLockRef.current) return;
