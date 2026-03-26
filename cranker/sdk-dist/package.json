@@ -1,0 +1,30 @@
+{
+  "name": "@perk/sdk",
+  "version": "0.1.0",
+  "description": "TypeScript SDK for the Perk perpetual futures protocol on Solana",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rimraf dist",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.30.1",
+    "@pythnetwork/pyth-solana-receiver": "^0.10.2",
+    "@solana/spl-token": "^0.4.0",
+    "@solana/web3.js": "^1.95.0",
+    "bn.js": "^5.2.1",
+    "rpc-websockets": "^7.11.0"
+  },
+  "devDependencies": {
+    "@types/bn.js": "^5.1.5",
+    "rimraf": "^5.0.0",
+    "typescript": "^5.5.0"
+  },
+  "license": "MIT",
+  "overrides": {}
+}

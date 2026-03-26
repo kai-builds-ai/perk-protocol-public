@@ -14,7 +14,7 @@
     "@coral-xyz/anchor": "^0.30.1",
     "@solana/spl-token": "^0.4.0",
     "@solana/web3.js": "^1.95.0",
-    "@perk/sdk": "file:../sdk",
+    "@perk/sdk": "file:./sdk-dist",
     "bn.js": "^5.2.1",
     "dotenv": "^16.4.0"
   },
