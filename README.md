@@ -21,7 +21,7 @@ The oracle subsystem (`PerkOracle`) runs independently — crankers push price u
 ## Program
 
 ```
-Program ID:  3L72e4b8wKJ8ReMpLUeXxVNrRGpiK6m4VYxeSnecpNW2  (devnet)
+Program ID:  3L72e4b8wKJ8ReMpLUeXxVNrRGpiK6m4VYxeSnecpNW2  (mainnet)
 Framework:   Anchor
 Language:    Rust
 ```
