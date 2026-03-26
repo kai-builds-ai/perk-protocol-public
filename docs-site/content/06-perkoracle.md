@@ -56,7 +56,7 @@ Birdeye API ───────────┘
 
 ## On-Chain Account
 
-Each token has a `PerkOraclePrice` PDA:
+Each token has a single `PerkOraclePrice` PDA, shared across all markets for that token. If multiple markets exist for the same token (created by different creators), they all read from the same oracle account. There is one price feed per token, not per market.
 
 Seeds: `[b"perk_oracle", token_mint]`
 

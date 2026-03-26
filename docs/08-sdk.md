@@ -41,8 +41,8 @@ const client = new PerkClient({
 // Protocol config
 const protocol = await client.fetchProtocol();
 
-// Single market (by token mint)
-const market = await client.fetchMarket(tokenMint);
+// Single market (by token mint and creator)
+const market = await client.fetchMarket(tokenMint, creatorPubkey);
 
 // All markets
 const markets = await client.fetchAllMarkets();
@@ -358,7 +358,7 @@ import {
 } from "perk-protocol";
 
 const [protocolPda] = findProtocolAddress(programId);
-const [marketPda] = findMarketAddress(tokenMint, programId);
+const [marketPda] = findMarketAddress(tokenMint, creatorPubkey, programId);
 const [positionPda] = findPositionAddress(marketPda, userPubkey, programId);
 const [vaultPda] = findVaultAddress(marketPda, programId);
 const [triggerPda] = findTriggerOrderAddress(marketPda, userPubkey, orderId, programId);

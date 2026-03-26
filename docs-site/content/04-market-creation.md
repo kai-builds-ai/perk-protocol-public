@@ -70,11 +70,26 @@ See [PerkOracle](06-perkoracle.md) for details on how the oracle system works.
 
 ---
 
-## One Market Per Token
+## Multiple Markets Per Token
 
-Only one market can exist per token mint. Seeds for the Market PDA are `[b"market", token_mint]`. The first creator to land the transaction wins.
+Multiple creators can launch competing markets for the same token. Seeds for the Market PDA are `[b"market", token_mint, creator]` — each market is uniquely identified by its (token, creator) pair. A single creator cannot create two markets for the same token, but different creators can.
 
-Because parameters are immutable, the first market for a token sets permanent trading conditions. A poorly configured market cannot be replaced.
+### How Competition Works
+
+Each market has its own parameters (leverage limits, trading fee, initial liquidity depth). Traders choose the market with the best combination of:
+
+- **Lower fees** — directly reduces cost per trade
+- **Higher leverage** — more capital efficiency
+- **Deeper liquidity** (higher `initialK`) — less slippage on execution
+- **Creator reputation** — track record of well-configured markets
+
+Markets also compete on visibility. Creators can stake $PERK against their market to boost its ranking in the Perk UI — see [$PERK Token](11-perk-token.md) for details on creator staking.
+
+### Per-Market Isolation
+
+Each market has its own vault, its own vAMM state, and its own risk engine parameters. Positions in one market are completely isolated from positions in another market for the same token. However, all markets for the same token share the same oracle price feed (Pyth or PerkOracle) — see [PerkOracle](06-perkoracle.md).
+
+Because parameters are immutable, a poorly configured market cannot be fixed — but a better one can be created by another creator.
 
 ---
 

@@ -23,6 +23,7 @@ pub struct Market {
     pub market_index: u64,
     pub token_mint: Pubkey,
     pub collateral_mint: Pubkey,
+    /// Immutable — part of PDA seed. Never modify after creation.
     pub creator: Pubkey,
 
     // Vault

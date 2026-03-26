@@ -18,7 +18,7 @@ Perk is a permissionless perpetual futures protocol on Solana. It lets anyone cr
 
 ## Key Features
 
-**Permissionless market creation.** Anyone can launch a perpetual futures market for any SPL token in a single transaction. The creator pays 1 SOL, configures leverage limits and fees, and the market goes live immediately.
+**Permissionless market creation.** Anyone can launch a perpetual futures market for any SPL token in a single transaction. The creator pays 1 SOL, configures leverage limits and fees, and the market goes live immediately. Multiple creators can launch competing markets for the same token — each with different parameters. Traders choose the market with the best terms.
 
 **Creator revenue.** Market creators earn 10% of every trading fee collected on their market for the lifetime of the market. The creator address is set at market creation and cannot be changed. See [Fees](09-fees.md) for details.
 
@@ -32,7 +32,7 @@ Perk is a permissionless perpetual futures protocol on Solana. It lets anyone cr
 
 ## How It Works
 
-1. **Someone creates a market.** They pick a token, set the oracle, choose leverage limits and fees, pay 1 SOL. The market is live.
+1. **Someone creates a market.** They pick a token, set the oracle, choose leverage limits and fees, pay 1 SOL. The market is live. Multiple creators can launch competing markets for the same token — each market is uniquely identified by its (token, creator) pair. Creators compete on parameters, fees, and liquidity depth.
 
 2. **Traders deposit collateral** into the market's vault and open long or short positions against the vAMM.
 

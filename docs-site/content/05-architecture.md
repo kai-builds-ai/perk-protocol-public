@@ -110,9 +110,11 @@ Seeds: `[b"protocol"]`
 
 Global configuration: admin, fee parameters, pause state, market count. One per program deployment.
 
-### Market (per token PDA)
+### Market (per token per creator PDA)
 
-Seeds: `[b"market", token_mint]`
+Seeds: `[b"market", token_mint, creator]`
+
+Multiple markets can exist for the same token, each created by a different creator with different parameters. Each market has its own vault, vAMM state, and risk engine. All markets for the same token share the same oracle price feed (Pyth or PerkOracle).
 
 Contains all market state:
 - vAMM reserves (`base_reserve`, `quote_reserve`, `k`, `peg_multiplier`)

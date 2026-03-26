@@ -52,6 +52,8 @@ Market creation costs 1 SOL when paid in native SOL. Paying the equivalent in $P
 
 Market creators can stake $PERK against their market to boost its visibility and ranking in the Perk UI. Staked amount determines sort weight in the market directory. This is a UI-level mechanism — it does not affect on-chain trading behavior.
 
+Creator staking is especially relevant in multi-market competition. When multiple creators launch markets for the same token, staking $PERK is one of the primary ways to differentiate — higher stake means higher visibility in the UI, directing more trader flow to that market. Combined with competitive fee and leverage parameters, staking is how creators win market share.
+
 ### 5. Trading Rewards
 
 Active traders earn $PERK emissions proportional to their trading volume. Emissions follow a decay schedule to prevent inflationary spiral — early participants earn more per unit of volume than later ones.

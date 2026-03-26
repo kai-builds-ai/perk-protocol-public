@@ -92,7 +92,15 @@ No. Market parameters are immutable after creation. Choose carefully. The protoc
 
 ### What if someone already created a market for my token?
 
-Only one market per token mint. First creator wins. If a market already exists for a token, you can't create another one.
+You can still create your own. Multiple creators can launch competing markets for the same token — each market is uniquely identified by its (token, creator) pair. Your market competes on parameters: better fees, leverage limits, and liquidity depth attract more traders. A single creator cannot create two markets for the same token.
+
+### Can multiple markets exist for the same token?
+
+Yes. Each market is identified by `[token_mint, creator]`. Different creators can launch markets for the same token with different parameters. Traders choose which market to trade on based on fees, leverage, liquidity depth, and creator reputation. All markets for the same token share the same oracle price feed.
+
+### How do I choose which market to trade on?
+
+Compare the available markets for your token across these dimensions: trading fee (lower = cheaper per trade), max leverage (higher = more capital efficiency), vAMM depth (higher `k` = less slippage), and vault balance (more collateral = healthier risk profile). The Perk UI sorts markets by creator $PERK stake and volume.
 
 ### Do I need to provide liquidity?
 

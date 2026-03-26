@@ -12,7 +12,7 @@ Charged on every trade (open and close) based on the notional value:
 fee = notional_value × trading_fee_bps / 10,000
 ```
 
-The trading fee rate is set by the market creator at creation time and is immutable.
+The trading fee rate is set by the market creator at creation time and is immutable. Because multiple creators can launch competing markets for the same token, fee parameters vary per market. Creators competing for the same token's trading volume have a direct incentive to offer lower fees — traders choose the market with the best terms.
 
 | Parameter | Value |
 |---|---|
