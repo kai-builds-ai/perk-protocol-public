@@ -37,7 +37,8 @@ export const TriggerOrders = memo(function TriggerOrders({
       setCancellingId(order.orderId);
       try {
         const tokenMint = new PublicKey(market.tokenMint);
-        const sig = await client.cancelTriggerOrder(tokenMint, new BN(order.orderId));
+        const creator = new PublicKey(market.creator);
+        const sig = await client.cancelTriggerOrder(tokenMint, creator, new BN(order.orderId));
         toast.success("Order cancelled!\nTX: " + sig.slice(0, 16) + "...");
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err);

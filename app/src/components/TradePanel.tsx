@@ -102,14 +102,16 @@ export function TradePanel({ market }: TradePanelProps) {
       const oracle = new PublicKey(market.oracleAddress);
       const sdkSide = side === Side.Long ? SdkSide.Long : SdkSide.Short;
 
+      const creator = new PublicKey(market.creator);
+
       if (tab === "market") {
         // Ensure position account exists
-        const marketAddr = client.getMarketAddress(tokenMint);
+        const marketAddr = client.getMarketAddress(tokenMint, creator);
         try {
           await client.fetchPosition(marketAddr, publicKey);
         } catch {
           // Position doesn't exist — initialize it
-          await client.initializePosition(tokenMint);
+          await client.initializePosition(tokenMint, creator);
         }
 
         const baseSize = new BN(Math.floor(sizeNum * POS_SCALE));
@@ -117,6 +119,7 @@ export function TradePanel({ market }: TradePanelProps) {
 
         const sig = await client.openPosition(
           tokenMint,
+          creator,
           oracle,
           sdkSide,
           baseSize,
@@ -159,14 +162,14 @@ export function TradePanel({ market }: TradePanelProps) {
         }
 
         // Ensure position account exists for trigger orders
-        const marketAddr = client.getMarketAddress(tokenMint);
+        const marketAddr = client.getMarketAddress(tokenMint, creator);
         try {
           await client.fetchPosition(marketAddr, publicKey);
         } catch {
-          await client.initializePosition(tokenMint);
+          await client.initializePosition(tokenMint, creator);
         }
 
-        const sig = await client.placeTriggerOrder(tokenMint, {
+        const sig = await client.placeTriggerOrder(tokenMint, creator, {
           orderType,
           side: sdkSide,
           size: new BN(Math.floor(sizeNum * POS_SCALE)),

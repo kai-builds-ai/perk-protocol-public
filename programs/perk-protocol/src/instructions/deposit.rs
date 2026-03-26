@@ -19,7 +19,7 @@ pub struct Deposit<'info> {
 
     #[account(
         mut,
-        seeds = [b"market", market.token_mint.as_ref()],
+        seeds = [b"market", market.token_mint.as_ref(), market.creator.as_ref()],
         bump = market.bump,
     )]
     pub market: Box<Account<'info, Market>>,

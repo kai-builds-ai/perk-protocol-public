@@ -724,7 +724,7 @@ function ToggleActive({
         tradingFeeBps: null,
         maxLeverage: null,
       };
-      const sig = await client.adminUpdateMarket(market.account.tokenMint, null, params);
+      const sig = await client.adminUpdateMarket(market.account.tokenMint, market.account.creator, null, params);
       toast.success(`Market ${active ? 'deactivated' : 'activated'} — ${truncatePubkey(sig)}`);
       await onRefresh();
     } catch (err) {
@@ -787,7 +787,7 @@ function UpdateFee({
         tradingFeeBps: parsed,
         maxLeverage: null,
       };
-      const sig = await client.adminUpdateMarket(market.account.tokenMint, null, params);
+      const sig = await client.adminUpdateMarket(market.account.tokenMint, market.account.creator, null, params);
       toast.success(`Fee updated to ${parsed} bps — ${truncatePubkey(sig)}`);
       await onRefresh();
     } catch (err) {
@@ -855,7 +855,7 @@ function UpdateMaxLeverage({
         tradingFeeBps: null,
         maxLeverage: parsed * LEVERAGE_SCALE,
       };
-      const sig = await client.adminUpdateMarket(market.account.tokenMint, null, params);
+      const sig = await client.adminUpdateMarket(market.account.tokenMint, market.account.creator, null, params);
       toast.success(`Max leverage updated to ${parsed}x — ${truncatePubkey(sig)}`);
       await onRefresh();
     } catch (err) {
@@ -1130,7 +1130,7 @@ function SetFallbackOraclePanel({
         fallbackOracleSource: source,
         fallbackOracleAddress: pubkey,
       };
-      const sig = await client.adminSetFallbackOracle(market.account.tokenMint, params);
+      const sig = await client.adminSetFallbackOracle(market.account.tokenMint, market.account.creator, params);
       toast.success(`Fallback oracle set — ${truncatePubkey(sig)}`);
       setAddress('');
       await onRefresh();
@@ -1152,7 +1152,7 @@ function SetFallbackOraclePanel({
         fallbackOracleSource: OracleSource.Pyth,
         fallbackOracleAddress: PublicKey.default,
       };
-      const sig = await client.adminSetFallbackOracle(market.account.tokenMint, params);
+      const sig = await client.adminSetFallbackOracle(market.account.tokenMint, market.account.creator, params);
       toast.success(`Fallback oracle removed — ${truncatePubkey(sig)}`);
       await onRefresh();
     } catch (err) {

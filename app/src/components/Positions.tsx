@@ -33,8 +33,9 @@ export const Positions = memo(function Positions({ positions, market }: Position
       setClosingIndex(posIndex);
       try {
         const tokenMint = new PublicKey(market.tokenMint);
+        const creator = new PublicKey(market.creator);
         const oracle = new PublicKey(market.oracleAddress);
-        const sig = await client.closePosition(tokenMint, oracle);
+        const sig = await client.closePosition(tokenMint, creator, oracle);
         toast.success("Position closed!\nTX: " + sig.slice(0, 16) + "...");
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err);

@@ -19,7 +19,7 @@ pub struct ClaimFees<'info> {
 
     #[account(
         mut,
-        seeds = [b"market", market.token_mint.as_ref()],
+        seeds = [b"market", market.token_mint.as_ref(), market.creator.as_ref()],
         bump = market.bump,
     )]
     pub market: Box<Account<'info, Market>>,
@@ -81,8 +81,9 @@ pub fn handler(ctx: Context<ClaimFees>) -> Result<()> {
 
     // CPI transfer from vault using market PDA as signer
     let token_mint_key = market.token_mint;
+    let creator_key = market.creator;
     let market_bump = market.bump;
-    let seeds = &[b"market" as &[u8], token_mint_key.as_ref(), &[market_bump]];
+    let seeds = &[b"market" as &[u8], token_mint_key.as_ref(), creator_key.as_ref(), &[market_bump]];
     let signer_seeds = &[&seeds[..]];
 
     let cpi_accounts = Transfer {

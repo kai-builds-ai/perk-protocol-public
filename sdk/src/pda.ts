@@ -17,13 +17,14 @@ export function findProtocolAddress(
   return PublicKey.findProgramAddressSync([PROTOCOL_SEED], programId);
 }
 
-/** Derive a market PDA from its token mint. */
+/** Derive a market PDA from its token mint and creator. */
 export function findMarketAddress(
   tokenMint: PublicKey,
+  creator: PublicKey,
   programId: PublicKey = PERK_PROGRAM_ID
 ): [PublicKey, number] {
   return PublicKey.findProgramAddressSync(
-    [MARKET_SEED, tokenMint.toBuffer()],
+    [MARKET_SEED, tokenMint.toBuffer(), creator.toBuffer()],
     programId
   );
 }

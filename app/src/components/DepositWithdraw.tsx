@@ -83,7 +83,8 @@ export function DepositWithdraw({ market }: DepositWithdrawProps) {
     const fetchVault = async () => {
       try {
         const tokenMint = new PublicKey(market.tokenMint);
-        const marketAddr = readonlyClient.getMarketAddress(tokenMint);
+        const creator = new PublicKey(market.creator);
+        const marketAddr = readonlyClient.getMarketAddress(tokenMint, creator);
         const pos = await readonlyClient.fetchPosition(marketAddr, publicKey);
         if (!cancelled) setVaultBalance(pos.depositedCollateral.toNumber() / scale);
       } catch {
@@ -125,11 +126,12 @@ export function DepositWithdraw({ market }: DepositWithdrawProps) {
       const amountBN = new BN(Math.floor(amountNum * scale));
 
       // Ensure position account exists
-      const marketAddr = client.getMarketAddress(tokenMint);
+      const creator = new PublicKey(market.creator);
+      const marketAddr = client.getMarketAddress(tokenMint, creator);
       try {
         await client.fetchPosition(marketAddr, publicKey);
       } catch {
-        await client.initializePosition(tokenMint);
+        await client.initializePosition(tokenMint, creator);
       }
 
       if (mode === "deposit") {
@@ -154,10 +156,10 @@ export function DepositWithdraw({ market }: DepositWithdrawProps) {
             wallet: (client as any).provider.wallet,
             preInstructions: preIxs,
           });
-          const sig = await wrapClient.deposit(tokenMint, oracle, amountBN);
+          const sig = await wrapClient.deposit(tokenMint, creator, oracle, amountBN);
           toast.success("Deposited " + amountNum.toFixed(4) + " " + collateralSymbol + "\nTX: " + sig.slice(0, 16) + "...");
         } else {
-          const sig = await client.deposit(tokenMint, oracle, amountBN);
+          const sig = await client.deposit(tokenMint, creator, oracle, amountBN);
           toast.success("Deposited " + amountNum.toFixed(4) + " " + collateralSymbol + "\nTX: " + sig.slice(0, 16) + "...");
         }
       } else {
@@ -166,7 +168,7 @@ export function DepositWithdraw({ market }: DepositWithdrawProps) {
           const wsolAta = await getAssociatedTokenAddress(NATIVE_MINT, publicKey);
           const closeIx = createCloseAccountInstruction(wsolAta, publicKey, publicKey);
           // Withdraw first, then close WSOL ATA to unwrap back to native SOL
-          const sig = await client.withdraw(tokenMint, oracle, amountBN);
+          const sig = await client.withdraw(tokenMint, creator, oracle, amountBN);
           // Attempt atomic WSOL close — if it fails, user still has WSOL (Phantom auto-unwraps)
           try {
             const { Transaction } = await import("@solana/web3.js");
@@ -178,7 +180,7 @@ export function DepositWithdraw({ market }: DepositWithdrawProps) {
           }
           toast.success("Withdrew " + amountNum.toFixed(4) + " " + collateralSymbol + "\nTX: " + sig.slice(0, 16) + "...");
         } else {
-          const sig = await client.withdraw(tokenMint, oracle, amountBN);
+          const sig = await client.withdraw(tokenMint, creator, oracle, amountBN);
           toast.success("Withdrew " + amountNum.toFixed(4) + " " + collateralSymbol + "\nTX: " + sig.slice(0, 16) + "...");
         }
       }

@@ -38,7 +38,7 @@ pub struct CreateMarket<'info> {
         init,
         payer = creator,
         space = Market::SIZE,
-        seeds = [b"market", token_mint.key().as_ref()],
+        seeds = [b"market", token_mint.key().as_ref(), creator.key().as_ref()],
         bump,
     )]
     pub market: Box<Account<'info, Market>>,

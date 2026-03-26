@@ -103,8 +103,8 @@ export class PerkClient {
     return findProtocolAddress(this.programId)[0];
   }
 
-  getMarketAddress(tokenMint: PublicKey): PublicKey {
-    return findMarketAddress(tokenMint, this.programId)[0];
+  getMarketAddress(tokenMint: PublicKey, creator: PublicKey): PublicKey {
+    return findMarketAddress(tokenMint, creator, this.programId)[0];
   }
 
   getPositionAddress(market: PublicKey, user: PublicKey): PublicKey {
@@ -138,8 +138,8 @@ export class PerkClient {
     )) as unknown as ProtocolAccount;
   }
 
-  async fetchMarket(tokenMint: PublicKey): Promise<MarketAccount> {
-    const address = this.getMarketAddress(tokenMint);
+  async fetchMarket(tokenMint: PublicKey, creator: PublicKey): Promise<MarketAccount> {
+    const address = this.getMarketAddress(tokenMint, creator);
     return (await this.accounts.market.fetch(
       address
     )) as unknown as MarketAccount;
@@ -281,11 +281,12 @@ export class PerkClient {
   /** Update market parameters (admin only). */
   async adminUpdateMarket(
     tokenMint: PublicKey,
+    creator: PublicKey,
     oracle: PublicKey | null,
     params: AdminUpdateMarketParams
   ): Promise<TransactionSignature> {
     const protocol = this.getProtocolAddress();
-    const market = this.getMarketAddress(tokenMint);
+    const market = this.getMarketAddress(tokenMint, creator);
     return this.program.methods
       .adminUpdateMarket(params)
       .accounts({
@@ -321,7 +322,7 @@ export class PerkClient {
     params: CreateMarketParams
   ): Promise<TransactionSignature> {
     const protocol = this.getProtocolAddress();
-    const [market] = findMarketAddress(tokenMint, this.programId);
+    const [market] = findMarketAddress(tokenMint, this.wallet.publicKey, this.programId);
     const [vault] = findVaultAddress(market, this.programId);
 
     return this.program.methods
@@ -351,10 +352,11 @@ export class PerkClient {
 
   /** Initialize a position account for a user on a market. */
   async initializePosition(
-    tokenMint: PublicKey
+    tokenMint: PublicKey,
+    creator: PublicKey,
   ): Promise<TransactionSignature> {
     const protocol = this.getProtocolAddress();
-    const market = this.getMarketAddress(tokenMint);
+    const market = this.getMarketAddress(tokenMint, creator);
     const position = this.getPositionAddress(market, this.wallet.publicKey);
 
     return this.program.methods
@@ -372,12 +374,13 @@ export class PerkClient {
   /** Deposit collateral into a position. */
   async deposit(
     tokenMint: PublicKey,
+    creator: PublicKey,
     oracle: PublicKey,
     amount: BN,
     fallbackOracle?: PublicKey,
   ): Promise<TransactionSignature> {
     const protocol = this.getProtocolAddress();
-    const market = this.getMarketAddress(tokenMint);
+    const market = this.getMarketAddress(tokenMint, creator);
     const position = this.getPositionAddress(market, this.wallet.publicKey);
     const [vault] = findVaultAddress(market, this.programId);
     const userAta = await getAssociatedTokenAddress(tokenMint, this.wallet.publicKey);
@@ -402,12 +405,13 @@ export class PerkClient {
   /** Withdraw collateral from a position. */
   async withdraw(
     tokenMint: PublicKey,
+    creator: PublicKey,
     oracle: PublicKey,
     amount: BN,
     fallbackOracle?: PublicKey,
   ): Promise<TransactionSignature> {
     const protocol = this.getProtocolAddress();
-    const market = this.getMarketAddress(tokenMint);
+    const market = this.getMarketAddress(tokenMint, creator);
     const position = this.getPositionAddress(market, this.wallet.publicKey);
     const [vault] = findVaultAddress(market, this.programId);
     const userAta = await getAssociatedTokenAddress(tokenMint, this.wallet.publicKey);
@@ -432,6 +436,7 @@ export class PerkClient {
   /** Open a leveraged position. */
   async openPosition(
     tokenMint: PublicKey,
+    creator: PublicKey,
     oracle: PublicKey,
     side: Side,
     baseSize: BN,
@@ -450,7 +455,7 @@ export class PerkClient {
       throw new Error("leverage and maxSlippageBps must be integers");
     }
     const protocol = this.getProtocolAddress();
-    const market = this.getMarketAddress(tokenMint);
+    const market = this.getMarketAddress(tokenMint, creator);
     const position = this.getPositionAddress(market, this.wallet.publicKey);
     return this.program.methods
       .openPosition(SIDE_MAP[side], baseSize, leverage, maxSlippageBps)
@@ -469,12 +474,13 @@ export class PerkClient {
   /** Close a position (full or partial). */
   async closePosition(
     tokenMint: PublicKey,
+    creator: PublicKey,
     oracle: PublicKey,
     baseSizeToClose?: BN,
     fallbackOracle?: PublicKey,
   ): Promise<TransactionSignature> {
     const protocol = this.getProtocolAddress();
-    const market = this.getMarketAddress(tokenMint);
+    const market = this.getMarketAddress(tokenMint, creator);
     const position = this.getPositionAddress(market, this.wallet.publicKey);
 
     return this.program.methods
@@ -498,9 +504,10 @@ export class PerkClient {
   /** Place a trigger order (limit, stop-loss, take-profit). */
   async placeTriggerOrder(
     tokenMint: PublicKey,
+    creator: PublicKey,
     params: TriggerOrderParams
   ): Promise<TransactionSignature> {
-    const market = this.getMarketAddress(tokenMint);
+    const market = this.getMarketAddress(tokenMint, creator);
     const position = this.getPositionAddress(market, this.wallet.publicKey);
 
     // Fetch position to get next order ID
@@ -536,9 +543,10 @@ export class PerkClient {
   /** Cancel a trigger order. */
   async cancelTriggerOrder(
     tokenMint: PublicKey,
+    creator: PublicKey,
     orderId: number | BN
   ): Promise<TransactionSignature> {
-    const market = this.getMarketAddress(tokenMint);
+    const market = this.getMarketAddress(tokenMint, creator);
     const position = this.getPositionAddress(market, this.wallet.publicKey);
     const triggerOrder = this.getTriggerOrderAddress(
       market,
@@ -565,10 +573,11 @@ export class PerkClient {
   /** Claim accumulated fees (creator or protocol). */
   async claimFees(
     tokenMint: PublicKey,
+    creator: PublicKey,
     recipientTokenAccount: PublicKey
   ): Promise<TransactionSignature> {
     const protocol = this.getProtocolAddress();
-    const market = this.getMarketAddress(tokenMint);
+    const market = this.getMarketAddress(tokenMint, creator);
     const [vault] = findVaultAddress(market, this.programId);
 
     return this.program.methods
@@ -922,10 +931,11 @@ export class PerkClient {
   /** Set or remove fallback oracle on a market. Admin only. */
   async adminSetFallbackOracle(
     tokenMint: PublicKey,
+    creator: PublicKey,
     params: SetFallbackOracleParams,
   ): Promise<TransactionSignature> {
     const protocol = this.getProtocolAddress();
-    const market = this.getMarketAddress(tokenMint);
+    const market = this.getMarketAddress(tokenMint, creator);
 
     // When removing fallback (address = default/zeros), pass SystemProgram as the
     // account since Solana won't accept the null address as a transaction account.
