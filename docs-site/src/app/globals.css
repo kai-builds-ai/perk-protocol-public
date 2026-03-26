@@ -1,0 +1,178 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap');
+
+/* highlight.js one-dark inspired theme */
+.hljs {
+  background: #18181b !important;
+  color: #abb2bf;
+}
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-built_in {
+  color: #c678dd;
+}
+.hljs-string,
+.hljs-attr {
+  color: #98c379;
+}
+.hljs-number,
+.hljs-literal {
+  color: #d19a66;
+}
+.hljs-comment {
+  color: #5c6370;
+  font-style: italic;
+}
+.hljs-function .hljs-title,
+.hljs-title.function_ {
+  color: #61afef;
+}
+.hljs-variable,
+.hljs-params {
+  color: #e06c75;
+}
+.hljs-type,
+.hljs-title.class_ {
+  color: #e5c07b;
+}
+.hljs-meta {
+  color: #56b6c2;
+}
+.hljs-punctuation {
+  color: #abb2bf;
+}
+
+/* Markdown content styles */
+.doc-content {
+  @apply text-zinc-300 leading-relaxed;
+}
+
+.doc-content h1 {
+  @apply font-heading text-2xl font-bold text-white mt-0 mb-6 pb-3 border-b border-zinc-800;
+}
+
+.doc-content h2 {
+  @apply font-heading text-xl font-semibold text-white mt-10 mb-4 pb-2 border-b border-zinc-800;
+}
+
+.doc-content h3 {
+  @apply font-heading text-lg font-semibold text-zinc-100 mt-8 mb-3;
+}
+
+.doc-content h4 {
+  @apply font-heading text-base font-semibold text-zinc-200 mt-6 mb-2;
+}
+
+.doc-content p {
+  @apply mb-4;
+}
+
+.doc-content a {
+  @apply text-zinc-100 underline decoration-zinc-600 underline-offset-2 hover:decoration-zinc-400 transition-colors;
+}
+
+.doc-content strong {
+  @apply text-zinc-100 font-semibold;
+}
+
+.doc-content ul {
+  @apply mb-4 pl-6 list-disc;
+}
+
+.doc-content ol {
+  @apply mb-4 pl-6 list-decimal;
+}
+
+.doc-content li {
+  @apply mb-1;
+}
+
+.doc-content li > ul,
+.doc-content li > ol {
+  @apply mt-1 mb-0;
+}
+
+.doc-content blockquote {
+  @apply border-l-2 border-zinc-600 pl-4 my-4 text-zinc-400 italic;
+}
+
+.doc-content blockquote strong {
+  @apply text-zinc-300;
+}
+
+.doc-content code:not(pre code) {
+  @apply bg-zinc-800 text-zinc-200 px-1.5 py-0.5 text-sm font-mono rounded-sm;
+}
+
+.doc-content pre {
+  @apply bg-zinc-900 border border-zinc-800 p-4 my-4 overflow-x-auto text-sm font-mono rounded-sm;
+}
+
+.doc-content pre code {
+  @apply bg-transparent p-0 text-sm;
+}
+
+.doc-content table {
+  @apply w-full my-4 border-collapse text-sm;
+}
+
+.doc-content thead {
+  @apply border-b border-zinc-700;
+}
+
+.doc-content th {
+  @apply text-left text-zinc-300 font-semibold py-2 px-3;
+}
+
+.doc-content td {
+  @apply py-2 px-3 border-b border-zinc-800 text-zinc-400;
+}
+
+.doc-content tr:hover td {
+  @apply text-zinc-300;
+}
+
+.doc-content hr {
+  @apply border-zinc-800 my-8;
+}
+
+.doc-content img {
+  @apply max-w-full my-4;
+}
+
+/* Anchor links on headings */
+.doc-content h1 a,
+.doc-content h2 a,
+.doc-content h3 a,
+.doc-content h4 a {
+  @apply no-underline text-inherit;
+}
+
+.doc-content .icon-link {
+  @apply hidden;
+}
+
+.doc-content h2:hover .icon-link,
+.doc-content h3:hover .icon-link,
+.doc-content h4:hover .icon-link {
+  @apply inline text-zinc-600 ml-2;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0a0a0a;
+}
+::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46;
+}
