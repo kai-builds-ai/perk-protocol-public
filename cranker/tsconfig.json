@@ -15,8 +15,7 @@
   },
   "include": [
     "*.ts",
-    "loops/**/*.ts",
-    "tests/**/*.ts"
+    "loops/**/*.ts"
   ],
   "exclude": ["node_modules", "dist"]
 }
