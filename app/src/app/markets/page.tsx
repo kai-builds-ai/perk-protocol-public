@@ -133,7 +133,7 @@ export default function MarketExplorer() {
       />
 
       {/* Tabs */}
-      <div className="flex items-center gap-0 px-4 border-b border-border bg-surface overflow-x-auto flex-nowrap" style={{ WebkitOverflowScrolling: "touch" }}>
+      <div className="flex items-center gap-0 px-4 border-b border-border bg-surface overflow-x-auto no-scrollbar flex-nowrap" style={{ WebkitOverflowScrolling: "touch" }}>
         {TABS.map((t) => (
           <button
             key={t.key}
@@ -150,7 +150,7 @@ export default function MarketExplorer() {
       </div>
 
       {/* Filters row */}
-      <div className="flex items-center gap-4 md:gap-6 px-4 py-2.5 border-b border-border bg-bg overflow-x-auto flex-nowrap" style={{ WebkitOverflowScrolling: "touch" }}>
+      <div className="flex items-center gap-4 md:gap-6 px-4 py-2.5 border-b border-border bg-bg overflow-x-auto no-scrollbar flex-nowrap" style={{ WebkitOverflowScrolling: "touch" }}>
         {/* Search */}
         <input
           type="text"

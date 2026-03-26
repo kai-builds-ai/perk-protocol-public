@@ -60,7 +60,7 @@ export const Positions = memo(function Positions({ positions, market }: Position
       <div className="px-3 py-2 text-xs font-sans font-medium text-text-secondary uppercase tracking-wider border-b border-border">
         Positions ({positions.length})
       </div>
-      <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: "touch" }}>
+      <div className="overflow-x-auto no-scrollbar" style={{ WebkitOverflowScrolling: "touch" }}>
       <table className="w-full text-xs min-w-[640px]">
         <thead>
           <tr className="border-b border-border">

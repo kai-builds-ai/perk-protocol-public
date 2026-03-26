@@ -45,6 +45,15 @@ input[type="number"] {
   -moz-appearance: textfield;
 }
 
+/* Hide scrollbars on horizontal scroll containers */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 /* Range input track */
 input[type="range"]::-webkit-slider-runnable-track {
   height: 4px;
