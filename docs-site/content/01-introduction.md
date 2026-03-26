@@ -12,6 +12,8 @@ Perk is a permissionless perpetual futures protocol on Solana. It lets anyone cr
 
 **License:** MIT (fully open source)
 
+**Contact:** [contact@perk.fund](mailto:contact@perk.fund)
+
 ---
 
 ## Key Features
