@@ -8,7 +8,7 @@ Perk is a permissionless perpetual futures protocol on Solana. It lets anyone cr
 
 **Program ID:** `5mqYowuNCA8iKFjqn6XKA7vURuaKEUUmPK5QJiCbHyMW`
 
-**GitHub:** [github.com/kai-builds-ai/perk-protocol](https://github.com/kai-builds-ai/perk-protocol)
+**GitHub:** [github.com/kai-builds-ai/perk-protocol-public](https://github.com/kai-builds-ai/perk-protocol-public)
 
 **License:** MIT (fully open source)
 

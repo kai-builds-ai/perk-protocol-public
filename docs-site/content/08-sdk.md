@@ -392,7 +392,7 @@ import {
 } from "perk-protocol";
 ```
 
-See [types.ts](https://github.com/kai-builds-ai/perk-protocol/blob/main/sdk/src/types.ts) for the full type definitions.
+See [types.ts](https://github.com/kai-builds-ai/perk-protocol-public/blob/main/sdk/src/types.ts) for the full type definitions.
 
 ---
 

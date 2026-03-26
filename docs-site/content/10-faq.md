@@ -14,7 +14,7 @@ Perk is fully permissionless — anyone can create a market for any token withou
 
 ### Is Perk open source?
 
-Yes. All code — on-chain program, SDK, cranker, and frontend — is MIT licensed and available at [github.com/kai-builds-ai/perk-protocol](https://github.com/kai-builds-ai/perk-protocol).
+Yes. All code — on-chain program, SDK, cranker, and frontend — is MIT licensed and available at [github.com/kai-builds-ai/perk-protocol-public](https://github.com/kai-builds-ai/perk-protocol-public).
 
 ### What blockchain is Perk on?
 
@@ -145,7 +145,7 @@ The Percolator's A/K mechanism kicks in, socializing the deficit across all posi
 
 ### Is there a bug bounty?
 
-The code is MIT-licensed and fully open source. Check the [GitHub repository](https://github.com/kai-builds-ai/perk-protocol) for the latest on security reporting.
+The code is MIT-licensed and fully open source. Check the [GitHub repository](https://github.com/kai-builds-ai/perk-protocol-public) for the latest on security reporting.
 
 ---
 

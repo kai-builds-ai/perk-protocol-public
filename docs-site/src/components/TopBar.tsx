@@ -35,7 +35,7 @@ export function TopBar({ onMenuToggle, menuOpen }: TopBarProps) {
         <a href="https://perk.fund" className="text-xs font-mono text-zinc-500 hover:text-zinc-300 transition-colors hidden sm:inline">
           App
         </a>
-        <a href="https://github.com/kai-builds-ai/perk-protocol" className="text-xs font-mono text-zinc-500 hover:text-zinc-300 transition-colors hidden sm:inline">
+        <a href="https://github.com/kai-builds-ai/perk-protocol-public" className="text-xs font-mono text-zinc-500 hover:text-zinc-300 transition-colors hidden sm:inline">
           GitHub
         </a>
         <a href="https://perk.fund" className="text-xs font-mono text-zinc-500 hover:text-zinc-300 transition-colors">

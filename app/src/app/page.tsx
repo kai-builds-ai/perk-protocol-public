@@ -30,7 +30,7 @@ function LandingNav() {
             <Link href="/markets" className="text-sm text-text-secondary hover:text-white transition-colors duration-100 font-sans">Markets</Link>
             <Link href="/launch" className="text-sm text-text-secondary hover:text-white transition-colors duration-100 font-sans">Create Market</Link>
             <a href="https://docs.perk.fund" className="text-sm text-text-secondary hover:text-white transition-colors duration-100 font-sans">Docs</a>
-            <a href="https://github.com/kai-builds-ai/perk-protocol" className="text-sm text-text-secondary hover:text-white transition-colors duration-100 font-sans">GitHub</a>
+            <a href="https://github.com/kai-builds-ai/perk-protocol-public" className="text-sm text-text-secondary hover:text-white transition-colors duration-100 font-sans">GitHub</a>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -52,7 +52,7 @@ function LandingNav() {
             <Link href="/markets" onClick={() => setMenuOpen(false)} className="text-sm font-sans text-text-secondary hover:text-white transition-colors">Markets</Link>
             <Link href="/launch" onClick={() => setMenuOpen(false)} className="text-sm font-sans text-text-secondary hover:text-white transition-colors">Create Market</Link>
             <a href="https://docs.perk.fund" className="text-sm font-sans text-text-secondary hover:text-white transition-colors">Docs</a>
-            <a href="https://github.com/kai-builds-ai/perk-protocol" className="text-sm font-sans text-text-secondary hover:text-white transition-colors">GitHub</a>
+            <a href="https://github.com/kai-builds-ai/perk-protocol-public" className="text-sm font-sans text-text-secondary hover:text-white transition-colors">GitHub</a>
             <Link href="/markets" onClick={() => setMenuOpen(false)} className="text-sm font-sans text-white sm:hidden">Launch App</Link>
           </div>
         </div>
@@ -310,7 +310,7 @@ export default function Landing() {
               </div>
             </div>
             <div className="flex flex-wrap gap-4">
-              <a href="https://github.com/kai-builds-ai/perk-protocol" target="_blank" rel="noopener noreferrer" className="text-sm font-sans text-text-secondary hover:text-white transition-colors underline decoration-zinc-700 hover:decoration-white">
+              <a href="https://github.com/kai-builds-ai/perk-protocol-public" target="_blank" rel="noopener noreferrer" className="text-sm font-sans text-text-secondary hover:text-white transition-colors underline decoration-zinc-700 hover:decoration-white">
                 View source on GitHub →
               </a>
               <a href="https://github.com/aeyakovenko/percolator/issues/22" target="_blank" rel="noopener noreferrer" className="text-sm font-sans text-text-secondary hover:text-white transition-colors underline decoration-zinc-700 hover:decoration-white">

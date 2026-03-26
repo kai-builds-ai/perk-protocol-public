@@ -2,7 +2,7 @@
 
 Perk handles other people's money. The security work reflects that responsibility. This document covers what we did, how, and why.
 
-All code is open source under the MIT license: [github.com/kai-builds-ai/perk-protocol](https://github.com/kai-builds-ai/perk-protocol)
+All code is open source under the MIT license: [github.com/kai-builds-ai/perk-protocol-public](https://github.com/kai-builds-ai/perk-protocol-public)
 
 ---
 
@@ -153,6 +153,6 @@ All code is public, all code is auditable:
 - **Cranker:** TypeScript, included in the repository
 - **Frontend:** Next.js, source available
 
-Repository: [github.com/kai-builds-ai/perk-protocol](https://github.com/kai-builds-ai/perk-protocol)
+Repository: [github.com/kai-builds-ai/perk-protocol-public](https://github.com/kai-builds-ai/perk-protocol-public)
 
 License: MIT
