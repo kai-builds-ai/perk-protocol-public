@@ -56,7 +56,7 @@ export default function TradingView() {
         )}
       </div>
       {/* Desktop: side-by-side. Mobile: stacked single column */}
-      <div className="flex flex-col md:flex-row flex-1 min-h-0 overflow-auto">
+      <div className="flex flex-col md:flex-row flex-1 min-h-0 overflow-auto no-scrollbar">
         {/* Left: Chart + Positions (desktop) */}
         <div className="flex flex-col md:flex-1 md:border-r border-border min-w-0">
           <div className="h-[200px] md:h-auto md:flex-1 md:min-h-[300px]">

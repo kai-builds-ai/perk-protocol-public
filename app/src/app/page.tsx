@@ -71,7 +71,7 @@ export default function Landing() {
       <div className="flex-1 grid grid-rows-[1fr_auto_auto_auto] min-h-0">
 
         {/* Hero — compact, left-aligned with stats beside it */}
-        <div className="flex items-center px-4 md:px-8 py-8">
+        <div className="flex items-center px-4 md:px-8 py-12 md:py-8">
           <div className="max-w-7xl w-full mx-auto grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-8 lg:gap-12 items-center">
             {/* Left: headline + CTAs */}
             <div className="space-y-6">
@@ -155,7 +155,7 @@ export default function Landing() {
         </div>
 
         {/* Percolator engine — the differentiator */}
-        <div className="border-t border-border px-4 md:px-8 py-8">
+        <div className="border-t border-border px-4 md:px-8 py-12 md:py-8">
           <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[1fr_auto_280px] gap-8 lg:gap-10 items-start">
             <div className="space-y-3">
               <div className="font-mono text-xs text-text-tertiary uppercase tracking-wider">Risk Engine</div>
@@ -195,7 +195,7 @@ export default function Landing() {
         </div>
 
         {/* How it works — three columns */}
-        <div className="border-t border-border px-4 md:px-8 py-8">
+        <div className="border-t border-border px-4 md:px-8 py-12 md:py-8">
           <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-8 sm:gap-10">
             <Step n="01" title="Trade" desc="Long or short any token with up to 20x leverage. Pyth oracle prices. Sub-second execution on Solana." />
             <Step n="02" title="Create" desc="Launch a perpetual market for any SPL token. Set leverage, fees, oracle. One transaction. One SOL." />
