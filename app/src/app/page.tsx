@@ -334,7 +334,7 @@ export default function Landing() {
               <a href="https://docs.perk.fund" className="text-sm font-sans text-text-secondary hover:text-white transition-colors">Docs</a>
               <a href="mailto:contact@perk.fund" className="text-sm font-sans text-text-secondary hover:text-white transition-colors">Contact</a>
             </div>
-            <span className="text-sm font-mono text-text-secondary">Solana</span>
+            <span className="text-sm font-mono text-text-secondary w-full text-center md:w-auto md:text-right">Powered by Solana</span>
           </div>
         </footer>
       </div>
