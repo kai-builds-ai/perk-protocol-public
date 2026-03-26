@@ -190,20 +190,32 @@ export function MyMarketsPanel({ markets }: MyMarketsPanelProps) {
 
               {/* Claimable Fees */}
               <td
-                className={`text-right py-2.5 px-4 font-mono ${
+                className={`text-right py-2.5 px-4 ${
                   hasClaimable ? "text-green-400" : "text-zinc-500"
                 }`}
               >
-                {effectiveFees > 0
-                  ? effectiveFees.toFixed(4)
-                  : "0.0000"}
+                <span className="font-mono">
+                  {effectiveFees > 0 ? effectiveFees.toFixed(4) : "0.0000"}
+                </span>
+                <span className="text-xs ml-1 font-sans">{m.symbol}</span>
+                {effectiveFees > 0 && m.markPrice > 0 && (
+                  <span className="text-xs text-text-tertiary ml-1.5 font-mono">
+                    (~{formatUsd(effectiveFees * m.markPrice)})
+                  </span>
+                )}
               </td>
 
               {/* Lifetime Earned */}
-              <td className="text-right py-2.5 px-4 font-mono text-text-secondary">
-                {m.creatorFeesEarned > 0
-                  ? m.creatorFeesEarned.toFixed(4)
-                  : "0.0000"}
+              <td className="text-right py-2.5 px-4 text-text-secondary">
+                <span className="font-mono">
+                  {m.creatorFeesEarned > 0 ? m.creatorFeesEarned.toFixed(4) : "0.0000"}
+                </span>
+                <span className="text-xs ml-1 font-sans">{m.symbol}</span>
+                {m.creatorFeesEarned > 0 && m.markPrice > 0 && (
+                  <span className="text-xs text-text-tertiary ml-1.5 font-mono">
+                    (~{formatUsd(m.creatorFeesEarned * m.markPrice)})
+                  </span>
+                )}
               </td>
 
               {/* Claim Button */}
