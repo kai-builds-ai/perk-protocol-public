@@ -15,10 +15,10 @@ export function Shell({ children }: { children: React.ReactNode }) {
   }, [pathname]);
 
   return (
-    <div className="min-h-screen bg-bg text-zinc-300 font-sans max-w-5xl mx-auto">
+    <div className="min-h-screen bg-bg text-zinc-300 font-sans max-w-5xl mx-auto flex flex-col">
       <TopBar onMenuToggle={() => setMenuOpen(!menuOpen)} menuOpen={menuOpen} />
 
-      <div className="flex">
+      <div className="flex flex-1">
         {/* Desktop sidebar */}
         <aside className="hidden lg:block w-56 shrink-0 border-r border-zinc-800 sticky top-12 h-[calc(100vh-3rem)] overflow-y-auto">
           <Sidebar />
@@ -38,23 +38,21 @@ export function Shell({ children }: { children: React.ReactNode }) {
         )}
 
         {/* Content */}
-        <main className="flex-1 min-w-0 flex flex-col min-h-[calc(100vh-3rem)]">
-          <div className="max-w-3xl mx-auto px-6 py-8 lg:px-10 flex-1 w-full">
+        <main className="flex-1 min-w-0">
+          <div className="max-w-3xl mx-auto px-6 py-8 lg:px-10">
             {children}
           </div>
-
-          {/* Footer */}
-          <footer className="max-w-3xl mx-auto px-6 lg:px-10 w-full">
-            <div className="border-t border-zinc-800 py-6 flex items-center justify-between text-xs text-zinc-600">
-              <span>© {new Date().getFullYear()} Perk Protocol</span>
-              <div className="flex gap-4">
-                <a href="https://perk.fund" className="hover:text-zinc-400 transition-colors">perk.fund</a>
-                <a href="https://github.com/perk-protocol" className="hover:text-zinc-400 transition-colors">GitHub</a>
-              </div>
-            </div>
-          </footer>
         </main>
       </div>
+
+      {/* Footer — spans full layout width (sidebar + content) */}
+      <footer className="border-t border-zinc-800 py-6 px-6 lg:px-10 flex items-center justify-between text-xs text-zinc-600">
+        <span>© {new Date().getFullYear()} Perk Protocol</span>
+        <div className="flex gap-4">
+          <a href="https://perk.fund" className="hover:text-zinc-400 transition-colors">perk.fund</a>
+          <a href="https://github.com/perk-protocol" className="hover:text-zinc-400 transition-colors">GitHub</a>
+        </div>
+      </footer>
     </div>
   );
 }
