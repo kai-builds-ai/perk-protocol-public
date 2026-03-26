@@ -18,8 +18,6 @@ import { useRouter } from "next/navigation";
 import { getTokenLogo } from "@/lib/token-metadata";
 import toast from "react-hot-toast";
 
-type OracleChoice = "perkOracle" | "pyth" | "dexPool";
-
 /** Validate a string as a Solana public key */
 function isValidPubkey(s: string): boolean {
   try {
@@ -43,8 +41,7 @@ export function CreateMarketForm() {
     (typeof MOCK_TOKEN_LIST)[0] | null
   >(null);
   const [showDropdown, setShowDropdown] = useState(false);
-  const [oracleSource, setOracleSource] = useState<OracleChoice>("perkOracle");
-  const [oracleAddress, setOracleAddress] = useState(""); // for pyth/dexPool
+  // Oracle is always PerkOracle — cranker handles Pyth vs Birdeye selection
   const [maxLeverage, setMaxLeverage] = useState(10);
   const [tradingFee, setTradingFee] = useState(0.1);
   const [initialDepth, setInitialDepth] = useState(50);
@@ -129,16 +126,7 @@ export function CreateMarketForm() {
 
   const selectedMint = selectedToken?.mint ?? customMint?.mint ?? null;
 
-  const sdkOracleSource = useMemo(() => {
-    switch (oracleSource) {
-      case "perkOracle":
-        return SdkOracleSource.PerkOracle;
-      case "pyth":
-        return SdkOracleSource.Pyth;
-      case "dexPool":
-        return SdkOracleSource.DexPool;
-    }
-  }, [oracleSource]);
+  const sdkOracleSource = SdkOracleSource.PerkOracle;
 
   const handleCreate = useCallback(async () => {
     if (!selectedMint) return;
@@ -148,32 +136,20 @@ export function CreateMarketForm() {
       return;
     }
 
-    if ((oracleSource === "pyth" || oracleSource === "dexPool") && !isValidPubkey(oracleAddress)) {
-      toast.error("Please enter a valid oracle address.");
-      return;
-    }
-
     setIsSubmitting(true);
     try {
       const tokenMint = new PublicKey(selectedMint);
 
-      // Determine oracle address
-      let oracle: PublicKey;
-      if (oracleSource === "perkOracle") {
-        // Check if PerkOracle exists for this token
-        const existing = await readonlyClient.fetchPerkOracleNullable(tokenMint);
-        if (!existing) {
-          toast.error(
-            "No PerkOracle exists for this token yet. " +
-            "Please contact the protocol admin to initialize one, or use Pyth/DexPool oracle."
-          );
-          setIsSubmitting(false);
-          return;
-        }
-        oracle = readonlyClient.getPerkOracleAddress(tokenMint);
-      } else {
-        oracle = new PublicKey(oracleAddress);
+      // PerkOracle — check it exists for this token
+      const existing = await readonlyClient.fetchPerkOracleNullable(tokenMint);
+      if (!existing) {
+        toast.error(
+          "No PerkOracle exists for this token yet. The cranker will initialize one automatically when price feeds are available."
+        );
+        setIsSubmitting(false);
+        return;
       }
+      const oracle = readonlyClient.getPerkOracleAddress(tokenMint);
 
       const tradingFeeBps = Math.round(tradingFee * 100); // 0.10% → 10 bps
       const maxLeverageScaled = maxLeverage * LEVERAGE_SCALE;
@@ -201,8 +177,6 @@ export function CreateMarketForm() {
     client,
     publicKey,
     selectedMint,
-    oracleSource,
-    oracleAddress,
     tradingFee,
     maxLeverage,
     initialK,
@@ -308,78 +282,7 @@ export function CreateMarketForm() {
             )}
           </div>
 
-          {/* Oracle source */}
-          <div>
-            <label className="text-xs font-sans text-text-secondary block mb-2">
-              Oracle
-            </label>
-            <div className="flex gap-3 flex-wrap">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="oracle"
-                  checked={oracleSource === "perkOracle"}
-                  onChange={() => setOracleSource("perkOracle")}
-                  className="accent-white"
-                />
-                <span
-                  className={`text-xs font-sans ${
-                    oracleSource === "perkOracle" ? "text-white" : "text-text-secondary"
-                  }`}
-                >
-                  Perk Oracle
-                </span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="oracle"
-                  checked={oracleSource === "pyth"}
-                  onChange={() => setOracleSource("pyth")}
-                  className="accent-white"
-                />
-                <span
-                  className={`text-xs font-sans ${
-                    oracleSource === "pyth" ? "text-white" : "text-text-secondary"
-                  }`}
-                >
-                  Pyth
-                </span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="oracle"
-                  checked={oracleSource === "dexPool"}
-                  onChange={() => setOracleSource("dexPool")}
-                  className="accent-white"
-                />
-                <span
-                  className={`text-xs font-sans ${
-                    oracleSource === "dexPool" ? "text-white" : "text-text-secondary"
-                  }`}
-                >
-                  DEX Pool
-                </span>
-              </label>
-            </div>
-            {/* Oracle address input (for Pyth/DexPool) */}
-            {oracleSource !== "perkOracle" && (
-              <div className="mt-2">
-                <input
-                  type="text"
-                  value={oracleAddress}
-                  onChange={(e) => setOracleAddress(e.target.value)}
-                  placeholder={
-                    oracleSource === "pyth"
-                      ? "Pyth price feed address..."
-                      : "DEX pool address..."
-                  }
-                  className="w-full bg-transparent border border-zinc-800 rounded-[4px] px-3 py-2 text-xs font-mono text-white outline-none placeholder:text-text-tertiary focus:border-zinc-500 transition-colors duration-100"
-                />
-              </div>
-            )}
-          </div>
+          {/* Oracle — always PerkOracle, cranker handles feed selection */}
 
           {/* Parameters */}
           <div className="border-t border-border pt-4 space-y-4">
