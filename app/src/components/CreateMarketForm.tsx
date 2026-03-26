@@ -1,9 +1,7 @@
 "use client";
 
-import React, { useState, useMemo, useCallback } from "react";
-import { MOCK_TOKEN_LIST } from "@/lib/mock-data";
+import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { TokenLogo } from "./TokenLogo";
-import { formatUsdCompact } from "@/lib/format";
 import { usePerk } from "@/providers/PerkProvider";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useConnection } from "@solana/wallet-adapter-react";
@@ -28,6 +26,14 @@ function isValidPubkey(s: string): boolean {
   }
 }
 
+interface TokenInfo {
+  mint: string;
+  symbol: string;
+  name: string;
+  decimals: number;
+  logoUrl: string | null;
+}
+
 interface ResolvedToken {
   mint: string;
   symbol: string;
@@ -37,9 +43,7 @@ interface ResolvedToken {
 
 export function CreateMarketForm() {
   const [search, setSearch] = useState("");
-  const [selectedToken, setSelectedToken] = useState<
-    (typeof MOCK_TOKEN_LIST)[0] | null
-  >(null);
+  const [selectedToken, setSelectedToken] = useState<TokenInfo | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
   // Oracle is always PerkOracle — cranker handles Pyth vs Birdeye selection
   const [maxLeverage, setMaxLeverage] = useState(10);
@@ -47,25 +51,88 @@ export function CreateMarketForm() {
   const [initialDepth, setInitialDepth] = useState(50);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Jupiter token list
+  const [jupiterTokens, setJupiterTokens] = useState<TokenInfo[]>([]);
+  const [tokensLoading, setTokensLoading] = useState(true);
+  const [tokensError, setTokensError] = useState(false);
+
   // Custom mint address input (when pasting an address not in the list)
   const [customMint, setCustomMint] = useState<ResolvedToken | null>(null);
   const [resolvingMint, setResolvingMint] = useState(false);
+
+  // Outside-click dismiss ref
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const { client, readonlyClient } = usePerk();
   const { publicKey } = useWallet();
   const { connection } = useConnection();
   const router = useRouter();
 
+  // Fetch Jupiter strict token list on mount
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchTokens() {
+      try {
+        const res = await fetch("https://token.jup.ag/strict");
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data: Array<{
+          address: string;
+          symbol: string;
+          name: string;
+          decimals: number;
+          logoURI: string;
+        }> = await res.json();
+        if (!cancelled) {
+          setJupiterTokens(
+            data.map((t) => ({
+              mint: t.address,
+              symbol: t.symbol,
+              name: t.name,
+              decimals: t.decimals,
+              logoUrl: t.logoURI || null,
+            }))
+          );
+          setTokensLoading(false);
+        }
+      } catch {
+        if (!cancelled) {
+          setTokensError(true);
+          setTokensLoading(false);
+        }
+      }
+    }
+    fetchTokens();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Outside-click dismiss
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
+        setShowDropdown(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const filtered = useMemo(() => {
-    if (!search) return MOCK_TOKEN_LIST;
+    if (!search) return jupiterTokens.slice(0, 20);
     const q = search.toLowerCase();
-    return MOCK_TOKEN_LIST.filter(
-      (t) =>
-        t.symbol.toLowerCase().includes(q) ||
-        t.name.toLowerCase().includes(q) ||
-        t.mint.toLowerCase().includes(q)
-    );
-  }, [search]);
+    return jupiterTokens
+      .filter(
+        (t) =>
+          t.symbol.toLowerCase().includes(q) ||
+          t.name.toLowerCase().includes(q) ||
+          t.mint.toLowerCase().includes(q)
+      )
+      .slice(0, 20);
+  }, [search, jupiterTokens]);
 
   // Resolve a pasted mint address
   const handleSearchChange = useCallback(
@@ -75,8 +142,11 @@ export function CreateMarketForm() {
       setCustomMint(null);
       setShowDropdown(true);
 
-      // If it looks like a valid pubkey and not in the known list, resolve it
-      if (isValidPubkey(value) && !MOCK_TOKEN_LIST.find((t) => t.mint === value)) {
+      // If it looks like a valid pubkey and not in the Jupiter list, resolve it
+      if (
+        isValidPubkey(value) &&
+        !jupiterTokens.find((t) => t.mint === value)
+      ) {
         setResolvingMint(true);
         try {
           const logoUrl = await getTokenLogo(value, connection);
@@ -98,7 +168,7 @@ export function CreateMarketForm() {
         }
       }
     },
-    [connection]
+    [connection, jupiterTokens]
   );
 
   const revenue = useMemo(() => {
@@ -196,7 +266,7 @@ export function CreateMarketForm() {
 
         <div className="p-4 space-y-5">
           {/* Token search */}
-          <div className="relative">
+          <div className="relative" ref={dropdownRef}>
             <label className="text-xs font-sans text-text-secondary block mb-1">
               Token
             </label>
@@ -208,8 +278,20 @@ export function CreateMarketForm() {
               placeholder="Search token or paste mint address..."
               className="w-full bg-transparent border border-zinc-800 rounded-[4px] px-3 py-2 text-sm font-mono text-white outline-none placeholder:text-text-tertiary focus:border-zinc-500 transition-colors duration-100"
             />
-            {showDropdown && !selectedToken && (filtered.length > 0 || customMint) && (
+            {showDropdown && !selectedToken && (
               <div className="absolute z-10 top-full left-0 right-0 mt-1 border border-border bg-surface rounded-[2px] max-h-48 overflow-y-auto">
+                {/* Loading state */}
+                {tokensLoading && (
+                  <div className="px-3 py-2 text-xs text-text-tertiary font-sans">
+                    Loading tokens...
+                  </div>
+                )}
+                {/* Error state */}
+                {tokensError && !tokensLoading && (
+                  <div className="px-3 py-2 text-xs text-text-tertiary font-sans">
+                    Failed to load token list. Paste a mint address instead.
+                  </div>
+                )}
                 {/* Custom mint address result */}
                 {customMint && (
                   <button
@@ -250,11 +332,16 @@ export function CreateMarketForm() {
                       {t.symbol}
                     </span>
                     <span className="text-xs text-text-secondary">{t.name}</span>
-                    <span className="ml-auto text-xs font-mono text-text-secondary">
-                      {formatUsdCompact(t.liquidity)} liq
+                    <span className="ml-auto text-xs font-mono text-text-tertiary truncate max-w-[120px]">
+                      {t.mint.slice(0, 4)}...{t.mint.slice(-4)}
                     </span>
                   </button>
                 ))}
+                {!tokensLoading && !tokensError && filtered.length === 0 && !customMint && !resolvingMint && (
+                  <div className="px-3 py-2 text-xs text-text-tertiary font-sans">
+                    No tokens found. Try pasting a mint address.
+                  </div>
+                )}
               </div>
             )}
             {selectedToken && (
@@ -266,8 +353,8 @@ export function CreateMarketForm() {
                 <span className="text-text-secondary">
                   ({selectedToken.name})
                 </span>
-                <span className="text-text-secondary font-mono">
-                  {formatUsdCompact(selectedToken.liquidity)} liq
+                <span className="text-text-tertiary font-mono">
+                  {selectedToken.mint.slice(0, 4)}...{selectedToken.mint.slice(-4)}
                 </span>
               </div>
             )}

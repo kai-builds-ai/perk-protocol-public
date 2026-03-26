@@ -362,14 +362,4 @@ export const MOCK_CANDLES: Record<string, CandleData[]> = {
   RAY: generateCandles(0.61, 200),
   ORCA: generateCandles(0.94, 200),
 };
-// Mock Jupiter token list for Create Market
-export const MOCK_TOKEN_LIST = [
-  { symbol: "POPCAT", name: "Popcat", mint: "7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr", decimals: 9, liquidity: 2400000 },
-  { symbol: "MEW", name: "cat in a dogs world", mint: "MEW1gQWJ3nEXg2qgERiKu7FAFj79PHvQVREQUzScPP5", decimals: 5, liquidity: 1800000 },
-  { symbol: "PYTH", name: "Pyth Network", mint: "HZ1JovNiVvGrGNiiYvEozEVgZ58xaU3RKwX8eACQBCt3", decimals: 6, liquidity: 5600000 },
-  { symbol: "MNDE", name: "Marinade", mint: "MNDEFzGvMt87ueuHvVU9VcTqsAP5b3fTGPsHuuPA5ey", decimals: 9, liquidity: 980000 },
-  { symbol: "RENDER", name: "Render", mint: "rndrizKT3MK1iimdxRdWabcF7Zg7AR5T4nud4EkHBof", decimals: 8, liquidity: 3200000 },
-  { symbol: "DRIFT", name: "Drift Protocol", mint: "DriFtupJYLTosbwoN8koMbEYSx54aFAVLddWsbksjwg7d", decimals: 6, liquidity: 1500000 },
-  { symbol: "W", name: "Wormhole", mint: "85VBFQZC9TZkfaptBWjvUw7YbZjy52A6mjtPGjstQAmQ", decimals: 6, liquidity: 4100000 },
-  { symbol: "TENSOR", name: "Tensor", mint: "TNSRxcUxoT9xBG3de7PiJyTDYu7kskLqcpddxnEJAS6", decimals: 5, liquidity: 890000 },
-];
+
