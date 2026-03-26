@@ -22,22 +22,22 @@ $PERK is the native SPL token of the Perk Protocol. It serves as the economic co
 
 ## Token Utility
 
-### 1. Fee Discounts
+### 1. Fee Discounts *(Phase 2)*
 
 Holding $PERK in a connected wallet reduces trading fees across all Perk markets. Discounts are tiered by balance:
 
 | Tier | $PERK Required | Fee Discount |
 |---|---|---|
-| 1 | 1,000 | 10% |
-| 2 | 10,000 | 20% |
-| 3 | 100,000 | 30% |
-| 4 | 1,000,000 | 50% |
+| 1 | 5,000 | 5% |
+| 2 | 50,000 | 10% |
+| 3 | 500,000 | 15% |
+| 4 | 5,000,000 | 25% |
 
-Discount applies to the `tradingFeeBps` charged on each trade. A market with a 0.1% fee and a Tier 4 holder pays 0.05%. Creator fee share (10% of collected fees) is calculated after the discount.
+Discount applies to the `tradingFeeBps` charged on each trade. A market with a 0.1% fee and a Tier 4 holder pays 0.075%. Creator fee share (10% of collected fees) is calculated after the discount.
 
 > **Note:** Tier thresholds and discount percentages are subject to change.
 
-### 2. Staking Rewards
+### 2. Staking Rewards *(Phase 2)*
 
 Stake $PERK to earn a proportional share of protocol trading fees. Rewards are distributed from the protocol's fee accumulator to stakers based on their share of the total staked supply.
 
@@ -45,17 +45,17 @@ Stake $PERK to earn a proportional share of protocol trading fees. Rewards are d
 - Claim is permissionless — call at any time
 - Unstaking has a cooldown period (TBD)
 
-### 3. Market Creation Discount
+### 3. Market Creation Discount *(Phase 2)*
 
 Market creation costs 1 SOL when paid in native SOL. Paying the equivalent in $PERK receives a 50% discount (0.5 SOL equivalent). The $PERK collected is routed to the protocol treasury.
 
-### 4. Creator Staking
+### 4. Creator Staking *(Phase 2)*
 
 Market creators can stake $PERK against their market to boost its visibility and ranking in the Perk UI. Staked amount determines sort weight in the market directory. This is a UI-level mechanism — it does not affect on-chain trading behavior.
 
 Creator staking is especially relevant in multi-market competition. When multiple creators launch markets for the same token, staking $PERK is one of the primary ways to differentiate — higher stake means higher visibility in the UI, directing more trader flow to that market. Combined with competitive fee and leverage parameters, staking is how creators win market share.
 
-### 5. Trading Rewards
+### 5. Trading Rewards *(Phase 2)*
 
 Active traders earn $PERK emissions proportional to their trading volume. Emissions follow a decay schedule to prevent inflationary spiral — early participants earn more per unit of volume than later ones.
 
