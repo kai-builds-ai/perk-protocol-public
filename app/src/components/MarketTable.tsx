@@ -83,9 +83,15 @@ export function MarketTable({ markets, filter, watchlist, onToggleWatchlist }: M
           {header("Price", "markPrice")}
           {header("24h Change", "change24h")}
           {header("24h Volume", "volume24h")}
-          {header("Open Interest", "openInterest")}
-          {header("Funding Rate", "fundingRate")}
-          {header("Max Leverage", "maxLeverage")}
+          <th className="px-3 py-2 text-xs font-sans font-medium uppercase tracking-wider text-text-secondary cursor-pointer select-none hover:text-text-primary text-right hidden md:table-cell" onClick={() => handleSort("openInterest")}>
+            Open Interest{sortKey === "openInterest" && <span className="ml-1 text-text-tertiary">{sortAsc ? "↑" : "↓"}</span>}
+          </th>
+          <th className="px-3 py-2 text-xs font-sans font-medium uppercase tracking-wider text-text-secondary cursor-pointer select-none hover:text-text-primary text-right hidden md:table-cell" onClick={() => handleSort("fundingRate")}>
+            Funding Rate{sortKey === "fundingRate" && <span className="ml-1 text-text-tertiary">{sortAsc ? "↑" : "↓"}</span>}
+          </th>
+          <th className="px-3 py-2 text-xs font-sans font-medium uppercase tracking-wider text-text-secondary cursor-pointer select-none hover:text-text-primary text-right hidden md:table-cell" onClick={() => handleSort("maxLeverage")}>
+            Max Leverage{sortKey === "maxLeverage" && <span className="ml-1 text-text-tertiary">{sortAsc ? "↑" : "↓"}</span>}
+          </th>
           <th className="w-8" />
         </tr>
       </thead>
@@ -138,17 +144,17 @@ export function MarketTable({ markets, filter, watchlist, onToggleWatchlist }: M
               <td className="px-3 py-2.5 text-right font-mono text-white">
                 {formatUsdCompact(m.volume24h)}
               </td>
-              <td className="px-3 py-2.5 text-right font-mono text-white">
+              <td className="px-3 py-2.5 text-right font-mono text-white hidden md:table-cell">
                 {formatUsdCompact(m.openInterest)}
               </td>
               <td
-                className={`px-3 py-2.5 text-right font-mono ${
+                className={`px-3 py-2.5 text-right font-mono hidden md:table-cell ${
                   m.fundingRate >= 0 ? "text-profit" : "text-loss"
                 }`}
               >
                 {formatFunding(m.fundingRate)}
               </td>
-              <td className="px-3 py-2.5 text-right font-mono text-text-secondary">
+              <td className="px-3 py-2.5 text-right font-mono text-text-secondary hidden md:table-cell">
                 {m.maxLeverage}x
               </td>
               <td className="px-3 py-2.5 text-right text-text-tertiary">→</td>

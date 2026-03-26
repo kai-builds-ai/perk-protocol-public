@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { useMarkets } from "@/hooks/useMarkets";
 import { formatUsdCompact } from "@/lib/format";
@@ -16,6 +16,47 @@ function useStats() {
   };
 }
 
+function LandingNav() {
+  const [menuOpen, setMenuOpen] = useState(false);
+  return (
+    <nav className="border-b border-border relative">
+      <div className="flex items-center justify-between px-4 md:px-8 h-14 max-w-7xl mx-auto">
+        <div className="flex items-center gap-6 md:gap-10">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-[4px] overflow-hidden bg-bg flex-shrink-0"><img src="/logo.png" alt="Perk" width={36} height={36} className="mix-blend-lighten" /></div>
+            <span className="font-sans font-semibold text-base text-white tracking-[0.25em]">PERK</span>
+          </div>
+          <div className="hidden md:flex items-center gap-6 ml-4">
+            <Link href="/markets" className="text-sm text-text-secondary hover:text-white transition-colors duration-100 font-sans">Markets</Link>
+            <Link href="/launch" className="text-sm text-text-secondary hover:text-white transition-colors duration-100 font-sans">Create Market</Link>
+            <a href="https://docs.perk.fund" className="text-sm text-text-secondary hover:text-white transition-colors duration-100 font-sans">Docs</a>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <Link href="/markets" className="text-sm font-sans font-medium border border-white/80 text-white px-5 py-2 hover:bg-white/10 rounded-[4px] transition-colors duration-100 hidden sm:inline-block">
+            Launch App
+          </Link>
+          <button onClick={() => setMenuOpen((v) => !v)} className="md:hidden flex flex-col justify-center items-center w-8 h-8 gap-1.5" aria-label="Toggle menu">
+            <span className={`block w-5 h-px bg-white transition-transform duration-150 ${menuOpen ? "translate-y-[3.5px] rotate-45" : ""}`} />
+            <span className={`block w-5 h-px bg-white transition-opacity duration-150 ${menuOpen ? "opacity-0" : ""}`} />
+            <span className={`block w-5 h-px bg-white transition-transform duration-150 ${menuOpen ? "-translate-y-[3.5px] -rotate-45" : ""}`} />
+          </button>
+        </div>
+      </div>
+      {menuOpen && (
+        <div className="absolute top-14 left-0 right-0 z-50 bg-bg border-b border-border md:hidden">
+          <div className="flex flex-col px-4 py-3 gap-3 max-w-7xl mx-auto">
+            <Link href="/markets" onClick={() => setMenuOpen(false)} className="text-sm font-sans text-text-secondary hover:text-white transition-colors">Markets</Link>
+            <Link href="/launch" onClick={() => setMenuOpen(false)} className="text-sm font-sans text-text-secondary hover:text-white transition-colors">Create Market</Link>
+            <a href="https://docs.perk.fund" className="text-sm font-sans text-text-secondary hover:text-white transition-colors">Docs</a>
+            <Link href="/markets" onClick={() => setMenuOpen(false)} className="text-sm font-sans text-white sm:hidden">Launch App</Link>
+          </div>
+        </div>
+      )}
+    </nav>
+  );
+}
+
 export default function Landing() {
   const stats = useStats();
   const { markets } = useMarkets();
@@ -24,38 +65,14 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-bg flex flex-col">
       {/* Nav */}
-      <nav className="border-b border-border"><div className="flex items-center justify-between px-8 h-14 max-w-7xl mx-auto">
-        <div className="flex items-center gap-10">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-[4px] overflow-hidden bg-bg flex-shrink-0"><img src="/logo.png" alt="Perk" width={36} height={36} className="mix-blend-lighten" /></div>
-            <span className="font-sans font-semibold text-base text-white tracking-[0.25em]">PERK</span>
-          </div>
-          <div className="flex items-center gap-6 ml-4">
-            <Link href="/markets" className="text-sm text-text-secondary hover:text-white transition-colors duration-100 font-sans">
-              Markets
-            </Link>
-            <Link href="/launch" className="text-sm text-text-secondary hover:text-white transition-colors duration-100 font-sans">
-              Create Market
-            </Link>
-            <a href="https://docs.perk.fund" className="text-sm text-text-secondary hover:text-white transition-colors duration-100 font-sans">
-              Docs
-            </a>
-          </div>
-        </div>
-        <Link
-          href="/markets"
-          className="text-sm font-sans font-medium border border-white/80 text-white px-5 py-2 hover:bg-white/10 rounded-[4px] transition-colors duration-100"
-        >
-          Launch App
-        </Link>
-      </div></nav>
+      <LandingNav />
 
       {/* Main content — single screen, no scroll needed on 1080p+ */}
       <div className="flex-1 grid grid-rows-[1fr_auto_auto_auto] min-h-0">
 
         {/* Hero — compact, left-aligned with stats beside it */}
-        <div className="flex items-center px-8 py-8">
-          <div className="max-w-7xl w-full mx-auto grid grid-cols-[1fr_1fr] gap-12 items-center">
+        <div className="flex items-center px-4 md:px-8 py-8">
+          <div className="max-w-7xl w-full mx-auto grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-8 lg:gap-12 items-center">
             {/* Left: headline + CTAs */}
             <div className="space-y-6">
               <div className="space-y-3">
@@ -66,22 +83,22 @@ export default function Landing() {
                   Trade any Solana token with up to 20x leverage. Create a market in one click. Earn 10% of all fees — forever.
                 </p>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                 <Link
                   href="/markets"
-                  className="font-sans font-medium text-sm bg-white text-black px-7 py-3 rounded-[4px] hover:bg-white/90 transition-colors duration-100"
+                  className="font-sans font-medium text-sm bg-white text-black px-7 py-3 rounded-[4px] hover:bg-white/90 transition-colors duration-100 text-center"
                 >
                   Start Trading
                 </Link>
                 <Link
                   href="/launch"
-                  className="font-sans font-medium text-sm border border-zinc-600 text-white px-7 py-3 rounded-[4px] hover:border-zinc-400 hover:bg-white/[0.03] transition-colors duration-100"
+                  className="font-sans font-medium text-sm border border-zinc-600 text-white px-7 py-3 rounded-[4px] hover:border-zinc-400 hover:bg-white/[0.03] transition-colors duration-100 text-center"
                 >
                   Create a Market
                 </Link>
               </div>
               {/* Stats inline */}
-              <div className="flex items-center gap-8 pt-2">
+              <div className="flex flex-wrap items-center gap-x-8 gap-y-3 pt-2">
                 <Stat label="Volume" value={formatUsdCompact(stats.totalVolume)} />
                 <Stat label="Open Interest" value={formatUsdCompact(stats.totalOI)} />
                 <Stat label="Markets" value={stats.totalMarkets.toString()} />
@@ -103,8 +120,8 @@ export default function Landing() {
                     <th className="px-4 py-2 text-left text-xs font-sans uppercase text-text-tertiary tracking-wider">Token</th>
                     <th className="px-4 py-2 text-right text-xs font-sans uppercase text-text-tertiary tracking-wider">Price</th>
                     <th className="px-4 py-2 text-right text-xs font-sans uppercase text-text-tertiary tracking-wider">24h</th>
-                    <th className="px-4 py-2 text-right text-xs font-sans uppercase text-text-tertiary tracking-wider">Vol</th>
-                    <th className="px-4 py-2 text-right text-xs font-sans uppercase text-text-tertiary tracking-wider">Lev</th>
+                    <th className="px-4 py-2 text-right text-xs font-sans uppercase text-text-tertiary tracking-wider hidden md:table-cell">Vol</th>
+                    <th className="px-4 py-2 text-right text-xs font-sans uppercase text-text-tertiary tracking-wider hidden md:table-cell">Lev</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -123,10 +140,10 @@ export default function Landing() {
                       <td className={`px-4 py-2.5 text-right font-mono text-sm ${m.change24h >= 0 ? "text-profit" : "text-loss"}`}>
                         {m.change24h >= 0 ? "+" : ""}{(m.change24h * 100).toFixed(2)}%
                       </td>
-                      <td className="px-4 py-2.5 text-right font-mono text-text-secondary text-sm">
+                      <td className="px-4 py-2.5 text-right font-mono text-text-secondary text-sm hidden md:table-cell">
                         {formatUsdCompact(m.volume24h)}
                       </td>
-                      <td className="px-4 py-2.5 text-right font-mono text-text-secondary text-sm">
+                      <td className="px-4 py-2.5 text-right font-mono text-text-secondary text-sm hidden md:table-cell">
                         {m.maxLeverage}x
                       </td>
                     </tr>
@@ -138,8 +155,8 @@ export default function Landing() {
         </div>
 
         {/* Percolator engine — the differentiator */}
-        <div className="border-t border-border px-8 py-8">
-          <div className="max-w-7xl mx-auto grid grid-cols-[1fr_auto_280px] gap-10 items-start">
+        <div className="border-t border-border px-4 md:px-8 py-8">
+          <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[1fr_auto_280px] gap-8 lg:gap-10 items-start">
             <div className="space-y-3">
               <div className="font-mono text-xs text-text-tertiary uppercase tracking-wider">Risk Engine</div>
               <h2 className="font-sans font-semibold text-2xl text-white">
@@ -165,7 +182,7 @@ export default function Landing() {
                 </a>
               </p>
             </div>
-            <div className="w-px bg-border self-stretch" />
+            <div className="w-px bg-border self-stretch hidden lg:block" />
             <div className="space-y-2.5 pt-1">
               <Detail label="Rust" value="5,820 lines" />
               <Detail label="Audits" value="7 rounds" />
@@ -178,8 +195,8 @@ export default function Landing() {
         </div>
 
         {/* How it works — three columns */}
-        <div className="border-t border-border px-8 py-8">
-          <div className="max-w-7xl mx-auto grid grid-cols-3 gap-10">
+        <div className="border-t border-border px-4 md:px-8 py-8">
+          <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-8 sm:gap-10">
             <Step n="01" title="Trade" desc="Long or short any token with up to 20x leverage. Pyth oracle prices. Sub-second execution on Solana." />
             <Step n="02" title="Create" desc="Launch a perpetual market for any SPL token. Set leverage, fees, oracle. One transaction. One SOL." />
             <Step n="03" title="Earn" desc="Market creators earn 10% of all trading fees on their market. Forever. No lockups, no vesting." />
@@ -187,8 +204,8 @@ export default function Landing() {
         </div>
 
         {/* Footer */}
-        <footer className="border-t border-border px-8 py-5">
-          <div className="max-w-7xl mx-auto flex items-center justify-between">
+        <footer className="border-t border-border px-4 md:px-8 py-5">
+          <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <div className="w-5 h-5 rounded-[2px] overflow-hidden bg-bg flex-shrink-0 opacity-60"><img src="/logo.png" alt="Perk" width={20} height={20} className="mix-blend-lighten" /></div>
               <span className="text-sm font-sans text-text-secondary tracking-wider">PERK PROTOCOL</span>

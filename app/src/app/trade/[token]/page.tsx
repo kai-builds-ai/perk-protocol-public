@@ -46,34 +46,35 @@ export default function TradingView() {
   return (
     <div className="flex flex-col h-screen">
       <TopBar solPrice={token === "SOL" ? displayMarket.markPrice : undefined} />
-      <div className="flex items-center gap-2 px-4">
+      <div className="flex items-center gap-2 px-4 overflow-x-auto flex-nowrap" style={{ WebkitOverflowScrolling: "touch" }}>
         <MarketStats market={displayMarket} />
         {connected && (
-          <span className="text-xs font-mono text-profit ml-2">● LIVE</span>
+          <span className="text-xs font-mono text-profit ml-2 flex-shrink-0">● LIVE</span>
         )}
         {isReal && (
-          <span className="text-xs font-mono text-text-tertiary">PYTH</span>
+          <span className="text-xs font-mono text-text-tertiary flex-shrink-0">PYTH</span>
         )}
       </div>
-      <div className="flex flex-1 min-h-0">
+      {/* Desktop: side-by-side. Mobile: stacked single column */}
+      <div className="flex flex-col md:flex-row flex-1 min-h-0">
         {/* Left: Chart */}
-        <div className="flex-1 flex flex-col border-r border-border min-w-0">
-          <div className="flex-1 min-h-0">
+        <div className="flex-1 flex flex-col md:border-r border-border min-w-0">
+          <div className="flex-1 min-h-0 min-h-[300px]">
             <Chart data={candles} symbol={token} />
-          </div>
-          {/* Positions + Orders below chart */}
-          <div className="border-t border-border overflow-auto max-h-[240px]">
-            <Positions positions={positions} market={displayMarket} />
-            <TriggerOrders orders={triggerOrders} market={displayMarket} />
           </div>
         </div>
         {/* Right: Trade Panel */}
-        <div className="w-[320px] flex flex-col border-l border-border bg-surface">
+        <div className="w-full md:w-[320px] flex flex-col md:border-l border-border bg-surface">
           <div className="flex-1 overflow-auto">
             <TradePanel market={displayMarket} />
           </div>
           <DepositWithdraw market={displayMarket} />
         </div>
+        {/* Positions + Orders — below on all screens */}
+      </div>
+      <div className="border-t border-border overflow-auto max-h-[300px] md:max-h-[240px]">
+        <Positions positions={positions} market={displayMarket} />
+        <TriggerOrders orders={triggerOrders} market={displayMarket} />
       </div>
     </div>
   );

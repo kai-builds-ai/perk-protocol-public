@@ -133,12 +133,12 @@ export default function MarketExplorer() {
       />
 
       {/* Tabs */}
-      <div className="flex items-center gap-0 px-4 border-b border-border bg-surface">
+      <div className="flex items-center gap-0 px-4 border-b border-border bg-surface overflow-x-auto flex-nowrap" style={{ WebkitOverflowScrolling: "touch" }}>
         {TABS.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`px-4 py-2.5 text-sm font-sans transition-colors duration-100 border-b-2 ${
+            className={`px-4 py-2.5 text-sm font-sans transition-colors duration-100 border-b-2 whitespace-nowrap flex-shrink-0 ${
               tab === t.key
                 ? "text-white border-white"
                 : "text-text-secondary border-transparent hover:text-text-primary"
@@ -150,18 +150,18 @@ export default function MarketExplorer() {
       </div>
 
       {/* Filters row */}
-      <div className="flex items-center gap-6 px-4 py-2.5 border-b border-border bg-bg">
+      <div className="flex items-center gap-4 md:gap-6 px-4 py-2.5 border-b border-border bg-bg overflow-x-auto flex-nowrap" style={{ WebkitOverflowScrolling: "touch" }}>
         {/* Search */}
         <input
           type="text"
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
           placeholder="Search..."
-          className="w-48 bg-transparent border border-zinc-800 rounded-[4px] px-3 py-1.5 text-sm font-sans text-white outline-none placeholder:text-text-tertiary focus:border-zinc-500 transition-colors duration-100"
+          className="w-36 md:w-48 bg-transparent border border-zinc-800 rounded-[4px] px-3 py-1.5 text-sm font-sans text-white outline-none placeholder:text-text-tertiary focus:border-zinc-500 transition-colors duration-100 flex-shrink-0"
         />
 
         {/* Oracle */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 flex-shrink-0">
           <span className="text-sm font-sans text-text-secondary mr-1">Oracle</span>
           {(["all", "pyth", "dex"] as const).map((v) => (
             <button
@@ -179,7 +179,7 @@ export default function MarketExplorer() {
         </div>
 
         {/* Min volume */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 flex-shrink-0">
           <span className="text-sm font-sans text-text-secondary mr-1">Volume</span>
           {volumeChips.map((c) => (
             <button
@@ -197,7 +197,7 @@ export default function MarketExplorer() {
         </div>
 
         {/* Leverage */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 flex-shrink-0">
           <span className="text-sm font-sans text-text-secondary mr-1">Leverage</span>
           {leverageChips.map((c) => (
             <button
@@ -221,7 +221,7 @@ export default function MarketExplorer() {
       </div>
 
       {/* Table */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto" style={{ WebkitOverflowScrolling: "touch" }}>
         {tab === "watchlist" && filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-2">
             <span className="text-text-tertiary text-2xl">★</span>
