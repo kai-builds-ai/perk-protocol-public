@@ -56,25 +56,28 @@ export default function TradingView() {
         )}
       </div>
       {/* Desktop: side-by-side. Mobile: stacked single column */}
-      <div className="flex flex-col md:flex-row flex-1 min-h-0">
-        {/* Left: Chart */}
-        <div className="flex-1 flex flex-col md:border-r border-border min-w-0">
-          <div className="flex-1 min-h-0 min-h-[300px]">
+      <div className="flex flex-col md:flex-row flex-1 min-h-0 overflow-auto">
+        {/* Left: Chart + Positions (desktop) */}
+        <div className="flex flex-col md:flex-1 md:border-r border-border min-w-0">
+          <div className="h-[200px] md:h-auto md:flex-1 md:min-h-[300px]">
             <Chart data={candles} symbol={token} />
+          </div>
+          {/* Positions + Orders — below chart on desktop, below everything on mobile */}
+          <div className="hidden md:block border-t border-border overflow-auto max-h-[240px]">
+            <Positions positions={positions} market={displayMarket} />
+            <TriggerOrders orders={triggerOrders} market={displayMarket} />
           </div>
         </div>
         {/* Right: Trade Panel */}
         <div className="w-full md:w-[320px] flex flex-col md:border-l border-border bg-surface">
-          <div className="flex-1 overflow-auto">
-            <TradePanel market={displayMarket} />
-          </div>
+          <TradePanel market={displayMarket} />
           <DepositWithdraw market={displayMarket} />
         </div>
-        {/* Positions + Orders — below on all screens */}
-      </div>
-      <div className="border-t border-border overflow-auto max-h-[300px] md:max-h-[240px]">
-        <Positions positions={positions} market={displayMarket} />
-        <TriggerOrders orders={triggerOrders} market={displayMarket} />
+        {/* Positions + Orders — mobile only, below trade panel */}
+        <div className="md:hidden border-t border-border">
+          <Positions positions={positions} market={displayMarket} />
+          <TriggerOrders orders={triggerOrders} market={displayMarket} />
+        </div>
       </div>
     </div>
   );
