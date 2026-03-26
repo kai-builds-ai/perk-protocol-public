@@ -20,7 +20,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
       <div className="flex">
         {/* Desktop sidebar */}
-        <aside className="hidden lg:block w-56 shrink-0 border-r border-zinc-800 sticky top-12 h-[calc(100vh-3rem)] overflow-y-auto">
+        <aside className="hidden lg:block w-60 shrink-0 border-r border-zinc-800 sticky top-12 h-[calc(100vh-3rem)] overflow-y-auto">
           <Sidebar />
         </aside>
 
@@ -38,8 +38,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
         )}
 
         {/* Content */}
-        <main className="flex-1 min-w-0">
-          <div className="max-w-3xl mx-auto px-6 py-8 lg:px-8">
+        <main className="flex-1 min-w-0 max-w-3xl">
+          <div className="px-6 py-8 lg:px-10">
             {children}
           </div>
         </main>
