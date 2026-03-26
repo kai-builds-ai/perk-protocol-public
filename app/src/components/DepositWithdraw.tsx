@@ -17,6 +17,8 @@ import {
 } from "@solana/spl-token";
 import { getTokenDecimals, getTokenSymbol } from "@/lib/token-meta";
 import { PerkClient } from "@perk/sdk";
+import { sanitizeError } from "@/lib/error-utils";
+import { simulateTransaction } from "@/lib/tx-simulation";
 
 interface DepositWithdrawProps {
   market: Market;
@@ -173,9 +175,16 @@ export function DepositWithdraw({ market }: DepositWithdrawProps) {
           try {
             const { Transaction } = await import("@solana/web3.js");
             const closeTx = new Transaction().add(closeIx);
+            // Simulate before sending to avoid paying for a failed close
+            closeTx.feePayer = publicKey;
+            closeTx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+            const simResult = await simulateTransaction(connection, closeTx);
+            if (!simResult.success) {
+              throw new Error(simResult.error ?? "Simulation failed");
+            }
             await (client as any).provider.sendAndConfirm(closeTx);
           } catch (closeErr) {
-            console.warn("WSOL auto-unwrap failed — Phantom/Solflare will handle it:", closeErr);
+            console.warn("[DepositWithdraw] WSOL auto-unwrap failed — wallet will handle it");
             toast("Your SOL was withdrawn as Wrapped SOL. Your wallet should auto-unwrap it.", { icon: "ℹ️" });
           }
           toast.success("Withdrew " + amountNum.toFixed(4) + " " + collateralSymbol + "\nTX: " + sig.slice(0, 16) + "...");
@@ -186,9 +195,7 @@ export function DepositWithdraw({ market }: DepositWithdrawProps) {
       }
       setAmount("");
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.error(`${mode} failed:`, err);
-      toast.error((mode === "deposit" ? "Deposit" : "Withdraw") + " failed: " + message);
+      toast.error(sanitizeError(err, mode));
     } finally {
       submitLockRef.current = false;
       setIsSubmitting(false);

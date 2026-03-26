@@ -32,12 +32,15 @@ function saveWatchlist(set: Set<string>) {
   localStorage.setItem("perk-watchlist-v2", JSON.stringify(Array.from(set)));
 }
 
+const MARKETS_PER_PAGE = 20;
+
 function MarketExplorerInner() {
   const { markets } = useMarkets();
   const { publicKey } = useWallet();
   const searchParams = useSearchParams();
   const [filter, setFilter] = useState("");
   const [tab, setTab] = useState<Tab>("trending");
+  const [page, setPage] = useState(1);
 
   // Handle ?filter=mine from wallet dropdown (apply once)
   const appliedFilterRef = useRef(false);
@@ -131,6 +134,17 @@ function MarketExplorerInner() {
 
     return list;
   }, [markets, filter, tab, oracleFilter, minVolume, leverageFilter, watchlist, publicKey]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [filter, tab, oracleFilter, minVolume, leverageFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / MARKETS_PER_PAGE));
+  const paginatedMarkets = filtered.slice(
+    (page - 1) * MARKETS_PER_PAGE,
+    page * MARKETS_PER_PAGE
+  );
 
   const volumeChips = [
     { label: "All", value: 0 },
@@ -270,13 +284,44 @@ function MarketExplorerInner() {
           </div>
         ) : (
           <MarketTable
-            markets={filtered}
+            markets={paginatedMarkets}
             filter=""
             watchlist={watchlist}
             onToggleWatchlist={toggleWatchlist}
           />
         )}
       </div>
+
+      {/* Pagination Controls */}
+      {tab !== "mine" && totalPages > 1 && (
+        <div className="flex items-center justify-center gap-3 px-4 py-2.5 border-t border-border bg-bg">
+          <button
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page <= 1}
+            className={`px-3 py-1.5 text-sm font-sans rounded-[4px] border transition-colors duration-75 ${
+              page <= 1
+                ? "border-zinc-800 text-zinc-600 cursor-not-allowed"
+                : "border-zinc-700 text-text-secondary hover:text-white hover:border-zinc-500"
+            }`}
+          >
+            ← Previous
+          </button>
+          <span className="text-xs font-mono text-text-tertiary">
+            Page {page} of {totalPages}
+          </span>
+          <button
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page >= totalPages}
+            className={`px-3 py-1.5 text-sm font-sans rounded-[4px] border transition-colors duration-75 ${
+              page >= totalPages
+                ? "border-zinc-800 text-zinc-600 cursor-not-allowed"
+                : "border-zinc-700 text-text-secondary hover:text-white hover:border-zinc-500"
+            }`}
+          >
+            Next →
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -17,23 +17,65 @@ function getConnection(): Connection {
 }
 
 /**
+ * Allowed image URL origins. Only serve images from these trusted domains
+ * to prevent IP harvesting via malicious Metaplex metadata URIs.
+ */
+const ALLOWED_IMAGE_ORIGINS = [
+  "raw.githubusercontent.com",
+  "arweave.net",
+  "assets.coingecko.com",
+  "static.jup.ag",
+  "metadata.jito.network",
+  "pyth.network",
+  "wormhole.com",
+  "ipfs.io",
+  "api.coingecko.com",
+  "coin-images.coingecko.com",
+  "shdw-drive.genesysgo.net",
+  "gateway.irys.xyz",
+  "bafkrei", // IPFS CIDv1 subdomains
+  "cf-ipfs.com",
+  "nftstorage.link",
+  "tokens.jup.ag",
+];
+
+/**
+ * Validate that a URL is from a trusted image origin.
+ */
+function isTrustedImageUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return false;
+    return ALLOWED_IMAGE_ORIGINS.some(
+      (origin) => parsed.hostname === origin || parsed.hostname.endsWith("." + origin)
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Hook to resolve a token logo URL from Jupiter + Metaplex fallback.
  * Returns null while loading, the URL when resolved, or undefined if not found.
  *
- * If `overrideUrl` is provided, skips resolution and returns it directly.
+ * If `overrideUrl` is provided, skips resolution and returns it directly
+ * (only if from a trusted origin).
  */
 export function useTokenLogo(
   mint: string,
   overrideUrl?: string
 ): string | null | undefined {
+  // Sanitize overrideUrl — only use if trusted
+  const safeOverride = overrideUrl && isTrustedImageUrl(overrideUrl) ? overrideUrl : undefined;
+
   const [logoUrl, setLogoUrl] = useState<string | null | undefined>(
-    overrideUrl || null
+    safeOverride || null
   );
   const mintRef = useRef(mint);
 
   useEffect(() => {
-    if (overrideUrl) {
-      setLogoUrl(overrideUrl);
+    if (safeOverride) {
+      setLogoUrl(safeOverride);
       return;
     }
 
@@ -44,8 +86,13 @@ export function useTokenLogo(
       try {
         const connection = getConnection();
         const url = await getTokenLogo(mint, connection);
+        // Only use resolved URL if from a trusted origin
         if (!cancelled && mintRef.current === mint) {
-          setLogoUrl(url === null ? undefined : url);
+          if (url && isTrustedImageUrl(url)) {
+            setLogoUrl(url);
+          } else {
+            setLogoUrl(undefined); // Fall back to identicon
+          }
         }
       } catch {
         if (!cancelled && mintRef.current === mint) {
@@ -57,7 +104,7 @@ export function useTokenLogo(
     return () => {
       cancelled = true;
     };
-  }, [mint, overrideUrl]);
+  }, [mint, safeOverride]);
 
   return logoUrl;
 }

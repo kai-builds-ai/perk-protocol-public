@@ -21,7 +21,7 @@ export default function TradingView() {
   const symbol = market?.symbol ?? "";
   const marketAddress = market?.address ?? null;
   const { positions, triggerOrders } = usePositionsForMarket(marketAddress);
-  const { price: livePrice, connected } = usePythPrice(
+  const { price: livePrice, connected, stale } = usePythPrice(
     symbol,
     market?.markPrice
   );
@@ -51,7 +51,11 @@ export default function TradingView() {
       <div className="flex items-center gap-2 px-4 overflow-x-auto flex-nowrap" style={{ WebkitOverflowScrolling: "touch" }}>
         <MarketStats market={displayMarket} />
         {connected && (
-          <span className="text-xs font-mono text-profit ml-2 flex-shrink-0">● LIVE</span>
+          stale ? (
+            <span className="text-xs font-mono text-yellow-400 ml-2 flex-shrink-0" title="Price data may be outdated">⚠ STALE</span>
+          ) : (
+            <span className="text-xs font-mono text-profit ml-2 flex-shrink-0">● LIVE</span>
+          )
         )}
         {isReal && (
           <span className="text-xs font-mono text-text-tertiary flex-shrink-0">PYTH</span>

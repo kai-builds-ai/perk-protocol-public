@@ -170,7 +170,7 @@ export function usePositions() {
             }
           }
         } catch (err) {
-          console.warn("[usePositions] Error fetching market for position:", err);
+          console.warn("[usePositions] Error fetching market for position");
         }
       }
 
@@ -180,8 +180,8 @@ export function usePositions() {
       setError(null);
     } catch (err: any) {
       if (gen !== generationRef.current) return;
-      console.error("[usePositions] fetch error:", err);
-      setError(err?.message ?? "Failed to fetch positions");
+      console.error("[usePositions] fetch error");
+      setError("Failed to fetch positions");
     } finally {
       if (gen === generationRef.current) setLoading(false);
     }

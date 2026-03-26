@@ -8,6 +8,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
 import { BN } from "@coral-xyz/anchor";
 import toast from "react-hot-toast";
+import { sanitizeError } from "@/lib/error-utils";
 
 interface TriggerOrdersProps {
   orders: TriggerOrder[];
@@ -46,9 +47,7 @@ export const TriggerOrders = memo(function TriggerOrders({
         const sig = await client.cancelTriggerOrder(tokenMint, creator, new BN(order.orderId));
         toast.success("Order cancelled!\nTX: " + sig.slice(0, 16) + "...");
       } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : String(err);
-        console.error("Cancel order failed:", err);
-        toast.error("Failed to cancel order: " + message);
+        toast.error(sanitizeError(err, "cancel-order"));
       } finally {
         setCancellingId(null);
       }

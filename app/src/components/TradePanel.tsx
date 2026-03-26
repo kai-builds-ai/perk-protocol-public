@@ -16,6 +16,7 @@ import {
   POS_SCALE,
   PRICE_SCALE,
 } from "@perk/sdk";
+import { sanitizeError } from "@/lib/error-utils";
 
 interface TradePanelProps {
   market: Market;
@@ -183,9 +184,7 @@ export function TradePanel({ market }: TradePanelProps) {
         setTriggerPrice("");
       }
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.error("Trade failed:", err);
-      toast.error("Trade failed: " + message);
+      toast.error(sanitizeError(err, "trade"));
     } finally {
       submitLockRef.current = false;
       setIsSubmitting(false);

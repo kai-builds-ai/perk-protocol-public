@@ -153,8 +153,8 @@ export function MarketsProvider({ children }: { children: React.ReactNode }) {
       setError(null);
     } catch (err: any) {
       if (gen !== generationRef.current) return;
-      console.error("[MarketsProvider] fetch error:", err);
-      setError(err?.message ?? "Failed to fetch markets");
+      console.error("[MarketsProvider] fetch error");
+      setError("Failed to fetch markets");
     } finally {
       if (gen === generationRef.current) setLoading(false);
     }

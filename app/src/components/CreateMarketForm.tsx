@@ -15,6 +15,7 @@ import {
 import { useRouter } from "next/navigation";
 import { getTokenLogo } from "@/lib/token-metadata";
 import toast from "react-hot-toast";
+import { sanitizeError } from "@/lib/error-utils";
 
 /** Validate a string as a Solana public key */
 function isValidPubkey(s: string): boolean {
@@ -223,9 +224,7 @@ export function CreateMarketForm() {
       const marketAddress = client.getMarketAddress(tokenMint, publicKey);
       router.push(`/trade/${marketAddress.toBase58()}`);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.error("Create market failed:", err);
-      toast.error("Failed to create market: " + message);
+      toast.error(sanitizeError(err, "create-market"));
     } finally {
       setIsSubmitting(false);
     }

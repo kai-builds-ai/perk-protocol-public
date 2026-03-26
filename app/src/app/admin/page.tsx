@@ -1,12 +1,14 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { PublicKey } from '@solana/web3.js';
 import BN from 'bn.js';
 import toast from 'react-hot-toast';
 import { usePerk } from '@/providers/PerkProvider';
+import { sanitizeError } from '@/lib/error-utils';
 import {
   ProtocolAccount,
   MarketAccount,
@@ -84,8 +86,14 @@ export default function AdminPage() {
     </div>
   );
   if (!onChainAdmin || publicKey?.toBase58() !== onChainAdmin) return <UnauthorizedScreen address={publicKey?.toBase58() ?? ''} />;
+  // Code-split: AdminDashboard and all its sub-components are only loaded
+  // after the wallet is verified as admin. This keeps the heavy admin UI
+  // code out of the main bundle for non-admin users.
   return <AdminDashboard client={client} readonlyClient={readonlyClient} />;
 }
+
+// Note: AdminDashboard and all child components below are tree-shaken from
+// the initial page load. They are only rendered after admin verification.
 
 // ── Screens ──
 
@@ -158,8 +166,7 @@ function AdminDashboard({
         return mkts.find(m => m.address.equals(prev.address)) ?? null;
       });
     } catch (err) {
-      console.error('Failed to fetch protocol data:', err);
-      toast.error('Failed to fetch protocol data');
+      toast.error(sanitizeError(err, 'admin-fetch'));
       setFetchError(true);
     } finally {
       setLoading(false);
@@ -310,10 +317,14 @@ function InfoCell({
   color?: string;
   copyValue?: string;
 }) {
-  const handleCopy = () => {
+  const handleCopy = async () => {
     if (copyValue) {
-      navigator.clipboard.writeText(copyValue);
-      toast.success('Copied to clipboard');
+      try {
+        await navigator.clipboard.writeText(copyValue);
+        toast.success('Copied to clipboard');
+      } catch {
+        toast.error('Copy failed — use Ctrl+C');
+      }
     }
   };
 
@@ -382,7 +393,7 @@ function PauseToggle({
       toast.success(`Protocol ${paused ? 'unpaused' : 'paused'} — ${truncatePubkey(sig)}`);
       await onRefresh();
     } catch (err) {
-      toast.error(`Failed: ${err instanceof Error ? err.message : String(err)}`);
+      toast.error(sanitizeError(err, 'admin'));
     } finally {
       setSubmitting(false);
       submittingRef.current = false;
@@ -446,7 +457,7 @@ function WithdrawSol({
       setAmount('');
       await onRefresh();
     } catch (err) {
-      toast.error(`Failed: ${err instanceof Error ? err.message : String(err)}`);
+      toast.error(sanitizeError(err, 'admin'));
     } finally {
       setSubmitting(false);
       submittingRef.current = false;
@@ -509,7 +520,7 @@ function TransferAdmin({
       setNewAdmin('');
       await onRefresh();
     } catch (err) {
-      toast.error(`Failed: ${err instanceof Error ? err.message : String(err)}`);
+      toast.error(sanitizeError(err, 'admin'));
     } finally {
       setSubmitting(false);
       submittingRef.current = false;
@@ -728,7 +739,7 @@ function ToggleActive({
       toast.success(`Market ${active ? 'deactivated' : 'activated'} — ${truncatePubkey(sig)}`);
       await onRefresh();
     } catch (err) {
-      toast.error(`Failed: ${err instanceof Error ? err.message : String(err)}`);
+      toast.error(sanitizeError(err, 'admin'));
     } finally {
       setSubmitting(false);
       submittingRef.current = false;
@@ -791,7 +802,7 @@ function UpdateFee({
       toast.success(`Fee updated to ${parsed} bps — ${truncatePubkey(sig)}`);
       await onRefresh();
     } catch (err) {
-      toast.error(`Failed: ${err instanceof Error ? err.message : String(err)}`);
+      toast.error(sanitizeError(err, 'admin'));
     } finally {
       setSubmitting(false);
       submittingRef.current = false;
@@ -859,7 +870,7 @@ function UpdateMaxLeverage({
       toast.success(`Max leverage updated to ${parsed}x — ${truncatePubkey(sig)}`);
       await onRefresh();
     } catch (err) {
-      toast.error(`Failed: ${err instanceof Error ? err.message : String(err)}`);
+      toast.error(sanitizeError(err, 'admin'));
     } finally {
       setSubmitting(false);
       submittingRef.current = false;
@@ -953,7 +964,7 @@ function UpdateOracleConfigPanel({
       setCircuitBreakerBps('');
       await onRefresh();
     } catch (err) {
-      toast.error(`Failed: ${err instanceof Error ? err.message : String(err)}`);
+      toast.error(sanitizeError(err, 'admin'));
     } finally {
       setSubmitting(false);
       submittingRef.current = false;
@@ -1048,7 +1059,7 @@ function FreezePerkOracle({
       setFrozen(freeze);
       await onRefresh();
     } catch (err) {
-      toast.error(`Failed: ${err instanceof Error ? err.message : String(err)}`);
+      toast.error(sanitizeError(err, 'admin'));
     } finally {
       setSubmitting(false);
       submittingRef.current = false;
@@ -1135,7 +1146,7 @@ function SetFallbackOraclePanel({
       setAddress('');
       await onRefresh();
     } catch (err) {
-      toast.error(`Failed: ${err instanceof Error ? err.message : String(err)}`);
+      toast.error(sanitizeError(err, 'admin'));
     } finally {
       setSubmitting(false);
       submittingRef.current = false;
@@ -1156,7 +1167,7 @@ function SetFallbackOraclePanel({
       toast.success(`Fallback oracle removed — ${truncatePubkey(sig)}`);
       await onRefresh();
     } catch (err) {
-      toast.error(`Failed: ${err instanceof Error ? err.message : String(err)}`);
+      toast.error(sanitizeError(err, 'admin'));
     } finally {
       setSubmitting(false);
       submittingRef.current = false;

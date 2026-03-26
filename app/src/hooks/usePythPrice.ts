@@ -12,10 +12,14 @@ import {
  * Hook for real-time Pyth price data via SSE.
  * Falls back to mock jitter if Pyth feed doesn't exist for the symbol.
  */
+const STALE_THRESHOLD_MS = 30_000; // 30 seconds
+
 export function usePythPrice(symbol: string, fallbackPrice?: number) {
   const [price, setPrice] = useState<number>(fallbackPrice || 0);
   const [conf, setConf] = useState<number>(0);
   const [connected, setConnected] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState<number>(0);
+  const [stale, setStale] = useState(false);
   const symbolRef = useRef(symbol);
   symbolRef.current = symbol;
 
@@ -54,13 +58,25 @@ export function usePythPrice(symbol: string, fallbackPrice?: number) {
         setPrice(pythPrice.price);
         setConf(pythPrice.conf);
         setConnected(true);
+        setLastUpdate(Date.now());
+        setStale(false);
       }
     });
 
     return unsub;
   }, [symbol, fallbackPrice]);
 
-  return { price, conf, connected };
+  // Staleness detection: check every 5s if the price is stale
+  useEffect(() => {
+    if (!connected || !lastUpdate) return;
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - lastUpdate;
+      setStale(elapsed > STALE_THRESHOLD_MS);
+    }, 5_000);
+    return () => clearInterval(interval);
+  }, [connected, lastUpdate]);
+
+  return { price, conf, connected, stale };
 }
 
 /**

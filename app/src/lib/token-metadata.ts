@@ -181,7 +181,7 @@ async function resolveMetaplex(
     // Otherwise fetch the JSON and extract image
     return await fetchImageFromUri(uri);
   } catch (err) {
-    console.warn(`[token-metadata] Metaplex lookup failed for ${mint}:`, err);
+    console.warn(`[token-metadata] Metaplex lookup failed for ${mint}`);
     return null;
   }
 }

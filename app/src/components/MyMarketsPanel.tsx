@@ -18,6 +18,7 @@ import { Market } from "@/types";
 import { TokenLogo } from "./TokenLogo";
 import { formatUsd } from "@/lib/format";
 import toast from "react-hot-toast";
+import { sanitizeError } from "@/lib/error-utils";
 
 const SOL_MINT = "So11111111111111111111111111111111111111112";
 
@@ -110,10 +111,7 @@ export function MyMarketsPanel({ markets }: MyMarketsPanelProps) {
           `Fees claimed! ${amount.toFixed(4)} ${isSOL ? "SOL" : market.symbol}`
         );
       } catch (err: unknown) {
-        const message =
-          err instanceof Error ? err.message : "Failed to claim fees";
-        console.error("[MyMarketsPanel] claim error:", err);
-        toast.error(message);
+        toast.error(sanitizeError(err, "claim-fees"));
       } finally {
         setClaimingMarket(null);
         claimLockRef.current = false;
@@ -168,7 +166,6 @@ export function MyMarketsPanel({ markets }: MyMarketsPanelProps) {
                 <div className="flex items-center gap-2.5">
                   <TokenLogo
                     mint={m.tokenMint}
-                    symbol={m.symbol}
                     logoUrl={m.logoUrl}
                     size={24}
                   />

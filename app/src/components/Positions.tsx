@@ -7,6 +7,7 @@ import { usePerk } from "@/providers/PerkProvider";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
 import toast from "react-hot-toast";
+import { sanitizeError } from "@/lib/error-utils";
 
 interface PositionsProps {
   positions: UserPosition[];
@@ -49,9 +50,7 @@ export const Positions = memo(function Positions({ positions, market }: Position
         const sig = await client.closePosition(tokenMint, creator, oracle);
         toast.success("Position closed!\nTX: " + sig.slice(0, 16) + "...");
       } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : String(err);
-        console.error("Close position failed:", err);
-        toast.error("Failed to close position: " + message);
+        toast.error(sanitizeError(err, "close-position"));
       } finally {
         setClosingIndex(null);
       }
