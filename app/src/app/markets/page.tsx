@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useCallback, useEffect } from "react";
+import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { TopBar } from "@/components/TopBar";
@@ -38,10 +38,12 @@ export default function MarketExplorer() {
   const [filter, setFilter] = useState("");
   const [tab, setTab] = useState<Tab>("trending");
 
-  // Handle ?filter=mine from wallet dropdown
+  // Handle ?filter=mine from wallet dropdown (apply once)
+  const appliedFilterRef = useRef(false);
   useEffect(() => {
-    if (searchParams.get("filter") === "mine" && publicKey) {
+    if (!appliedFilterRef.current && searchParams.get("filter") === "mine" && publicKey) {
       setTab("mine");
+      appliedFilterRef.current = true;
     }
   }, [searchParams, publicKey]);
   const [watchlist, setWatchlist] = useState<Set<string>>(getWatchlist);
