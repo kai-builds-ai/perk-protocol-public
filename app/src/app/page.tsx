@@ -184,8 +184,8 @@ export default function Landing() {
             </div>
             <div className="w-px bg-border self-stretch hidden lg:block" />
             <div className="space-y-2.5 pt-1">
-              <Detail label="Rust" value="5,820 lines" />
-              <Detail label="Audits" value="7 rounds" />
+              <Detail label="Rust" value="7,250 lines" />
+              <Detail label="Fuzz testing" value="5.9B iterations" />
               <Detail label="Verification" value="117 proofs" />
               <Detail label="Math" value="U256 / I256" />
               <Detail label="Oracle" value="Pyth + PerkOracle" />
