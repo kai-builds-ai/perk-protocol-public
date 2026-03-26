@@ -36,7 +36,7 @@ function LandingNav() {
           <Link href="/markets" className="text-sm font-sans font-medium border border-white/80 text-white px-5 py-2 hover:bg-white/10 rounded-[4px] transition-colors duration-100 hidden sm:inline-block">
             Launch App
           </Link>
-          <button onClick={() => setMenuOpen((v) => !v)} className="md:hidden flex flex-col justify-center items-center w-8 h-8 gap-1.5 mr-1" aria-label="Toggle menu">
+          <button onClick={() => setMenuOpen((v) => !v)} className="md:hidden flex flex-col justify-center items-center w-8 h-8 gap-1.5 mr-2" aria-label="Toggle menu">
             <span className={`block w-5 h-px bg-white transition-transform duration-150 ${menuOpen ? "translate-y-[3.5px] rotate-45" : ""}`} />
             <span className={`block w-5 h-px bg-white transition-opacity duration-150 ${menuOpen ? "opacity-0" : ""}`} />
             <span className={`block w-5 h-px bg-white transition-transform duration-150 ${menuOpen ? "-translate-y-[3.5px] -rotate-45" : ""}`} />
@@ -45,7 +45,7 @@ function LandingNav() {
       </div>
       {menuOpen && (
         <div className="absolute top-14 left-0 right-0 z-50 bg-bg border-b border-border md:hidden">
-          <div className="flex flex-col px-4 py-4 gap-5 max-w-7xl mx-auto">
+          <div className="flex flex-col items-end px-6 py-4 gap-5 max-w-7xl mx-auto">
             <Link href="/markets" onClick={() => setMenuOpen(false)} className="text-sm font-sans text-text-secondary hover:text-white transition-colors">Markets</Link>
             <Link href="/launch" onClick={() => setMenuOpen(false)} className="text-sm font-sans text-text-secondary hover:text-white transition-colors">Create Market</Link>
             <a href="https://docs.perk.fund" className="text-sm font-sans text-text-secondary hover:text-white transition-colors">Docs</a>
