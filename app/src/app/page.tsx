@@ -205,6 +205,129 @@ export default function Landing() {
           </div>
         </div>
 
+        {/* Why Perk — differentiators */}
+        <div className="border-t border-border px-4 md:px-8 py-12 md:py-8">
+          <div className="max-w-7xl mx-auto space-y-8">
+            <div>
+              <div className="font-mono text-xs text-text-tertiary uppercase tracking-wider mb-2">Why Perk</div>
+              <h2 className="font-sans font-semibold text-2xl text-white">Not another fork</h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="border border-border rounded-[2px] p-5 space-y-2">
+                <div className="font-mono text-sm text-white">Permissionless</div>
+                <p className="text-sm text-text-secondary font-sans leading-relaxed">
+                  No governance votes. No applications. Anyone can create a perpetual market for any SPL token in one transaction.
+                </p>
+              </div>
+              <div className="border border-border rounded-[2px] p-5 space-y-2">
+                <div className="font-mono text-sm text-white">No Order Book</div>
+                <p className="text-sm text-text-secondary font-sans leading-relaxed">
+                  Pure vAMM. No market makers, no counterparty risk, no off-chain dependencies. The math is the market.
+                </p>
+              </div>
+              <div className="border border-border rounded-[2px] p-5 space-y-2">
+                <div className="font-mono text-sm text-white">Creator Revenue</div>
+                <p className="text-sm text-text-secondary font-sans leading-relaxed">
+                  Market creators earn 10% of all trading fees on their market. Forever. No lockups, no vesting, no cliffs.
+                </p>
+              </div>
+              <div className="border border-border rounded-[2px] p-5 space-y-2">
+                <div className="font-mono text-sm text-white">Open Source</div>
+                <p className="text-sm text-text-secondary font-sans leading-relaxed">
+                  Every line of code is public. MIT licensed. Audited. Formally verified. Don&apos;t trust — read the source.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* For Creators — the pitch */}
+        <div className="border-t border-border px-4 md:px-8 py-12 md:py-8">
+          <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
+            <div className="space-y-4">
+              <div className="font-mono text-xs text-text-tertiary uppercase tracking-wider">For Creators</div>
+              <h2 className="font-sans font-semibold text-2xl text-white">
+                Launch a market.<br />Own the revenue.
+              </h2>
+              <p className="text-sm text-text-secondary font-sans leading-relaxed max-w-lg">
+                See a token with no perp market? Create one. It costs 1 SOL and takes one transaction. 
+                You set the leverage limits, fee tiers, and oracle configuration. From that point on, 
+                you earn 10% of every trading fee generated on your market — paid directly to your wallet, every trade, forever.
+              </p>
+              <p className="text-sm text-text-secondary font-sans leading-relaxed max-w-lg">
+                Early creators on high-volume tokens will earn the most. The meta is simple: find tokens people want to trade, create the market first.
+              </p>
+              <Link href="/launch" className="inline-block text-sm font-sans font-medium border border-zinc-600 text-white px-5 py-2.5 rounded-[4px] hover:border-zinc-400 hover:bg-white/[0.03] transition-colors duration-100">
+                Create a Market →
+              </Link>
+            </div>
+            <div className="border border-border rounded-[2px] bg-surface">
+              <div className="px-5 py-3 border-b border-border">
+                <span className="font-mono text-xs text-text-tertiary uppercase tracking-wider">Example Revenue</span>
+              </div>
+              <div className="px-5 py-4 space-y-3">
+                <div className="flex justify-between items-center py-1.5">
+                  <span className="text-sm font-sans text-text-secondary">Daily volume on your market</span>
+                  <span className="text-sm font-mono text-white">$100,000</span>
+                </div>
+                <div className="flex justify-between items-center py-1.5">
+                  <span className="text-sm font-sans text-text-secondary">Trading fee (0.1%)</span>
+                  <span className="text-sm font-mono text-white">$100</span>
+                </div>
+                <div className="flex justify-between items-center py-1.5">
+                  <span className="text-sm font-sans text-text-secondary">Your cut (10%)</span>
+                  <span className="text-sm font-mono text-profit">$10 / day</span>
+                </div>
+                <div className="border-t border-border pt-3 flex justify-between items-center">
+                  <span className="text-sm font-sans text-text-secondary">Annual passive income</span>
+                  <span className="text-sm font-mono text-profit font-medium">$3,650</span>
+                </div>
+                <p className="text-xs text-text-tertiary font-sans pt-1">
+                  Per market. No cap on how many markets you create.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Security — credibility */}
+        <div className="border-t border-border px-4 md:px-8 py-12 md:py-8">
+          <div className="max-w-7xl mx-auto space-y-8">
+            <div>
+              <div className="font-mono text-xs text-text-tertiary uppercase tracking-wider mb-2">Security</div>
+              <h2 className="font-sans font-semibold text-2xl text-white">Verified, not just audited</h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              <div className="border border-border rounded-[2px] p-5 space-y-3">
+                <div className="font-mono text-2xl text-white">117</div>
+                <div className="text-sm font-sans text-text-secondary">
+                  Formal verification proofs via Kani. Every arithmetic operation, every state transition, every edge case — mathematically proven correct.
+                </div>
+              </div>
+              <div className="border border-border rounded-[2px] p-5 space-y-3">
+                <div className="font-mono text-2xl text-white">5.9B</div>
+                <div className="text-sm font-sans text-text-secondary">
+                  Fuzz testing iterations. Random inputs, adversarial sequences, boundary conditions. The protocol has seen more chaos than any attacker could generate.
+                </div>
+              </div>
+              <div className="border border-border rounded-[2px] p-5 space-y-3">
+                <div className="font-mono text-2xl text-white">7</div>
+                <div className="text-sm font-sans text-text-secondary">
+                  Rounds of security audits across on-chain program, SDK, cranker, and frontend. Red team, invariant analysis, architecture review. Zero critical findings remaining.
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-4">
+              <a href="https://github.com/kai-builds-ai/perk-protocol" target="_blank" rel="noopener noreferrer" className="text-sm font-sans text-text-secondary hover:text-white transition-colors underline decoration-zinc-700 hover:decoration-white">
+                View source on GitHub →
+              </a>
+              <a href="https://github.com/aeyakovenko/percolator/issues/22" target="_blank" rel="noopener noreferrer" className="text-sm font-sans text-text-secondary hover:text-white transition-colors underline decoration-zinc-700 hover:decoration-white">
+                Bug we found in the original Percolator →
+              </a>
+            </div>
+          </div>
+        </div>
+
         {/* Footer */}
         <footer className="border-t border-border px-4 md:px-8 py-5">
           <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
