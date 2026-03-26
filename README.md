@@ -59,6 +59,7 @@ See [`audits/README.md`](audits/README.md) for the full audit matrix. Covers the
 
 - **Protocol:** [perk.fund](https://perk.fund)
 - **Documentation:** [docs.perk.fund](https://docs.perk.fund)
+- **X:** [@PERK_FUND](https://x.com/PERK_FUND)
 - **npm:** [`perk-protocol`](https://www.npmjs.com/package/perk-protocol)
 
 ## Security
