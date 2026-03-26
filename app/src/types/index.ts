@@ -63,6 +63,10 @@ export interface Market {
   totalUsers: number;
   totalPositions: number;
   createdAt: number;
+
+  // Creator fees (human-readable units, not lamports)
+  creatorClaimableFees: number;
+  creatorFeesEarned: number;
 }
 
 type bool = boolean;

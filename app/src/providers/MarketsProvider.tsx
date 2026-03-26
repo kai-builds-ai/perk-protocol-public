@@ -13,7 +13,7 @@ import {
 } from "@perk/sdk";
 import { Market, OracleSource } from "@/types";
 import { usePerk } from "@/providers/PerkProvider";
-import { TOKEN_META } from "@/lib/token-meta";
+import { TOKEN_META, getTokenDecimals } from "@/lib/token-meta";
 
 // ── Mapping helpers ──
 
@@ -86,6 +86,10 @@ function toFrontendMarket(address: PublicKey, m: SDKMarketAccount): Market {
     totalUsers: m.totalUsers,
     totalPositions: m.totalPositions,
     createdAt: m.createdAt.toNumber() * 1000,
+
+    // Creator fees: convert from raw units to human-readable using token decimals
+    creatorClaimableFees: (m.creatorClaimableFees?.toNumber() ?? 0) / (10 ** getTokenDecimals(mintStr)),
+    creatorFeesEarned: (m.creatorFeesEarned?.toNumber() ?? 0) / (10 ** getTokenDecimals(mintStr)),
   };
 }
 

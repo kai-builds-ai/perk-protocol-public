@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { TopBar } from "@/components/TopBar";
 import { MarketTable } from "@/components/MarketTable";
+import { MyMarketsPanel } from "@/components/MyMarketsPanel";
 import { useMarkets } from "@/hooks/useMarkets";
 import { Market, OracleSource } from "@/types";
 
@@ -255,7 +256,9 @@ function MarketExplorerInner() {
 
       {/* Table */}
       <div className="flex-1 overflow-auto" style={{ WebkitOverflowScrolling: "touch" }}>
-        {tab === "watchlist" && filtered.length === 0 ? (
+        {tab === "mine" ? (
+          <MyMarketsPanel markets={filtered} />
+        ) : tab === "watchlist" && filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-2">
             <span className="text-text-tertiary text-2xl">★</span>
             <span className="text-sm font-sans text-text-secondary">No markets in your watchlist</span>

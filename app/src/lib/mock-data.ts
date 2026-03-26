@@ -39,6 +39,8 @@ export const MOCK_MARKETS: Market[] = [
     totalUsers: 342,
     totalPositions: 189,
     createdAt: Date.now() - 86400000 * 30,
+    creatorClaimableFees: 0.5,
+    creatorFeesEarned: 2.3,
   },
   {
     address: "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P",
@@ -70,6 +72,8 @@ export const MOCK_MARKETS: Market[] = [
     totalUsers: 128,
     totalPositions: 67,
     createdAt: Date.now() - 86400000 * 14,
+    creatorClaimableFees: 0.12,
+    creatorFeesEarned: 0.87,
   },
   {
     address: "3Kd6KVXL3oDq7FXJ8VsG3cXfBGRGZCFpNLQnVDYE1brH",
@@ -101,6 +105,8 @@ export const MOCK_MARKETS: Market[] = [
     totalUsers: 89,
     totalPositions: 45,
     createdAt: Date.now() - 86400000 * 7,
+    creatorClaimableFees: 0,
+    creatorFeesEarned: 0.34,
   },
   {
     address: "8szGkuLTAux9XMgZ2vtY39jVSowEcpBfFfD8hXSEqdGC",
@@ -132,6 +138,8 @@ export const MOCK_MARKETS: Market[] = [
     totalUsers: 56,
     totalPositions: 29,
     createdAt: Date.now() - 86400000 * 21,
+    creatorClaimableFees: 0.08,
+    creatorFeesEarned: 1.15,
   },
   {
     address: "Aq4Z7RmfgBBJDSwbyELfMwah4ioQLBbZGKjNFLcmQArr",
@@ -163,6 +171,8 @@ export const MOCK_MARKETS: Market[] = [
     totalUsers: 73,
     totalPositions: 38,
     createdAt: Date.now() - 86400000 * 10,
+    creatorClaimableFees: 0,
+    creatorFeesEarned: 0.56,
   },
   {
     address: "HWy1jotHpo6UqeQxx49dpYYdQB8wj9Qk9MdxwjLvDHB8",
@@ -194,6 +204,8 @@ export const MOCK_MARKETS: Market[] = [
     totalUsers: 41,
     totalPositions: 22,
     createdAt: Date.now() - 86400000 * 5,
+    creatorClaimableFees: 0.25,
+    creatorFeesEarned: 0.73,
   },
   {
     address: "FbGeZS8LiPCZiFpFwdUUeF2yxXtSsdfJoHTsVMvM8STh",
@@ -225,6 +237,8 @@ export const MOCK_MARKETS: Market[] = [
     totalUsers: 34,
     totalPositions: 18,
     createdAt: Date.now() - 86400000 * 3,
+    creatorClaimableFees: 0,
+    creatorFeesEarned: 0.19,
   },
 ];
 export const MOCK_POSITIONS: UserPosition[] = [
