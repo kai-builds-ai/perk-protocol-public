@@ -48,7 +48,6 @@ export function CreateMarketForm() {
   // Oracle is always PerkOracle — cranker handles Pyth vs Birdeye selection
   const [maxLeverage, setMaxLeverage] = useState(10);
   const [tradingFee, setTradingFee] = useState(0.1);
-  const [initialDepth, setInitialDepth] = useState(50);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Jupiter token list
@@ -178,19 +177,8 @@ export function CreateMarketForm() {
     };
   }, [tradingFee]);
 
-  // Map initial depth slider to K value
-  const initialK = useMemo(() => {
-    if (initialDepth < 33) {
-      // Low: 1e18
-      return MIN_INITIAL_K;
-    } else if (initialDepth < 66) {
-      // Medium: 1e19
-      return MIN_INITIAL_K.mul(new BN(10));
-    } else {
-      // High: 1e20
-      return MIN_INITIAL_K.mul(new BN(100));
-    }
-  }, [initialDepth]);
+  // Default K = Medium (1e19)
+  const initialK = MIN_INITIAL_K.mul(new BN(10));
 
   const selectedMint = selectedToken?.mint ?? customMint?.mint ?? null;
 
@@ -335,9 +323,14 @@ export function CreateMarketForm() {
                     </span>
                   </button>
                 ))}
-                {!tokensLoading && !tokensError && filtered.length === 0 && !customMint && !resolvingMint && (
+                {!tokensLoading && !tokensError && filtered.length === 0 && !customMint && !resolvingMint && search.length >= 2 && (
                   <div className="px-3 py-2 text-xs text-text-tertiary font-sans">
                     No tokens found. Try pasting a mint address.
+                  </div>
+                )}
+                {!tokensLoading && search.length < 2 && !customMint && (
+                  <div className="px-3 py-2 text-xs text-text-tertiary font-sans">
+                    Type to search or paste a mint address.
                   </div>
                 )}
               </div>
@@ -370,14 +363,14 @@ export function CreateMarketForm() {
           {/* Oracle — always PerkOracle, cranker handles feed selection */}
 
           {/* Parameters */}
-          <div className="border-t border-border pt-4 space-y-4">
+          <div className="border-t border-border pt-4 space-y-5">
             <div className="text-xs font-sans text-text-secondary uppercase tracking-wider mb-3">
               Parameters
             </div>
 
             {/* Max Leverage */}
             <div>
-              <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-sans text-text-secondary">
                   Max Leverage
                 </span>
@@ -385,20 +378,31 @@ export function CreateMarketForm() {
                   {maxLeverage}x
                 </span>
               </div>
-              <input
-                type="range"
-                min={2}
-                max={20}
-                step={1}
-                value={maxLeverage}
-                onChange={(e) => setMaxLeverage(parseInt(e.target.value))}
-                className="w-full h-1 bg-zinc-800 appearance-none cursor-pointer accent-white [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-0"
-              />
+              <div className="relative h-6 flex items-center">
+                <div className="absolute inset-x-0 h-1 bg-zinc-800 rounded-full" />
+                <div
+                  className="absolute left-0 h-1 bg-white rounded-full"
+                  style={{ width: `${((maxLeverage - 2) / 18) * 100}%` }}
+                />
+                <input
+                  type="range"
+                  min={2}
+                  max={20}
+                  step={1}
+                  value={maxLeverage}
+                  onChange={(e) => setMaxLeverage(parseInt(e.target.value))}
+                  className="relative w-full h-6 appearance-none bg-transparent cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-zinc-900 [&::-webkit-slider-thumb]:shadow-[0_0_0_2px_rgba(255,255,255,0.15)] [&::-webkit-slider-thumb]:hover:shadow-[0_0_0_4px_rgba(255,255,255,0.1)] [&::-webkit-slider-thumb]:transition-shadow [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-zinc-900 [&::-moz-range-thumb]:shadow-[0_0_0_2px_rgba(255,255,255,0.15)] [&::-webkit-slider-runnable-track]:bg-transparent [&::-moz-range-track]:bg-transparent"
+                />
+              </div>
+              <div className="flex justify-between mt-1">
+                <span className="text-[10px] font-mono text-zinc-600">2x</span>
+                <span className="text-[10px] font-mono text-zinc-600">20x</span>
+              </div>
             </div>
 
             {/* Trading Fee */}
             <div>
-              <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-sans text-text-secondary">
                   Trading Fee
                 </span>
@@ -406,44 +410,28 @@ export function CreateMarketForm() {
                   {tradingFee.toFixed(2)}%
                 </span>
               </div>
-              <input
-                type="range"
-                min={3}
-                max={100}
-                step={1}
-                value={tradingFee * 100}
-                onChange={(e) =>
-                  setTradingFee(parseInt(e.target.value) / 100)
-                }
-                className="w-full h-1 bg-zinc-800 appearance-none cursor-pointer accent-white [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-0"
-              />
-            </div>
-
-            {/* Initial Depth */}
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-sans text-text-secondary">
-                  Initial Depth
-                </span>
-                <span className="text-xs font-mono text-white">
-                  {initialDepth < 33
-                    ? "Low"
-                    : initialDepth < 66
-                    ? "Medium"
-                    : "High"}
-                </span>
+              <div className="relative h-6 flex items-center">
+                <div className="absolute inset-x-0 h-1 bg-zinc-800 rounded-full" />
+                <div
+                  className="absolute left-0 h-1 bg-white rounded-full"
+                  style={{ width: `${((tradingFee * 100 - 3) / 97) * 100}%` }}
+                />
+                <input
+                  type="range"
+                  min={3}
+                  max={100}
+                  step={1}
+                  value={tradingFee * 100}
+                  onChange={(e) =>
+                    setTradingFee(parseInt(e.target.value) / 100)
+                  }
+                  className="relative w-full h-6 appearance-none bg-transparent cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-zinc-900 [&::-webkit-slider-thumb]:shadow-[0_0_0_2px_rgba(255,255,255,0.15)] [&::-webkit-slider-thumb]:hover:shadow-[0_0_0_4px_rgba(255,255,255,0.1)] [&::-webkit-slider-thumb]:transition-shadow [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-zinc-900 [&::-moz-range-thumb]:shadow-[0_0_0_2px_rgba(255,255,255,0.15)] [&::-webkit-slider-runnable-track]:bg-transparent [&::-moz-range-track]:bg-transparent"
+                />
               </div>
-              <input
-                type="range"
-                min={0}
-                max={100}
-                step={1}
-                value={initialDepth}
-                onChange={(e) =>
-                  setInitialDepth(parseInt(e.target.value))
-                }
-                className="w-full h-1 bg-zinc-800 appearance-none cursor-pointer accent-white [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-0"
-              />
+              <div className="flex justify-between mt-1">
+                <span className="text-[10px] font-mono text-zinc-600">0.03%</span>
+                <span className="text-[10px] font-mono text-zinc-600">1.00%</span>
+              </div>
             </div>
           </div>
 
