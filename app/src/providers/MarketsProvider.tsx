@@ -51,6 +51,7 @@ function toFrontendMarket(address: PublicKey, m: SDKMarketAccount): Market {
   const openInterest = (totalLong + totalShort) * markPrice;
 
   return {
+    address: address.toBase58(),
     marketIndex: m.marketIndex.toNumber(),
     tokenMint: mintStr,
     collateralMint: m.collateralMint.toBase58(),

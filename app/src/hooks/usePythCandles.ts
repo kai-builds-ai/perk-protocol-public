@@ -23,8 +23,8 @@ export function usePythCandles(
   symbolRef.current = symbol;
 
   useEffect(() => {
-    if (!PYTH_FEEDS[symbol]) {
-      // No Pyth feed — stay on mock data
+    if (!symbol || !PYTH_FEEDS[symbol]) {
+      // No symbol or no Pyth feed — stay on mock data
       setCandles(MOCK_CANDLES[symbol] || []);
       setLoading(false);
       setIsReal(false);

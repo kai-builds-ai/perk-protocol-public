@@ -16,21 +16,23 @@ import { usePythCandles } from "@/hooks/usePythCandles";
 
 export default function TradingView() {
   const params = useParams();
-  const token = (params.token as string).toUpperCase();
-  const { market } = useMarket(token);
-  const { positions, triggerOrders } = usePositionsForMarket(token);
+  const marketKey = params.market as string;
+  const { market } = useMarket(marketKey);
+  const symbol = market?.symbol ?? "";
+  const marketAddress = market?.address ?? null;
+  const { positions, triggerOrders } = usePositionsForMarket(marketAddress);
   const { price: livePrice, connected } = usePythPrice(
-    token,
+    symbol,
     market?.markPrice
   );
-  const { candles, isReal } = usePythCandles(token, "60", 200);
+  const { candles, isReal } = usePythCandles(symbol, "60", 200);
 
   if (!market) {
     return (
       <div className="flex flex-col h-screen">
         <TopBar />
         <div className="flex-1 flex items-center justify-center text-text-secondary font-sans text-sm">
-          Market not found: {token}
+          Market not found: {marketKey}
         </div>
       </div>
     );
@@ -45,7 +47,7 @@ export default function TradingView() {
 
   return (
     <div className="flex flex-col h-screen">
-      <TopBar solPrice={token === "SOL" ? displayMarket.markPrice : undefined} />
+      <TopBar solPrice={symbol === "SOL" ? displayMarket.markPrice : undefined} />
       <div className="flex items-center gap-2 px-4 overflow-x-auto flex-nowrap" style={{ WebkitOverflowScrolling: "touch" }}>
         <MarketStats market={displayMarket} />
         {connected && (
@@ -60,7 +62,7 @@ export default function TradingView() {
         {/* Left: Chart + Positions (desktop) */}
         <div className="flex flex-col md:flex-1 md:border-r border-border min-w-0">
           <div className="h-[200px] md:h-auto md:flex-1 md:min-h-[300px]">
-            <Chart data={candles} symbol={token} />
+            <Chart data={candles} symbol={symbol} />
           </div>
           {/* Positions + Orders — below chart on desktop, below everything on mobile */}
           <div className="hidden md:block border-t border-border overflow-auto max-h-[240px]">

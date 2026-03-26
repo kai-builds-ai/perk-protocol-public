@@ -10,6 +10,7 @@ import {
 // Pre-computed mock markets
 export const MOCK_MARKETS: Market[] = [
   {
+    address: "4vJ9JU1bJJE96FBdFkPfX6PscBQ4c8R2z5RVrFVAkYp7",
     marketIndex: 0,
     tokenMint: "So11111111111111111111111111111111111111112",
     collateralMint: "So11111111111111111111111111111111111111112",
@@ -40,6 +41,7 @@ export const MOCK_MARKETS: Market[] = [
     createdAt: Date.now() - 86400000 * 30,
   },
   {
+    address: "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P",
     marketIndex: 1,
     tokenMint: "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
     collateralMint: "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
@@ -70,6 +72,7 @@ export const MOCK_MARKETS: Market[] = [
     createdAt: Date.now() - 86400000 * 14,
   },
   {
+    address: "3Kd6KVXL3oDq7FXJ8VsG3cXfBGRGZCFpNLQnVDYE1brH",
     marketIndex: 2,
     tokenMint: "EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm",
     collateralMint: "EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm",
@@ -100,6 +103,7 @@ export const MOCK_MARKETS: Market[] = [
     createdAt: Date.now() - 86400000 * 7,
   },
   {
+    address: "8szGkuLTAux9XMgZ2vtY39jVSowEcpBfFfD8hXSEqdGC",
     marketIndex: 3,
     tokenMint: "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN",
     collateralMint: "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN",
@@ -130,6 +134,7 @@ export const MOCK_MARKETS: Market[] = [
     createdAt: Date.now() - 86400000 * 21,
   },
   {
+    address: "Aq4Z7RmfgBBJDSwbyELfMwah4ioQLBbZGKjNFLcmQArr",
     marketIndex: 4,
     tokenMint: "jtojtomepa8beP8AuQc6eXt5FriJwfFMwQx2v2f9mCL",
     collateralMint: "jtojtomepa8beP8AuQc6eXt5FriJwfFMwQx2v2f9mCL",
@@ -160,6 +165,7 @@ export const MOCK_MARKETS: Market[] = [
     createdAt: Date.now() - 86400000 * 10,
   },
   {
+    address: "HWy1jotHpo6UqeQxx49dpYYdQB8wj9Qk9MdxwjLvDHB8",
     marketIndex: 5,
     tokenMint: "4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R",
     collateralMint: "4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R",
@@ -190,6 +196,7 @@ export const MOCK_MARKETS: Market[] = [
     createdAt: Date.now() - 86400000 * 5,
   },
   {
+    address: "FbGeZS8LiPCZiFpFwdUUeF2yxXtSsdfJoHTsVMvM8STh",
     marketIndex: 6,
     tokenMint: "orcaEKTdK7LKz57vaAYr9QeNsVEPfiu6QeMU1kektZE",
     collateralMint: "orcaEKTdK7LKz57vaAYr9QeNsVEPfiu6QeMU1kektZE",
@@ -223,8 +230,11 @@ export const MOCK_MARKETS: Market[] = [
 export const MOCK_POSITIONS: UserPosition[] = [
   {
     authority: "7WxA1KKphwQEQs2BWdhkRmmEiNBirw7wUnPiKykZNPdB",
-    market: "SOL",
+    market: "4vJ9JU1bJJE96FBdFkPfX6PscBQ4c8R2z5RVrFVAkYp7",
     marketSymbol: "SOL",
+    tokenMint: "So11111111111111111111111111111111111111112",
+    creator: "7WxA1KKphwQEQs2BWdhkRmmEiNBirw7wUnPiKykZNPdB",
+    oracleAddress: "H6ARHf6YXhGrecbJeZn7jPE8jPqGnrjwqh6i7FWDjGqZ",
     depositedCollateral: 50.24,
     availableMargin: 30.24,
     baseSize: 10,
@@ -238,8 +248,11 @@ export const MOCK_POSITIONS: UserPosition[] = [
   },
   {
     authority: "7WxA1KKphwQEQs2BWdhkRmmEiNBirw7wUnPiKykZNPdB",
-    market: "WIF",
+    market: "3Kd6KVXL3oDq7FXJ8VsG3cXfBGRGZCFpNLQnVDYE1brH",
     marketSymbol: "WIF",
+    tokenMint: "EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm",
+    creator: "2bYm7u6YfLhVp3rvxyVxTbF7EugD9MqhPwtHTKygbaLp",
+    oracleAddress: "3Rz2VB5xN9bR8b26LaURaNFuMJBZbzqPMjreGhMaCbHR",
     depositedCollateral: 500,
     availableMargin: 200,
     baseSize: -2000,
@@ -255,8 +268,10 @@ export const MOCK_POSITIONS: UserPosition[] = [
 export const MOCK_TRIGGER_ORDERS: TriggerOrder[] = [
   {
     authority: "7WxA1KKphwQEQs2BWdhkRmmEiNBirw7wUnPiKykZNPdB",
-    market: "SOL",
+    market: "4vJ9JU1bJJE96FBdFkPfX6PscBQ4c8R2z5RVrFVAkYp7",
     marketSymbol: "SOL",
+    tokenMint: "So11111111111111111111111111111111111111112",
+    creator: "7WxA1KKphwQEQs2BWdhkRmmEiNBirw7wUnPiKykZNPdB",
     orderId: 1,
     orderType: TriggerOrderType.Limit,
     side: Side.Long,
@@ -268,8 +283,10 @@ export const MOCK_TRIGGER_ORDERS: TriggerOrder[] = [
   },
   {
     authority: "7WxA1KKphwQEQs2BWdhkRmmEiNBirw7wUnPiKykZNPdB",
-    market: "SOL",
+    market: "4vJ9JU1bJJE96FBdFkPfX6PscBQ4c8R2z5RVrFVAkYp7",
     marketSymbol: "SOL",
+    tokenMint: "So11111111111111111111111111111111111111112",
+    creator: "7WxA1KKphwQEQs2BWdhkRmmEiNBirw7wUnPiKykZNPdB",
     orderId: 2,
     orderType: TriggerOrderType.StopLoss,
     side: Side.Long,

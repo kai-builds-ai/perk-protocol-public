@@ -132,7 +132,7 @@ export default function Landing() {
                   {topMarkets.map((m) => (
                     <tr key={m.marketIndex} className="border-b border-border/50 hover:bg-white/[0.02] cursor-pointer transition-colors duration-75">
                       <td className="px-4 py-2.5">
-                        <Link href={`/trade/${m.symbol.toLowerCase()}`} className="flex items-center gap-2">
+                        <Link href={`/trade/${m.address}`} className="flex items-center gap-2">
                           <TokenLogo mint={m.tokenMint} logoUrl={m.logoUrl} size={20} />
                           <span className="font-sans font-medium text-white text-sm">{m.symbol}</span>
                           <span className="text-text-tertiary text-xs hidden xl:inline">{m.name}</span>

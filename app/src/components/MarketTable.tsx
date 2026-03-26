@@ -19,7 +19,7 @@ interface MarketTableProps {
   markets: Market[];
   filter: string;
   watchlist?: Set<string>;
-  onToggleWatchlist?: (mint: string) => void;
+  onToggleWatchlist?: (address: string) => void;
 }
 
 export function MarketTable({ markets, filter, watchlist, onToggleWatchlist }: MarketTableProps) {
@@ -97,19 +97,19 @@ export function MarketTable({ markets, filter, watchlist, onToggleWatchlist }: M
       </thead>
       <tbody>
         {filtered.map((m) => {
-          const isWatched = watchlist?.has(m.tokenMint) ?? false;
+          const isWatched = watchlist?.has(m.address) ?? false;
           return (
             <tr
               key={m.marketIndex}
               className="border-b border-border hover:bg-white/[0.02] cursor-pointer transition-colors duration-75"
-              onClick={() => router.push(`/trade/${m.symbol.toLowerCase()}`)}
+              onClick={() => router.push(`/trade/${m.address}`)}
             >
               {watchlist && (
                 <td className="px-2 py-2.5 text-center">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      onToggleWatchlist?.(m.tokenMint);
+                      onToggleWatchlist?.(m.address);
                     }}
                     className={`text-base transition-colors duration-100 ${
                       isWatched

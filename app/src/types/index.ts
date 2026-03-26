@@ -24,6 +24,7 @@ export enum SideState {
 }
 
 export interface Market {
+  address: string; // Market PDA address (base58)
   marketIndex: number;
   tokenMint: string;
   collateralMint: string;
@@ -70,6 +71,9 @@ export interface UserPosition {
   authority: string;
   market: string;
   marketSymbol: string;
+  tokenMint: string;
+  creator: string;
+  oracleAddress: string;
   depositedCollateral: number;
   availableMargin: number;
   baseSize: number; // positive = long, negative = short
@@ -86,6 +90,8 @@ export interface TriggerOrder {
   authority: string;
   market: string;
   marketSymbol: string;
+  tokenMint: string;
+  creator: string;
   orderId: number;
   orderType: TriggerOrderType;
   side: Side;

@@ -20,13 +20,13 @@ const TABS: { key: Tab; label: string }[] = [
 function getWatchlist(): Set<string> {
   if (typeof window === "undefined") return new Set();
   try {
-    const raw = localStorage.getItem("perk-watchlist");
+    const raw = localStorage.getItem("perk-watchlist-v2");
     return raw ? new Set(JSON.parse(raw)) : new Set();
   } catch { return new Set(); }
 }
 
 function saveWatchlist(set: Set<string>) {
-  localStorage.setItem("perk-watchlist", JSON.stringify(Array.from(set)));
+  localStorage.setItem("perk-watchlist-v2", JSON.stringify(Array.from(set)));
 }
 
 export default function MarketExplorer() {
@@ -41,13 +41,13 @@ export default function MarketExplorer() {
   const totalVolume = markets.reduce((s, m) => s + m.volume24h, 0);
   const solMarket = markets.find((m) => m.symbol === "SOL");
 
-  const toggleWatchlist = useCallback((mint: string) => {
+  const toggleWatchlist = useCallback((address: string) => {
     setWatchlist((prev) => {
       const next = new Set(prev);
-      if (next.has(mint)) {
-        next.delete(mint);
+      if (next.has(address)) {
+        next.delete(address);
       } else {
-        next.add(mint);
+        next.add(address);
       }
       saveWatchlist(next);
       return next;
@@ -99,7 +99,7 @@ export default function MarketExplorer() {
         list.sort((a, b) => a.change24h - b.change24h);
         break;
       case "watchlist":
-        list = list.filter((m) => watchlist.has(m.tokenMint));
+        list = list.filter((m) => watchlist.has(m.address));
         list.sort((a, b) => b.volume24h - a.volume24h);
         break;
       case "all":

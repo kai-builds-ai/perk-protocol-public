@@ -20,21 +20,32 @@ export const Positions = memo(function Positions({ positions, market }: Position
 
   const handleClose = useCallback(
     async (posIndex: number) => {
-      if (!client || !publicKey || !market) {
+      if (!client || !publicKey) {
         toast.error("Please connect your wallet.");
         return;
       }
+
+      const pos = positions[posIndex];
+      if (!pos) return;
 
       const confirmed = window.confirm(
         "Are you sure you want to close this position? This will close the entire position."
       );
       if (!confirmed) return;
 
+      if (!pos.tokenMint || !pos.creator || !pos.oracleAddress) {
+        toast.error("Position data incomplete");
+        return;
+      }
+
       setClosingIndex(posIndex);
       try {
-        const tokenMint = new PublicKey(market.tokenMint);
-        const creator = new PublicKey(market.creator);
-        const oracle = new PublicKey(market.oracleAddress);
+        // Use market data from the position itself, not the parent market prop.
+        // This ensures we target the correct market even when positions
+        // from multiple markets are displayed together.
+        const tokenMint = new PublicKey(pos.tokenMint);
+        const creator = new PublicKey(pos.creator);
+        const oracle = new PublicKey(pos.oracleAddress);
         const sig = await client.closePosition(tokenMint, creator, oracle);
         toast.success("Position closed!\nTX: " + sig.slice(0, 16) + "...");
       } catch (err: unknown) {
@@ -45,7 +56,7 @@ export const Positions = memo(function Positions({ positions, market }: Position
         setClosingIndex(null);
       }
     },
-    [client, publicKey, market]
+    [client, publicKey, positions]
   );
 
   if (positions.length === 0) {
@@ -114,7 +125,7 @@ export const Positions = memo(function Positions({ positions, market }: Position
                     </button>
                     <button
                       onClick={() => handleClose(i)}
-                      disabled={isClosing || !market}
+                      disabled={isClosing}
                       className={`px-1.5 py-0.5 text-[10px] font-sans rounded-[4px] border transition-colors duration-100 ${
                         isClosing
                           ? "text-zinc-600 border-zinc-800 cursor-not-allowed"

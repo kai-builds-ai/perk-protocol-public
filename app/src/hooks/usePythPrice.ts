@@ -21,8 +21,8 @@ export function usePythPrice(symbol: string, fallbackPrice?: number) {
 
   // Fetch initial price
   useEffect(() => {
-    if (!PYTH_FEEDS[symbol]) {
-      // No Pyth feed — use fallback with jitter
+    if (!symbol || !PYTH_FEEDS[symbol]) {
+      // No symbol or no Pyth feed — use fallback with jitter
       if (fallbackPrice) setPrice(fallbackPrice);
       return;
     }
@@ -40,8 +40,8 @@ export function usePythPrice(symbol: string, fallbackPrice?: number) {
 
   // Subscribe to SSE stream
   useEffect(() => {
-    if (!PYTH_FEEDS[symbol]) {
-      // Mock jitter for tokens without Pyth feeds
+    if (!symbol || !PYTH_FEEDS[symbol]) {
+      // No symbol or no Pyth feed — mock jitter for tokens without Pyth feeds
       if (!fallbackPrice) return;
       const interval = setInterval(() => {
         setPrice((p) => p + (Math.random() - 0.5) * p * 0.001);

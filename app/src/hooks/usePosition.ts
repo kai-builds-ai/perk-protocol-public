@@ -87,6 +87,9 @@ function toFrontendPosition(
     authority: pos.authority.toBase58(),
     market: pos.market.toBase58(),
     marketSymbol: symbol,
+    tokenMint: mintStr,
+    creator: market.creator.toBase58(),
+    oracleAddress: market.oracleAddress.toBase58(),
     depositedCollateral: collateralHuman,
     availableMargin,
     baseSize,
@@ -103,13 +106,16 @@ function toFrontendPosition(
 /** Convert on-chain trigger order to frontend type */
 function toFrontendTriggerOrder(
   order: SDKTriggerOrderAccount,
-  marketMint: string,
+  market: SDKMarketAccount,
 ): TriggerOrder {
-  const symbol = getTokenSymbol(marketMint);
+  const mintStr = market.tokenMint.toBase58();
+  const symbol = getTokenSymbol(mintStr);
   return {
     authority: order.authority.toBase58(),
     market: order.market.toBase58(),
     marketSymbol: symbol,
+    tokenMint: mintStr,
+    creator: market.creator.toBase58(),
     orderId: order.orderId.toNumber(),
     orderType: mapTriggerOrderType(order.orderType),
     side: mapSide(order.side),
@@ -159,9 +165,8 @@ export function usePositions() {
 
           if (pos.openTriggerOrders > 0) {
             const orders = await perkClient.fetchTriggerOrders(pos.market, publicKey);
-            const mintStr = market.tokenMint.toBase58();
             for (const { account: order } of orders) {
-              allOrders.push(toFrontendTriggerOrder(order, mintStr));
+              allOrders.push(toFrontendTriggerOrder(order, market));
             }
           }
         } catch (err) {
@@ -196,11 +201,19 @@ export function usePositions() {
   return { positions, triggerOrders, loading, error };
 }
 
-export function usePositionsForMarket(symbol: string) {
+/**
+ * Filter positions and trigger orders for a specific market address.
+ * Pass `null` when market hasn't loaded yet — returns empty arrays.
+ */
+export function usePositionsForMarket(marketAddress: string | null) {
   const { positions, triggerOrders, loading, error } = usePositions();
   return {
-    positions: positions.filter((p) => p.marketSymbol === symbol),
-    triggerOrders: triggerOrders.filter((o) => o.marketSymbol === symbol),
+    positions: marketAddress
+      ? positions.filter((p) => p.market === marketAddress)
+      : [],
+    triggerOrders: marketAddress
+      ? triggerOrders.filter((o) => o.market === marketAddress)
+      : [],
     loading,
     error,
   };

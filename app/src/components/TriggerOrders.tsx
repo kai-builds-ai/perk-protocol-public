@@ -24,8 +24,13 @@ export const TriggerOrders = memo(function TriggerOrders({
 
   const handleCancel = useCallback(
     async (order: TriggerOrder) => {
-      if (!client || !publicKey || !market) {
+      if (!client || !publicKey) {
         toast.error("Please connect your wallet.");
+        return;
+      }
+
+      if (!order.tokenMint || !order.creator) {
+        toast.error("Order data incomplete");
         return;
       }
 
@@ -36,8 +41,8 @@ export const TriggerOrders = memo(function TriggerOrders({
 
       setCancellingId(order.orderId);
       try {
-        const tokenMint = new PublicKey(market.tokenMint);
-        const creator = new PublicKey(market.creator);
+        const tokenMint = new PublicKey(order.tokenMint);
+        const creator = new PublicKey(order.creator);
         const sig = await client.cancelTriggerOrder(tokenMint, creator, new BN(order.orderId));
         toast.success("Order cancelled!\nTX: " + sig.slice(0, 16) + "...");
       } catch (err: unknown) {
@@ -48,7 +53,7 @@ export const TriggerOrders = memo(function TriggerOrders({
         setCancellingId(null);
       }
     },
-    [client, publicKey, market]
+    [client, publicKey]
   );
 
   if (orders.length === 0) {
@@ -103,7 +108,7 @@ export const TriggerOrders = memo(function TriggerOrders({
                 <td className="px-3 py-2 text-right">
                   <button
                     onClick={() => handleCancel(o)}
-                    disabled={isCancelling || !market}
+                    disabled={isCancelling}
                     className={`px-2 py-0.5 text-[10px] font-sans rounded-[4px] border transition-colors duration-100 ${
                       isCancelling
                         ? "text-zinc-600 border-zinc-800 cursor-not-allowed"

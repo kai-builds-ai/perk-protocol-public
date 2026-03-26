@@ -187,9 +187,9 @@ export function CreateMarketForm() {
 
       toast.success("Market created!\nTX: " + sig.slice(0, 16) + "...");
 
-      // Redirect to the new market's trade page
-      const symbol = selectedToken?.symbol ?? customMint?.symbol ?? selectedMint.slice(0, 4);
-      router.push(`/trade/${symbol.toLowerCase()}`);
+      // Redirect to the new market's trade page using PDA address
+      const marketAddress = client.getMarketAddress(tokenMint, publicKey);
+      router.push(`/trade/${marketAddress.toBase58()}`);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       console.error("Create market failed:", err);
@@ -208,8 +208,6 @@ export function CreateMarketForm() {
     initialK,
     sdkOracleSource,
     readonlyClient,
-    selectedToken,
-    customMint,
     router,
   ]);
 
