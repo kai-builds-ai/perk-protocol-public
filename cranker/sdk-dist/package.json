@@ -2,8 +2,8 @@
   "name": "@perk/sdk",
   "version": "0.1.0",
   "description": "TypeScript SDK for the Perk perpetual futures protocol on Solana",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "index.js",
+  "types": "index.d.ts",
   "files": [
     "dist"
   ],
