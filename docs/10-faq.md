@@ -162,3 +162,27 @@ Yes. All cranker instructions are permissionless. Liquidators earn 50% of the li
 ### Is there an SDK?
 
 Yes. `perk-protocol` — TypeScript SDK covering all instructions, account fetching, math helpers, and cranker utilities. See [SDK Reference](08-sdk.md).
+
+---
+
+## $PERK Token
+
+### What is $PERK?
+
+The native SPL token of Perk Protocol. It provides fee discounts, staking rewards, market creation discounts, and (in Phase 2) governance over protocol parameters. See [$PERK Token](11-perk-token.md) for full details.
+
+### Do I need $PERK to trade?
+
+No. Anyone can trade on Perk without holding $PERK. The token provides fee discounts and staking rewards but is not required.
+
+### Do I need $PERK to create a market?
+
+No. Market creation is permissionless — pay 1 SOL and your market is live. Paying in $PERK gives a 50% discount (0.5 SOL equivalent), but it's optional.
+
+### What are staking rewards?
+
+Stake $PERK to earn a proportional share of protocol trading fees. Rewards are distributed from the protocol fee accumulator based on your share of total staked supply.
+
+### When does governance launch?
+
+Governance is Phase 2. At launch, protocol parameters are admin-configurable. Governance will transfer to $PERK holders after the protocol stabilizes. Market creation will remain permissionless regardless — governance covers protocol-wide parameters, not market listing.

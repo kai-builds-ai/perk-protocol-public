@@ -14,6 +14,7 @@ export const navigation: NavItem[] = [
   { slug: 'security', title: 'Security', file: '07-security.md' },
   { slug: 'sdk', title: 'SDK Reference', file: '08-sdk.md' },
   { slug: 'fees', title: 'Fees', file: '09-fees.md' },
+  { slug: 'perk-token', title: '$PERK Token', file: '11-perk-token.md' },
   { slug: 'faq', title: 'FAQ', file: '10-faq.md' },
 ];
 

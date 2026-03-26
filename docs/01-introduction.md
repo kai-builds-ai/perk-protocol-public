@@ -51,9 +51,8 @@ Perk is a permissionless perpetual futures protocol on Solana. It lets anyone cr
 ## What Perk Is Not
 
 - Not an order book exchange. No market makers required.
-- Not a governance-gated protocol. No proposals to list new tokens.
+- Not a governance-gated protocol. Market creation is permissionless — no proposals required to list new tokens. Protocol-wide parameter governance via $PERK is planned for Phase 2.
 - Not cross-margin. Positions are isolated per market.
-- Not a token launch. No governance token on day one.
 
 ---
 
@@ -69,4 +68,5 @@ Perk is a permissionless perpetual futures protocol on Solana. It lets anyone cr
 | [Security](07-security.md) | Verification, audits, safety mechanisms |
 | [SDK Reference](08-sdk.md) | TypeScript SDK for building on Perk |
 | [Fees](09-fees.md) | Fee structure, creator revenue, funding rates |
+| [$PERK Token](11-perk-token.md) | Token utility, staking, fee discounts, governance |
 | [FAQ](10-faq.md) | Common questions |
