@@ -56,7 +56,7 @@ export function TopBar({
           {/* Hamburger — visible below md */}
           <button
             onClick={() => setMenuOpen((v) => !v)}
-            className="md:hidden flex flex-col justify-center items-center w-8 h-8 gap-1.5 mr-2"
+            className="md:hidden flex flex-col justify-center items-center w-10 h-10 gap-1.5 flex-shrink-0"
             aria-label="Toggle menu"
           >
             <span className={`block w-5 h-px bg-white transition-transform duration-150 ${menuOpen ? "translate-y-[3.5px] rotate-45" : ""}`} />
@@ -68,8 +68,8 @@ export function TopBar({
 
       {/* Mobile dropdown menu */}
       {menuOpen && (
-        <div className="absolute top-12 left-0 right-0 z-50 bg-surface border-b border-border md:hidden">
-          <div className="flex flex-col items-end px-6 py-4 gap-5">
+        <div className="absolute top-12 right-4 z-50 bg-surface border border-border rounded-md shadow-lg md:hidden w-48">
+          <div className="flex flex-col items-end px-5 py-4 gap-4">
             <Link href="/markets" onClick={() => setMenuOpen(false)} className="text-sm font-sans text-text-secondary hover:text-white transition-colors">
               Markets
             </Link>
