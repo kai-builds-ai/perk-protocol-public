@@ -115,7 +115,7 @@ The minimum is 1e18. For most markets, start moderate and let the protocol adjus
 ## SDK Example
 
 ```typescript
-import { PerkClient, OracleSource } from "@perk/sdk";
+import { PerkClient, OracleSource } from "perk-protocol";
 import BN from "bn.js";
 
 const tx = await perkClient.createMarket(

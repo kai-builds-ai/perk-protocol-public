@@ -149,7 +149,7 @@ Compromise of the oracle cranker means bad prices (detectable, freezable) but no
 All code is public, all code is auditable:
 
 - **On-chain program:** Rust/Anchor, deployed from verified build
-- **SDK:** TypeScript, published as `@perk/sdk`
+- **SDK:** TypeScript, published as `perk-protocol`
 - **Cranker:** TypeScript, included in the repository
 - **Frontend:** Next.js, source available
 

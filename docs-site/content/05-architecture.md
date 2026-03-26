@@ -219,10 +219,10 @@ Crankers are off-chain bots that call permissionless instructions. Anyone can ru
 
 ### Architecture
 
-Each cranker is a Node.js process using `@perk/sdk`. The `PerkCranker` and `PerkOracleCranker` classes handle the loops:
+Each cranker is a Node.js process using `perk-protocol`. The `PerkCranker` and `PerkOracleCranker` classes handle the loops:
 
 ```typescript
-import { PerkCranker, PerkOracleCranker } from "@perk/sdk";
+import { PerkCranker, PerkOracleCranker } from "perk-protocol";
 
 const cranker = new PerkCranker({ connection, wallet, /* ... */ });
 const oracleCranker = new PerkOracleCranker({ connection, wallet, /* ... */ });

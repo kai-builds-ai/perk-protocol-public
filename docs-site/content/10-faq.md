@@ -161,4 +161,4 @@ Yes. All cranker instructions are permissionless. Liquidators earn 50% of the li
 
 ### Is there an SDK?
 
-Yes. `@perk/sdk` — TypeScript SDK covering all instructions, account fetching, math helpers, and cranker utilities. See [SDK Reference](08-sdk.md).
+Yes. `perk-protocol` — TypeScript SDK covering all instructions, account fetching, math helpers, and cranker utilities. See [SDK Reference](08-sdk.md).

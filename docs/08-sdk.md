@@ -1,13 +1,13 @@
 # SDK Reference
 
-The TypeScript SDK (`@perk/sdk`) wraps all on-chain instructions and provides helper functions for building on Perk.
+The TypeScript SDK (`perk-protocol`) wraps all on-chain instructions and provides helper functions for building on Perk.
 
 ---
 
 ## Installation
 
 ```bash
-npm install @perk/sdk
+npm install perk-protocol
 ```
 
 Peer dependencies: `@solana/web3.js`, `@coral-xyz/anchor`, `@solana/spl-token`, `bn.js`
@@ -21,7 +21,7 @@ The main entry point. Wraps the Anchor program and exposes typed methods for eve
 ### Constructor
 
 ```typescript
-import { PerkClient } from "@perk/sdk";
+import { PerkClient } from "perk-protocol";
 import { Connection, PublicKey } from "@solana/web3.js";
 
 const client = new PerkClient({
@@ -86,7 +86,7 @@ await client.deposit(
 ### Open Position
 
 ```typescript
-import { Side } from "@perk/sdk";
+import { Side } from "perk-protocol";
 
 // Open a 5x long position, 1 SOL size
 await client.openPosition(
@@ -133,7 +133,7 @@ await client.withdraw(
 ### Place a Limit Order
 
 ```typescript
-import { TriggerOrderType, Side } from "@perk/sdk";
+import { TriggerOrderType, Side } from "perk-protocol";
 
 await client.placeTriggerOrder(tokenMint, {
   orderType: TriggerOrderType.Limit,
@@ -185,7 +185,7 @@ await client.cancelTriggerOrder(tokenMint, orderId);
 ## Market Creation
 
 ```typescript
-import { OracleSource } from "@perk/sdk";
+import { OracleSource } from "perk-protocol";
 
 await client.createMarket(
   tokenMint,
@@ -316,7 +316,7 @@ import {
   accountEquity,
   priceToNumber,
   numberToPrice,
-} from "@perk/sdk";
+} from "perk-protocol";
 
 // Mark price from vAMM state
 const mark = calculateMarkPrice(market);
@@ -355,7 +355,7 @@ import {
   findVaultAddress,
   findTriggerOrderAddress,
   findPerkOracleAddress,
-} from "@perk/sdk";
+} from "perk-protocol";
 
 const [protocolPda] = findProtocolAddress(programId);
 const [marketPda] = findMarketAddress(tokenMint, programId);
@@ -382,14 +382,14 @@ import type {
   TriggerOrderParams,
   PositionInfo,
   MarketInfo,
-} from "@perk/sdk";
+} from "perk-protocol";
 
 import {
   Side,
   OracleSource,
   SideState,
   TriggerOrderType,
-} from "@perk/sdk";
+} from "perk-protocol";
 ```
 
 See [types.ts](https://github.com/kai-builds-ai/perk-protocol/blob/main/sdk/src/types.ts) for the full type definitions.
@@ -412,5 +412,5 @@ import {
   WARMUP_PERIOD_SLOTS,     // 1000
   MAX_TRIGGER_ORDERS,      // 8
   // ... see constants.ts for full list
-} from "@perk/sdk";
+} from "perk-protocol";
 ```
