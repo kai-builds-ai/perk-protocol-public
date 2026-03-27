@@ -45,13 +45,20 @@ function lamportsToSol(lamports: BN): string {
   return `${whole}.${frac}`;
 }
 
-function oracleSourceLabel(source: OracleSource): string {
-  switch (source) {
-    case OracleSource.Pyth: return 'Pyth';
-    case OracleSource.PerkOracle: return 'PerkOracle';
-    case OracleSource.DexPool: return 'DexPool';
-    default: return `Unknown(${source})`;
+function oracleSourceLabel(source: OracleSource | any): string {
+  // Handle numeric enum values
+  if (source === OracleSource.Pyth || source === 0) return 'Pyth';
+  if (source === OracleSource.PerkOracle || source === 1) return 'PerkOracle';
+  if (source === OracleSource.DexPool || source === 2) return 'DexPool';
+  // Handle Anchor-deserialized object variants like { pyth: {} } or { perkOracle: {} }
+  if (typeof source === 'object' && source !== null) {
+    const key = Object.keys(source)[0];
+    if (key) {
+      const labels: Record<string, string> = { pyth: 'Pyth', perkOracle: 'PerkOracle', dexPool: 'DexPool' };
+      return labels[key] ?? key;
+    }
   }
+  return `Unknown`;
 }
 
 // ── Types ──
@@ -1013,10 +1020,9 @@ function MarketsTable({
                 return (
                   <tr
                     key={m.address.toBase58()}
-                    className={`border-b border-border/50 transition-colors cursor-pointer ${
+                    className={`border-b border-border/50 transition-colors ${
                       isSelected ? 'bg-white/[0.04]' : 'hover:bg-white/[0.02]'
                     }`}
-                    onClick={() => onSelectMarket(isSelected ? null : m)}
                   >
                     <Td mono>{truncatePubkey(m.account.tokenMint.toBase58())}</Td>
                     <Td>
