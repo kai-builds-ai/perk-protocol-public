@@ -127,7 +127,7 @@ export function DepositWithdraw({ market }: DepositWithdrawProps) {
       toast.error("Not enough in wallet. Top up first!");
       return;
     }
-    if (mode === "withdraw" && vaultBalance !== null && amountNum > vaultBalance) {
+    if (mode === "withdraw" && vaultBalance !== null && amountNum > vaultBalance * 1.001) {
       toast.error("Insufficient vault balance.");
       return;
     }
@@ -279,9 +279,10 @@ export function DepositWithdraw({ market }: DepositWithdrawProps) {
               handleSubmit();
             } else {
               setMode("withdraw");
-              // Pre-fill with vault balance (max withdrawable)
-              if (vaultBalance && vaultBalance > 0) {
-                setAmount(vaultBalance.toFixed(4));
+              // Pre-fill with free collateral (max withdrawable)
+              const maxWithdraw = freeCollateral ?? vaultBalance;
+              if (maxWithdraw && maxWithdraw > 0) {
+                setAmount(maxWithdraw.toFixed(4));
               }
             }
           }}
