@@ -1,6 +1,6 @@
 "use client";
 
-import React, { memo, useState, useCallback } from "react";
+import React, { memo, useState, useCallback, useRef } from "react";
 import { UserPosition, Market } from "@/types";
 import { formatUsd, formatPct } from "@/lib/format";
 import { usePerk } from "@/providers/PerkProvider";
@@ -18,24 +18,34 @@ export const Positions = memo(function Positions({ positions, market }: Position
   const { client } = usePerk();
   const { publicKey } = useWallet();
   const [closingIndex, setClosingIndex] = useState<number | null>(null);
+  const [confirmIndex, setConfirmIndex] = useState<number | null>(null);
+  const confirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clear confirm state after 3s if user doesn't click again
+  const startConfirmTimer = useCallback(() => {
+    if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current);
+    confirmTimerRef.current = setTimeout(() => setConfirmIndex(null), 3000);
+  }, []);
 
   const handleClose = useCallback(
     async (posIndex: number) => {
-      console.error("[close-position] handleClose called, index:", posIndex);
+      // First click → "Confirm?" state
+      if (confirmIndex !== posIndex) {
+        setConfirmIndex(posIndex);
+        startConfirmTimer();
+        return;
+      }
+      // Second click → execute close
+      setConfirmIndex(null);
+      if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current);
+
       if (!client || !publicKey) {
-        console.error("[close-position] no client or publicKey", { client: !!client, publicKey: !!publicKey });
         toast.error("Please connect your wallet.");
         return;
       }
 
       const pos = positions[posIndex];
-      if (!pos) {
-        console.error("[close-position] no position at index", posIndex);
-        toast.error("Position not found");
-        return;
-      }
-
-      console.error("[close-position] position data:", { tokenMint: pos.tokenMint, creator: pos.creator, oracleAddress: pos.oracleAddress });
+      if (!pos) return;
 
       if (!pos.tokenMint || !pos.creator || !pos.oracleAddress) {
         toast.error("Position data incomplete");
@@ -58,7 +68,7 @@ export const Positions = memo(function Positions({ positions, market }: Position
         setClosingIndex(null);
       }
     },
-    [client, publicKey, positions]
+    [client, publicKey, positions, confirmIndex, startConfirmTimer]
   );
 
   if (positions.length === 0) {
@@ -137,10 +147,12 @@ export const Positions = memo(function Positions({ positions, market }: Position
                       className={`px-2 py-1 text-xs font-sans rounded-[4px] border transition-colors duration-100 ${
                         isClosing
                           ? "text-zinc-600 border-zinc-800 cursor-not-allowed"
-                          : "text-loss/80 border-loss/30 hover:text-loss hover:border-loss/50"
+                          : confirmIndex === i
+                            ? "text-yellow-400 border-yellow-400/50 bg-yellow-400/10"
+                            : "text-loss/80 border-loss/30 hover:text-loss hover:border-loss/50"
                       }`}
                     >
-                      {isClosing ? "..." : "Close"}
+                      {isClosing ? "..." : confirmIndex === i ? "Confirm?" : "Close"}
                     </button>
                   </div>
                 </td>

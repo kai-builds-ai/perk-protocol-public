@@ -162,7 +162,7 @@ export function usePositions() {
       const allOrders: TriggerOrder[] = [];
 
       for (const { account: pos } of rawPositions) {
-        if (pos.baseSize.isZero() && pos.depositedCollateral.isZero()) continue;
+        if (pos.baseSize.isZero()) continue;
 
         try {
           const market = await perkClient.fetchMarketByAddress(pos.market);
