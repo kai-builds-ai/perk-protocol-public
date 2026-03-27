@@ -362,9 +362,10 @@ function ProtocolActions({
           Protocol Actions
         </span>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-border">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-px bg-border">
         <PauseToggle client={client} paused={protocol.paused} onRefresh={onRefresh} />
         <WithdrawSol client={client} onRefresh={onRefresh} />
+        <InitPerkOracle client={client} onRefresh={onRefresh} />
         <TransferAdmin client={client} onRefresh={onRefresh} />
       </div>
     </section>
@@ -550,6 +551,119 @@ function TransferAdmin({
       </div>
       <p className="text-xs text-text-tertiary font-sans">
         Two-step: propose here, then new admin calls acceptAdmin.
+      </p>
+    </div>
+  );
+}
+
+// ── Init PerkOracle ──
+
+const CRANKER_PUBKEY = '99mUUwVBvCD1pLP7fk5z7xPuBoGpyuUGpyTBhW53yw99';
+
+function InitPerkOracle({
+  client,
+  onRefresh,
+}: {
+  client: NonNullable<ReturnType<typeof usePerk>['client']>;
+  onRefresh: () => Promise<void>;
+}) {
+  const [mint, setMint] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
+
+  const handleInit = async () => {
+    if (submittingRef.current) return;
+    let tokenMint: PublicKey;
+    try {
+      tokenMint = new PublicKey(mint);
+    } catch {
+      toast.error('Invalid token mint address');
+      return;
+    }
+
+    // Check if already exists
+    try {
+      const existing = await client.fetchPerkOracleNullable(tokenMint);
+      if (existing) {
+        toast.error('PerkOracle already exists for this token');
+        return;
+      }
+    } catch {
+      // fetchNullable failed — proceed anyway
+    }
+
+    if (!confirm(`Initialize PerkOracle for ${truncatePubkey(mint)}?\nCranker: ${truncatePubkey(CRANKER_PUBKEY)}`)) return;
+    submittingRef.current = true;
+    setSubmitting(true);
+    try {
+      const sig = await client.initializePerkOracle(
+        tokenMint,
+        new PublicKey(CRANKER_PUBKEY),
+        {
+          minSources: 2,
+          maxStalenessSeconds: 120,
+          maxPriceChangeBps: 0,         // no banding — memecoins move freely
+          circuitBreakerDeviationBps: 0, // disabled
+        },
+      );
+      toast.success(`PerkOracle initialized — ${truncatePubkey(sig)}`);
+      setMint('');
+      await onRefresh();
+    } catch (err) {
+      toast.error(sanitizeError(err, 'admin'));
+    } finally {
+      setSubmitting(false);
+      submittingRef.current = false;
+    }
+  };
+
+  // Well-known token mints for quick-select
+  const QUICK_MINTS = [
+    { label: 'SOL', mint: 'So11111111111111111111111111111111111111112' },
+    { label: 'BONK', mint: 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263' },
+    { label: 'WIF', mint: 'EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm' },
+    { label: 'JUP', mint: 'JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN' },
+    { label: 'JTO', mint: 'jtojtomepa8beP8AuQc6eXt5FriJwfFMwQx2v2f9mCL' },
+  ];
+
+  return (
+    <div className="bg-surface px-5 py-5 space-y-3">
+      <div className="font-mono text-xs text-text-tertiary uppercase tracking-wider">
+        Init PerkOracle
+      </div>
+      <div className="flex flex-wrap gap-1">
+        {QUICK_MINTS.map(t => (
+          <button
+            key={t.mint}
+            onClick={() => setMint(t.mint)}
+            className={`font-mono text-xs px-2 py-1 rounded-[2px] border transition-colors ${
+              mint === t.mint
+                ? 'border-blue text-blue bg-blue/10'
+                : 'border-border text-text-secondary hover:text-white hover:bg-white/5'
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={mint}
+          onChange={(e) => setMint(e.target.value)}
+          placeholder="Token mint address"
+          className="flex-1 bg-bg border border-border rounded-[2px] px-3 py-2 font-mono text-xs text-white placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary"
+        />
+        <button
+          onClick={handleInit}
+          disabled={submitting || !mint}
+          className="font-mono text-xs px-4 py-2 rounded-[2px] border border-profit/30 text-profit hover:bg-profit/10 transition-colors disabled:opacity-50"
+        >
+          {submitting ? '...' : 'Init'}
+        </button>
+      </div>
+      <p className="text-xs text-text-tertiary font-sans">
+        Cranker: {truncatePubkey(CRANKER_PUBKEY)} · minSources=2 · maxStale=120s
       </p>
     </div>
   );
