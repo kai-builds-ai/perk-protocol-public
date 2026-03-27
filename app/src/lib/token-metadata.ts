@@ -278,6 +278,44 @@ export async function getTokenLogos(
 }
 
 /**
+ * Resolve full token info (name, symbol, logo) from on-chain Metaplex metadata.
+ * Returns null fields for anything that can't be resolved.
+ */
+export async function getTokenInfo(
+  mint: string,
+  connection: Connection
+): Promise<{ name: string | null; symbol: string | null; logoUrl: string | null }> {
+  try {
+    const mintPubkey = new PublicKey(mint);
+    const metadataPDA = getMetadataPDA(mintPubkey);
+    const accountInfo = await connection.getAccountInfo(metadataPDA);
+
+    if (!accountInfo?.data) {
+      return { name: null, symbol: null, logoUrl: null };
+    }
+
+    const fields = decodeMetadataFields(Buffer.from(accountInfo.data));
+    let logoUrl: string | null = null;
+
+    if (fields.uri) {
+      if (/\.(png|jpg|jpeg|gif|svg|webp)(\?.*)?$/i.test(fields.uri)) {
+        logoUrl = fields.uri;
+      } else {
+        logoUrl = await fetchImageFromUri(fields.uri);
+      }
+    }
+
+    return {
+      name: fields.name,
+      symbol: fields.symbol,
+      logoUrl,
+    };
+  } catch {
+    return { name: null, symbol: null, logoUrl: null };
+  }
+}
+
+/**
  * Clear the cache.
  */
 export function clearTokenMetadataCache(): void {

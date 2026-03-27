@@ -13,7 +13,7 @@ import {
   MIN_INITIAL_K,
 } from "@perk/sdk";
 import { useRouter } from "next/navigation";
-import { getTokenLogo } from "@/lib/token-metadata";
+import { getTokenLogo, getTokenInfo } from "@/lib/token-metadata";
 import toast from "react-hot-toast";
 import { sanitizeError } from "@/lib/error-utils";
 
@@ -150,12 +150,12 @@ export function CreateMarketForm() {
       ) {
         setResolvingMint(true);
         try {
-          const logoUrl = await getTokenLogo(value, connection);
+          const info = await getTokenInfo(value, connection);
           setCustomMint({
             mint: value,
-            symbol: value.slice(0, 4) + "...",
-            name: "Custom Token",
-            logoUrl,
+            symbol: info.symbol || value.slice(0, 4) + "...",
+            name: info.name || "Custom Token",
+            logoUrl: info.logoUrl,
           });
         } catch {
           setCustomMint({
