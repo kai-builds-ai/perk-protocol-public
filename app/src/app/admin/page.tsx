@@ -362,11 +362,15 @@ function ProtocolActions({
           Protocol Actions
         </span>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-px bg-border">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-border">
         <PauseToggle client={client} paused={protocol.paused} onRefresh={onRefresh} />
         <WithdrawSol client={client} onRefresh={onRefresh} />
-        <InitPerkOracle client={client} onRefresh={onRefresh} />
-        <TransferAdmin client={client} onRefresh={onRefresh} />
+        <div className="md:col-span-2">
+          <InitPerkOracle client={client} onRefresh={onRefresh} />
+        </div>
+        <div className="md:col-span-2">
+          <TransferAdmin client={client} onRefresh={onRefresh} />
+        </div>
       </div>
     </section>
   );
