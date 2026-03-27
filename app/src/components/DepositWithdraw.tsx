@@ -204,12 +204,22 @@ export function DepositWithdraw({ market }: DepositWithdrawProps) {
           toast.success("Deposited " + amountNum.toFixed(4) + " " + collateralSymbol + "\nTX: " + sig.slice(0, 16) + "...");
         }
       } else {
-        // H-01 fix: for SOL withdrawals, use a client with postInstructions to atomically close WSOL ATA
+        // H-01 fix: for SOL withdrawals, create WSOL ATA if needed, withdraw, then close to unwrap
         if (isSOLCollateral) {
           const wsolAta = await getAssociatedTokenAddress(NATIVE_MINT, publicKey);
+          // Ensure WSOL ATA exists before withdraw (may have been closed after a previous withdraw)
+          const preIxs: TransactionInstruction[] = [];
+          try {
+            await connection.getTokenAccountBalance(wsolAta);
+          } catch {
+            preIxs.push(createAssociatedTokenAccountInstruction(publicKey, wsolAta, publicKey, NATIVE_MINT));
+          }
           const closeIx = createCloseAccountInstruction(wsolAta, publicKey, publicKey);
-          // Withdraw first, then close WSOL ATA to unwrap back to native SOL
-          const sig = await client.withdraw(tokenMint, creator, oracle, amountBN);
+          // Create client with pre-instructions to atomically create ATA + withdraw
+          const withdrawClient = preIxs.length > 0
+            ? new PerkClient({ connection, wallet: (client as any).provider.wallet, preInstructions: preIxs })
+            : client;
+          const sig = await withdrawClient.withdraw(tokenMint, creator, oracle, amountBN);
           // Attempt atomic WSOL close — if it fails, user still has WSOL (Phantom auto-unwraps)
           try {
             const { Transaction } = await import("@solana/web3.js");
