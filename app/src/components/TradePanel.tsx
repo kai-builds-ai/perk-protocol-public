@@ -184,6 +184,8 @@ export function TradePanel({ market }: TradePanelProps) {
         setTriggerPrice("");
       }
     } catch (err: unknown) {
+      console.error("[trade] FULL ERROR:", err);
+      try { console.error("[trade] JSON:", JSON.stringify(err, Object.getOwnPropertyNames(err as object))); } catch { /* */ }
       toast.error(sanitizeError(err, "trade"));
     } finally {
       submitLockRef.current = false;
