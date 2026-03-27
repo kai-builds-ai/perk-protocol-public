@@ -227,11 +227,23 @@ export function CreateMarketForm() {
       const marketAddress = client.getMarketAddress(tokenMint, publicKey);
       router.push(`/trade/${marketAddress.toBase58()}`);
     } catch (err: unknown) {
-      // Temporary debug: log actual error to console
+      // Temporary debug: dump EVERYTHING about the error
       console.error("[create-market] FULL ERROR:", err);
+      try {
+        console.error("[create-market] JSON:", JSON.stringify(err, Object.getOwnPropertyNames(err as object)));
+      } catch { /* ignore */ }
+      if (err && typeof err === "object") {
+        const e = err as Record<string, unknown>;
+        console.error("[create-market] keys:", Object.keys(e));
+        if (e.simulationResponse) console.error("[create-market] simulationResponse:", JSON.stringify(e.simulationResponse));
+        if (e.logs) console.error("[create-market] logs:", JSON.stringify(e.logs));
+        if (e.error) console.error("[create-market] .error:", JSON.stringify(e.error));
+        if (e.cause) console.error("[create-market] .cause:", e.cause);
+        if (e.code) console.error("[create-market] .code:", e.code);
+        if ((e as any).simulationLogs) console.error("[create-market] simulationLogs:", (e as any).simulationLogs);
+      }
       if (err instanceof Error) {
         console.error("[create-market] message:", err.message);
-        console.error("[create-market] stack:", err.stack);
       }
       toast.error(sanitizeError(err, "create-market"));
     } finally {
