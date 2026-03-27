@@ -35,7 +35,7 @@ async function fetchGeckoTerminalCandles(
     if (!Array.isArray(list) || list.length === 0) return [];
 
     // 3. Map to CandleData format [timestamp, open, high, low, close, volume]
-    return list
+    const raw = list
       .map((c: number[]) => ({
         time: c[0] as number,
         open: c[1],
@@ -43,7 +43,22 @@ async function fetchGeckoTerminalCandles(
         low: c[3],
         close: c[4],
       }))
+      .filter((c: CandleData) => c.open > 0 && c.close > 0 && c.high > 0 && c.low > 0)
       .sort((a: CandleData, b: CandleData) => (a.time as number) - (b.time as number));
+
+    // 4. Clamp extreme wicks — cap high/low to 3x the open/close range
+    //    This prevents single-candle liquidity spikes from crushing the chart
+    return raw.map((c: CandleData) => {
+      const body = Math.max(c.open, c.close);
+      const bodyLow = Math.min(c.open, c.close);
+      const maxWick = body * 3;
+      const minWick = bodyLow / 3;
+      return {
+        ...c,
+        high: Math.min(c.high, maxWick),
+        low: Math.max(c.low, minWick),
+      };
+    });
   } catch {
     return [];
   }

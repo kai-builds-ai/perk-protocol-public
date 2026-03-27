@@ -41,6 +41,16 @@ export const Chart = memo(function Chart({ data, symbol }: ChartProps) {
         },
         rightPriceScale: {
           borderColor: COLORS.border,
+          mode: (() => {
+            // Auto-detect if log scale is needed (price range > 5x)
+            if (data.length > 1) {
+              const prices = data.flatMap(d => [d.open, d.high, d.low, d.close]).filter(p => p > 0);
+              const min = Math.min(...prices);
+              const max = Math.max(...prices);
+              if (min > 0 && max / min > 5) return 1; // logarithmic
+            }
+            return 0; // normal
+          })(),
         },
         timeScale: {
           borderColor: COLORS.border,
