@@ -42,22 +42,7 @@ jobs:
           echo "=== On-chain program hash ==="
           solana-verify get-program-hash --url "${{ secrets.HELIUS_RPC_URL }}" ${{ env.PROGRAM_ID }} || true
 
-      - name: Write deployer keypair
-        run: echo '${{ secrets.DEPLOYER_KEYPAIR }}' > /tmp/deployer.json
-
-      - name: Deploy verified build to mainnet
-        run: |
-          solana config set --url "${{ secrets.HELIUS_RPC_URL }}"
-          solana program deploy \
-            target/deploy/${{ env.PROGRAM_LIB_NAME }}.so \
-            --program-id ${{ env.PROGRAM_ID }} \
-            --keypair /tmp/deployer.json \
-            --url "${{ secrets.HELIUS_RPC_URL }}" \
-            --with-compute-unit-price 50000
-
-      - name: Clean up deployer key
-        if: always()
-        run: rm -f /tmp/deployer.json
+      # Deploy step skipped — verified binary already on-chain from previous run
 
       - name: Verify against public repo
         run: |
@@ -69,7 +54,7 @@ jobs:
           solana-verify get-program-hash --url "${{ secrets.HELIUS_RPC_URL }}" ${{ env.PROGRAM_ID }} || true
           echo ""
           echo "=== Running verify-from-repo ==="
-          solana-verify verify-from-repo \
+          echo "y" | solana-verify verify-from-repo \
             -um \
             --program-id ${{ env.PROGRAM_ID }} \
             ${{ env.PUBLIC_REPO }} \
