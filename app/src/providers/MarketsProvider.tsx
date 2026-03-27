@@ -14,6 +14,7 @@ import {
 import { Market, OracleSource } from "@/types";
 import { usePerk } from "@/providers/PerkProvider";
 import { TOKEN_META, getTokenDecimals, setTokenDecimals } from "@/lib/token-meta";
+import { fetch24hChanges } from "@/lib/price-change";
 import { useConnection } from "@solana/wallet-adapter-react";
 import { getMint } from "@solana/spl-token";
 
@@ -149,6 +150,16 @@ export function MarketsProvider({ children }: { children: React.ReactNode }) {
 
       const mapped = raw.map((r) => toFrontendMarket(r.address, r.account));
       mapped.sort((a, b) => a.marketIndex - b.marketIndex);
+
+      // Fetch 24h price changes from CoinGecko (cached, max 1 req/60s)
+      const mints = mapped.map((m) => m.tokenMint);
+      const changes = await fetch24hChanges(mints);
+      for (const m of mapped) {
+        if (changes[m.tokenMint] != null) {
+          m.change24h = changes[m.tokenMint];
+        }
+      }
+
       setMarkets(mapped);
       setError(null);
     } catch (err: any) {
