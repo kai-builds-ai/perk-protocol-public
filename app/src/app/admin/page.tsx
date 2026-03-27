@@ -877,6 +877,25 @@ function UnfreezeAllOracles({
 
 // ── Section 3: Markets Table ──
 
+function formatTokenAmount(raw: BN, decimals: number): string {
+  if (raw.isZero()) return '0';
+  const str = raw.toString().padStart(decimals + 1, '0');
+  const whole = str.slice(0, -decimals) || '0';
+  const frac = str.slice(-decimals).replace(/0+$/, '');
+  return frac ? `${whole}.${frac.slice(0, 6)}` : whole;
+}
+
+// Common collateral mints → label + decimals
+const COLLATERAL_META: Record<string, { label: string; decimals: number }> = {
+  'So11111111111111111111111111111111111111112': { label: 'SOL', decimals: 9 },
+  'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v': { label: 'USDC', decimals: 6 },
+  'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB': { label: 'USDT', decimals: 6 },
+};
+
+function getCollateralInfo(mint: string): { label: string; decimals: number } {
+  return COLLATERAL_META[mint] ?? { label: mint.slice(0, 6), decimals: 6 };
+}
+
 function MarketsTable({
   markets,
   selectedMarket,
@@ -886,6 +905,27 @@ function MarketsTable({
   selectedMarket: MarketWithAddress | null;
   onSelectMarket: (m: MarketWithAddress | null) => void;
 }) {
+  // Group claimable fees by collateral token
+  const feesByCollateral: Record<string, { label: string; total: number; markets: { mint: string; amount: number }[] }> = {};
+  for (const m of markets) {
+    const collateralMint = m.account.collateralMint.toBase58();
+    const { label, decimals } = getCollateralInfo(collateralMint);
+    const rawAmount = m.account.creatorClaimableFees?.toNumber() ?? 0;
+    const amount = rawAmount / (10 ** decimals);
+    if (!feesByCollateral[collateralMint]) {
+      feesByCollateral[collateralMint] = { label, total: 0, markets: [] };
+    }
+    feesByCollateral[collateralMint].total += amount;
+    if (amount > 0) {
+      feesByCollateral[collateralMint].markets.push({
+        mint: m.account.tokenMint.toBase58(),
+        amount,
+      });
+    }
+  }
+
+  const hasClaimable = Object.values(feesByCollateral).some(f => f.total > 0);
+
   return (
     <section className="border border-border rounded-[2px] bg-surface">
       <div className="px-5 py-3 border-b border-border flex items-center justify-between">
@@ -893,6 +933,38 @@ function MarketsTable({
           Markets ({markets.length})
         </span>
       </div>
+
+      {/* Claimable Fees Summary */}
+      {hasClaimable && (
+        <div className="px-5 py-3 border-b border-border bg-profit/[0.03]">
+          <div className="flex items-center gap-3">
+            <span className="font-mono text-xs text-profit uppercase tracking-wider">
+              Claimable Fees
+            </span>
+            <div className="flex flex-wrap gap-3">
+              {Object.entries(feesByCollateral).map(([mint, info]) =>
+                info.total > 0 ? (
+                  <span key={mint} className="font-mono text-sm text-white">
+                    {info.total.toFixed(6)} {info.label}
+                  </span>
+                ) : null
+              )}
+            </div>
+          </div>
+          {Object.entries(feesByCollateral).some(([, info]) => info.markets.length > 1) && (
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+              {Object.entries(feesByCollateral).flatMap(([, info]) =>
+                info.markets.map(m => (
+                  <span key={m.mint} className="text-xs text-text-secondary font-mono">
+                    {truncatePubkey(m.mint)}: {m.amount.toFixed(6)} {info.label}
+                  </span>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {markets.length === 0 ? (
         <div className="px-5 py-8 text-center text-sm text-text-secondary font-sans">
           No markets found
@@ -907,13 +979,17 @@ function MarketsTable({
                 <Th>Oracle</Th>
                 <Th align="right">Max Lev</Th>
                 <Th align="right">Fee (bps)</Th>
-                <Th align="right">K</Th>
+                <Th align="right">Claimable</Th>
                 <Th align="right" />
               </tr>
             </thead>
             <tbody>
               {markets.map((m) => {
                 const isSelected = selectedMarket?.address.equals(m.address);
+                const collateralMint = m.account.collateralMint.toBase58();
+                const { label: collateralLabel, decimals } = getCollateralInfo(collateralMint);
+                const claimableRaw = m.account.creatorClaimableFees?.toNumber() ?? 0;
+                const claimable = claimableRaw / (10 ** decimals);
                 return (
                   <tr
                     key={m.address.toBase58()}
@@ -931,7 +1007,11 @@ function MarketsTable({
                     <Td>{oracleSourceLabel(m.account.oracleSource)}</Td>
                     <Td align="right" mono>{m.account.maxLeverage / LEVERAGE_SCALE}x</Td>
                     <Td align="right" mono>{m.account.tradingFeeBps}</Td>
-                    <Td align="right" mono>{m.account.k.toString().slice(0, 8)}...</Td>
+                    <Td align="right" mono>
+                      <span className={claimable > 0 ? 'text-profit' : 'text-text-tertiary'}>
+                        {claimable > 0 ? `${claimable.toFixed(4)} ${collateralLabel}` : '—'}
+                      </span>
+                    </Td>
                     <Td align="right">
                       <button
                         className="font-mono text-xs text-text-secondary hover:text-white transition-colors"
