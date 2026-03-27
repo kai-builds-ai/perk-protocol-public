@@ -59,28 +59,22 @@ jobs:
         if: always()
         run: rm -f /tmp/deployer.json
 
-      - name: Verify hashes match
+      - name: Verify against public repo
         run: |
           echo "=== Post-deploy verification ==="
-          LOCAL_HASH=$(solana-verify get-executable-hash target/deploy/${{ env.PROGRAM_LIB_NAME }}.so)
-          ONCHAIN_HASH=$(solana-verify get-program-hash --url "${{ secrets.HELIUS_RPC_URL }}" ${{ env.PROGRAM_ID }})
-          echo "Local hash:   $LOCAL_HASH"
-          echo "Onchain hash: $ONCHAIN_HASH"
-          if [ "$LOCAL_HASH" = "$ONCHAIN_HASH" ]; then
-            echo "✅ VERIFIED — hashes match!"
-          else
-            echo "❌ MISMATCH"
-            exit 1
-          fi
-
-      - name: Submit remote verification to OtterSec
-        run: |
+          echo "Local executable hash:"
+          solana-verify get-executable-hash target/deploy/${{ env.PROGRAM_LIB_NAME }}.so
+          echo ""
+          echo "On-chain program hash:"
+          solana-verify get-program-hash --url "${{ secrets.HELIUS_RPC_URL }}" ${{ env.PROGRAM_ID }} || true
+          echo ""
+          echo "=== Running verify-from-repo ==="
           solana-verify verify-from-repo \
             -um \
             --program-id ${{ env.PROGRAM_ID }} \
             ${{ env.PUBLIC_REPO }} \
             --commit-hash ${{ github.sha }} \
-            --library-name ${{ env.PROGRAM_LIB_NAME }} || echo "Remote verification submitted (may take time to complete)"
+            --library-name ${{ env.PROGRAM_LIB_NAME }}
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
