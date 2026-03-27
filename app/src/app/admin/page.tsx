@@ -269,6 +269,7 @@ function AdminDashboard({
             market={selectedMarket}
             onRefresh={fetchData}
             onClose={() => setSelectedMarket(null)}
+            autoScroll
           />
         )}
       </div>
@@ -1099,17 +1100,26 @@ function MarketEditPanel({
   market,
   onRefresh,
   onClose,
+  autoScroll,
 }: {
   client: NonNullable<ReturnType<typeof usePerk>['client']>;
   market: MarketWithAddress;
   onRefresh: () => Promise<void>;
   onClose: () => void;
+  autoScroll?: boolean;
 }) {
   const m = market.account;
   const mintStr = m.tokenMint.toBase58();
+  const panelRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (autoScroll && panelRef.current) {
+      panelRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [autoScroll]);
 
   return (
-    <section className="border border-border rounded-[2px] bg-surface">
+    <section ref={panelRef} className="border border-border rounded-[2px] bg-surface">
       <div className="px-5 py-3 border-b border-border flex items-center justify-between">
         <div className="flex items-center gap-3">
           <span className="font-mono text-xs text-text-tertiary uppercase tracking-wider">
