@@ -4,7 +4,7 @@
 /// Uses oracle-derived equity for deficit. enqueue_adl uses risk::Side enum.
 
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Token, TokenAccount, Transfer};
+use anchor_spl::token_interface::{self, TokenInterface, TokenAccount, TransferChecked, Mint};
 use crate::engine::{vamm, risk, warmup, oracle, liquidation as liq_engine};
 use crate::errors::PerkError;
 use crate::state::{Market, Protocol, UserPosition};
@@ -41,24 +41,28 @@ pub struct Liquidate<'info> {
     /// CHECK: Target user whose position is being liquidated
     pub target_user: UncheckedAccount<'info>,
 
+    /// Token mint (needed for transfer_checked — validated against market)
+    #[account(constraint = token_mint.key() == market.token_mint @ PerkError::TokenMintMismatch)]
+    pub token_mint: InterfaceAccount<'info, Mint>,
+
     #[account(
         mut,
         constraint = liquidator_token_account.mint == market.token_mint,
         constraint = liquidator_token_account.owner == liquidator.key(),
     )]
-    pub liquidator_token_account: Account<'info, TokenAccount>,
+    pub liquidator_token_account: InterfaceAccount<'info, TokenAccount>,
 
     #[account(
         mut,
         seeds = [b"vault", market.key().as_ref()],
         bump = market.vault_bump,
     )]
-    pub vault: Account<'info, TokenAccount>,
+    pub vault: InterfaceAccount<'info, TokenAccount>,
 
     #[account(mut)]
     pub liquidator: Signer<'info>,
 
-    pub token_program: Program<'info, Token>,
+    pub token_program: Interface<'info, TokenInterface>,
 }
 
 pub fn handler(ctx: Context<Liquidate>) -> Result<()> {
@@ -180,18 +184,21 @@ pub fn handler(ctx: Context<Liquidate>) -> Result<()> {
             let seeds = &[b"market" as &[u8], token_mint_key.as_ref(), creator_key.as_ref(), &[market_bump]];
             let signer_seeds = &[&seeds[..]];
 
-            let cpi_accounts = Transfer {
+            let decimals = ctx.accounts.token_mint.decimals;
+            let cpi_accounts = TransferChecked {
                 from: ctx.accounts.vault.to_account_info(),
+                mint: ctx.accounts.token_mint.to_account_info(),
                 to: ctx.accounts.liquidator_token_account.to_account_info(),
                 authority: market_account_info.clone(),
             };
-            token::transfer(
+            token_interface::transfer_checked(
                 CpiContext::new_with_signer(
                     ctx.accounts.token_program.to_account_info(),
                     cpi_accounts,
                     signer_seeds,
                 ),
                 actual_reward,
+                decimals,
             )?;
             market.vault_balance = market.vault_balance.checked_sub(actual_reward as u128)
                 .ok_or(PerkError::MathOverflow)?;
