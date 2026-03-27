@@ -25,6 +25,28 @@ import { sanitizeError } from "@/lib/error-utils";
 // to accept oracle accounts as instruction parameters per-transaction).
 // All tokens use PerkOracle for now — cranker maintains prices from Jupiter+Birdeye.
 
+/** Supported collateral stablecoins (all 6 decimals) */
+const COLLATERAL_OPTIONS = [
+  {
+    mint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+    symbol: "USDC",
+    name: "USD Coin",
+    logoUrl: "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v/logo.png",
+  },
+  {
+    mint: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+    symbol: "USDT",
+    name: "Tether USD",
+    logoUrl: "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB/logo.svg",
+  },
+  {
+    mint: "2b1kV6DkPAnxd5ixfnxCpjxmKwqjjaYmCZfHsFu24GXo",
+    symbol: "PYUSD",
+    name: "PayPal USD",
+    logoUrl: "https://assets.coingecko.com/coins/images/31212/small/PYUSD_Logo_%282%29.png",
+  },
+] as const;
+
 /** Validate a string as a Solana public key */
 function isValidPubkey(s: string): boolean {
   try {
@@ -56,6 +78,7 @@ export function CreateMarketForm() {
   const [showDropdown, setShowDropdown] = useState(false);
   const [maxLeverage, setMaxLeverage] = useState(10);
   const [tradingFee, setTradingFee] = useState(0.1);
+  const [collateralMint, setCollateralMint] = useState(COLLATERAL_OPTIONS[0].mint);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Jupiter token list
@@ -349,12 +372,17 @@ export function CreateMarketForm() {
       const tradingFeeBps = Math.round(tradingFee * 100); // 0.10% → 10 bps
       const maxLeverageScaled = maxLeverage * LEVERAGE_SCALE;
 
-      const sig = await client.createMarket(tokenMint, oracle, {
-        oracleSource,
-        maxLeverage: maxLeverageScaled,
-        tradingFeeBps,
-        initialK,
-      });
+      const sig = await client.createMarket(
+        tokenMint,
+        oracle,
+        {
+          oracleSource,
+          maxLeverage: maxLeverageScaled,
+          tradingFeeBps,
+          initialK,
+        },
+        new PublicKey(collateralMint),
+      );
 
       toast.success("Market created!\nTX: " + sig.slice(0, 16) + "...");
 
@@ -394,6 +422,7 @@ export function CreateMarketForm() {
     tradingFee,
     maxLeverage,
     initialK,
+    collateralMint,
     readonlyClient,
     router,
   ]);
@@ -526,6 +555,38 @@ export function CreateMarketForm() {
           <div className="border-t border-border pt-4 space-y-5">
             <div className="text-xs font-sans text-text-secondary uppercase tracking-wider mb-3">
               Parameters
+            </div>
+
+            {/* Collateral Stablecoin */}
+            <div>
+              <label className="text-xs font-sans text-text-secondary block mb-2">
+                Collateral
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {COLLATERAL_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.mint}
+                    type="button"
+                    onClick={() => setCollateralMint(opt.mint)}
+                    className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-[4px] border text-xs font-sans transition-colors duration-100 ${
+                      collateralMint === opt.mint
+                        ? "border-emerald-500/60 bg-emerald-500/[0.06] text-white"
+                        : "border-zinc-800 text-text-secondary hover:border-zinc-600 hover:text-white"
+                    }`}
+                  >
+                    <img
+                      src={opt.logoUrl}
+                      alt={opt.symbol}
+                      className="w-4 h-4 rounded-full"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                    />
+                    {opt.symbol}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[10px] text-text-tertiary mt-1.5 font-sans">
+                All traders on this market will use {COLLATERAL_OPTIONS.find(o => o.mint === collateralMint)?.symbol ?? "this stablecoin"} as collateral.
+              </p>
             </div>
 
             {/* Max Leverage */}
