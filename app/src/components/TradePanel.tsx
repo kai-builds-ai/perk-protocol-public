@@ -53,27 +53,29 @@ export function TradePanel({ market }: TradePanelProps) {
 
   const sizeNum = parseFloat(size) || 0;
 
+  // Size = collateral amount. Position = Size × Leverage.
+  const positionSize = sizeNum * leverage;
+
   const estimates = useMemo(() => {
     if (!sizeNum) return null;
     const entryPrice =
       tab === "limit" || tab === "stop"
         ? parseFloat(triggerPrice) || market.markPrice
         : market.markPrice;
-    const fee = sizeNum * entryPrice * (market.tradingFeeBps / 10000);
-    const margin = (sizeNum * entryPrice) / leverage;
+    const notional = positionSize * entryPrice;
+    const fee = notional * (market.tradingFeeBps / 10000);
+    const margin = sizeNum * entryPrice; // collateral in USD
     const liqDistance = margin * 0.95;
     const liqPrice =
       side === Side.Long
-        ? entryPrice - liqDistance / sizeNum
-        : entryPrice + liqDistance / sizeNum;
+        ? entryPrice - liqDistance / positionSize
+        : entryPrice + liqDistance / positionSize;
     // M-04 fix: estimate slippage from vAMM constant product (x*y=k)
-    // After a buy of `dx` base: new_price = k / (base - dx)^2 * peg
-    // Slippage ≈ dx / base for small trades, higher for large
     const slippagePct = market.baseReserve > 0
-      ? Math.abs(sizeNum) / market.baseReserve
+      ? Math.abs(positionSize) / market.baseReserve
       : 0;
     return { entryPrice, fee, liqPrice: Math.max(0, liqPrice), slippage: slippagePct };
-  }, [sizeNum, market, leverage, side, tab, triggerPrice]);
+  }, [sizeNum, positionSize, market, leverage, side, tab, triggerPrice]);
 
   const isLong = side === Side.Long;
 
@@ -124,7 +126,8 @@ export function TradePanel({ market }: TradePanelProps) {
           return;
         }
 
-        const baseSize = new BN(Math.floor(sizeNum * POS_SCALE));
+        // Size = collateral. Position = size × leverage.
+        const baseSize = new BN(Math.floor(positionSize * POS_SCALE));
         const leverageScaled = Math.floor(leverage * LEVERAGE_SCALE);
 
         const sig = await client.openPosition(
@@ -182,7 +185,7 @@ export function TradePanel({ market }: TradePanelProps) {
         const sig = await client.placeTriggerOrder(tokenMint, creator, {
           orderType,
           side: sdkSide,
-          size: new BN(Math.floor(sizeNum * POS_SCALE)),
+          size: new BN(Math.floor(positionSize * POS_SCALE)),
           triggerPrice: new BN(Math.floor(price * PRICE_SCALE)),
           leverage: Math.floor(leverage * LEVERAGE_SCALE),
           reduceOnly,
@@ -200,7 +203,7 @@ export function TradePanel({ market }: TradePanelProps) {
       submitLockRef.current = false;
       setIsSubmitting(false);
     }
-  }, [client, publicKey, sizeNum, side, leverage, tab, triggerPrice, market]);
+  }, [client, publicKey, sizeNum, positionSize, side, leverage, tab, triggerPrice, market]);
 
   const tabs: OrderTab[] = ["market", "limit", "stop"];
 
@@ -300,6 +303,7 @@ export function TradePanel({ market }: TradePanelProps) {
         {/* Estimates */}
         {estimates && (
           <div className="space-y-1.5 py-3 border-t border-border">
+            <Row label="Position" value={`${positionSize.toFixed(4)} ${market.symbol}`} />
             <Row label="Entry" value={formatUsd(estimates.entryPrice)} />
             <Row label="Liq Price" value={formatUsd(estimates.liqPrice)} />
             <Row label="Fee" value={formatUsd(estimates.fee)} />

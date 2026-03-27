@@ -112,7 +112,7 @@ export function DepositWithdraw({ market }: DepositWithdrawProps) {
 
     // L-02 fix: client-side balance guards
     if (mode === "deposit" && walletBalance !== null && amountNum > walletBalance) {
-      toast.error("Insufficient wallet balance.");
+      toast.error("Not enough in wallet. Top up first!");
       return;
     }
     if (mode === "withdraw" && vaultBalance !== null && amountNum > vaultBalance) {
