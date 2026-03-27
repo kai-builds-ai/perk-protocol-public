@@ -16,7 +16,7 @@ import {
   createCloseAccountInstruction,
 } from "@solana/spl-token";
 import { getTokenDecimals, getTokenSymbol } from "@/lib/token-meta";
-import { PerkClient } from "@perk/sdk";
+import { PerkClient, accountEquity, LEVERAGE_SCALE, POS_SCALE, PRICE_SCALE } from "@perk/sdk";
 import { sanitizeError } from "@/lib/error-utils";
 import { simulateTransaction } from "@/lib/tx-simulation";
 
@@ -33,6 +33,7 @@ export function DepositWithdraw({ market }: DepositWithdrawProps) {
   const submitLockRef = useRef(false);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [vaultBalance, setVaultBalance] = useState<number | null>(null);
+  const [freeCollateral, setFreeCollateral] = useState<number | null>(null);
 
   const { client, readonlyClient } = usePerk();
   const { publicKey } = useWallet();
@@ -88,9 +89,20 @@ export function DepositWithdraw({ market }: DepositWithdrawProps) {
         const creator = new PublicKey(market.creator);
         const marketAddr = readonlyClient.getMarketAddress(tokenMint, creator);
         const pos = await readonlyClient.fetchPosition(marketAddr, publicKey);
-        if (!cancelled) setVaultBalance(pos.depositedCollateral.toNumber() / scale);
+        const depositedHuman = pos.depositedCollateral.toNumber() / scale;
+        if (!cancelled) setVaultBalance(depositedHuman);
+
+        // Free collateral = equity - initial margin requirement
+        const marketAccount = await readonlyClient.fetchMarket(tokenMint, creator);
+        const equity = accountEquity(pos);
+        const equityHuman = equity.toNumber() / scale;
+        const baseSize = pos.baseSize.toNumber() / POS_SCALE;
+        const maxLev = marketAccount.maxLeverage / LEVERAGE_SCALE;
+        const imBps = maxLev > 0 ? Math.floor(10000 / maxLev) : 10000;
+        const imRequired = Math.abs(baseSize) * imBps / 10000;
+        if (!cancelled) setFreeCollateral(Math.max(0, equityHuman - imRequired));
       } catch {
-        if (!cancelled) setVaultBalance(0);
+        if (!cancelled) { setVaultBalance(0); setFreeCollateral(0); }
       }
     };
 
@@ -204,6 +216,7 @@ export function DepositWithdraw({ market }: DepositWithdrawProps) {
 
   const displayWallet = walletBalance !== null ? walletBalance.toFixed(4) : "—";
   const displayVault = vaultBalance !== null ? vaultBalance.toFixed(4) : "—";
+  const displayFree = freeCollateral !== null ? freeCollateral.toFixed(4) : "—";
 
   return (
     <div className="border-b border-border p-4 space-y-3">
@@ -220,6 +233,12 @@ export function DepositWithdraw({ market }: DepositWithdrawProps) {
         <span className="text-text-secondary font-sans">Vault</span>
         <span className="font-mono text-white">
           {displayVault} {collateralSymbol}
+        </span>
+      </div>
+      <div className="flex items-center justify-between text-sm">
+        <span className="text-text-secondary font-sans">Free</span>
+        <span className="font-mono text-profit">
+          {displayFree} {collateralSymbol}
         </span>
       </div>
       <div className="flex gap-2 pt-1">
