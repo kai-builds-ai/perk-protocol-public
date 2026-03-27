@@ -54,9 +54,13 @@ function toFrontendPosition(
 
   const quoteEntry = pos.quoteEntryAmount.toNumber();
 
-  // Entry price: quoteEntryAmount / |baseSize| (both POS_SCALE-scaled, ratio cancels)
+  // Entry price: quoteEntryAmount is raw vAMM quote (no peg), must apply peg_multiplier
+  // entryPrice = (quoteEntry * pegMultiplier) / (|baseSize| * PRICE_SCALE)
   const absBasis = Math.abs(pos.baseSize.toNumber());
-  const entryPrice = absBasis > 0 ? quoteEntry / absBasis : 0;
+  const pegMultiplier = market.pegMultiplier.toNumber();
+  const entryPrice = absBasis > 0
+    ? (quoteEntry * pegMultiplier) / (absBasis * PRICE_SCALE)
+    : 0;
 
   // PnL: use SDK's accountEquity which handles ADL, funding, fee credits (F-04 fix)
   const equity = accountEquity(pos);
