@@ -17,7 +17,7 @@ import { usePythCandles } from "@/hooks/usePythCandles";
 export default function TradingView() {
   const params = useParams();
   const marketKey = params.market as string;
-  const { market } = useMarket(marketKey);
+  const { market, loading } = useMarket(marketKey);
   const symbol = market?.symbol ?? "";
   const marketAddress = market?.address ?? null;
   const { positions, triggerOrders } = usePositionsForMarket(marketAddress);
@@ -27,12 +27,15 @@ export default function TradingView() {
   );
   const { candles, isReal } = usePythCandles(symbol, "60", 200);
 
+  // Show loading state while markets are being fetched (e.g., after market creation redirect)
   if (!market) {
     return (
       <div className="flex flex-col h-screen">
         <TopBar />
         <div className="flex-1 flex items-center justify-center text-text-secondary font-sans text-sm">
-          Market not found: {marketKey}
+          {loading
+            ? "Loading market..."
+            : `Market not found: ${marketKey?.slice(0, 12)}...`}
         </div>
       </div>
     );

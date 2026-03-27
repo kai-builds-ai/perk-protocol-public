@@ -223,6 +223,9 @@ export function CreateMarketForm() {
 
       toast.success("Market created!\nTX: " + sig.slice(0, 16) + "...");
 
+      // Brief delay to let the account finalize before redirecting
+      await new Promise((r) => setTimeout(r, 2000));
+
       // Redirect to the new market's trade page using PDA address
       const marketAddress = client.getMarketAddress(tokenMint, publicKey);
       router.push(`/trade/${marketAddress.toBase58()}`);
