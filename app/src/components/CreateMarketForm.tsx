@@ -1,9 +1,7 @@
 "use client";
 
-import React, { useState, useMemo, useCallback } from "react";
-import { MOCK_TOKEN_LIST } from "@/lib/mock-data";
+import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { TokenLogo } from "./TokenLogo";
-import { formatUsdCompact } from "@/lib/format";
 import { usePerk } from "@/providers/PerkProvider";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useConnection } from "@solana/wallet-adapter-react";
@@ -15,10 +13,13 @@ import {
   MIN_INITIAL_K,
 } from "@perk/sdk";
 import { useRouter } from "next/navigation";
-import { getTokenMeta } from "@/lib/token-metadata";
+import { getTokenLogo, getTokenInfo } from "@/lib/token-metadata";
 import toast from "react-hot-toast";
+import { sanitizeError } from "@/lib/error-utils";
 
-type OracleChoice = "perkOracle" | "pyth" | "dexPool";
+// NOTE: Pyth Pull Oracle integration deferred to v2 (requires program upgrade
+// to accept oracle accounts as instruction parameters per-transaction).
+// All tokens use PerkOracle for now — cranker maintains prices from Jupiter+Birdeye.
 
 /** Validate a string as a Solana public key */
 function isValidPubkey(s: string): boolean {
@@ -30,6 +31,14 @@ function isValidPubkey(s: string): boolean {
   }
 }
 
+interface TokenInfo {
+  mint: string;
+  symbol: string;
+  name: string;
+  decimals: number;
+  logoUrl: string | null;
+}
+
 interface ResolvedToken {
   mint: string;
   symbol: string;
@@ -39,36 +48,92 @@ interface ResolvedToken {
 
 export function CreateMarketForm() {
   const [search, setSearch] = useState("");
-  const [selectedToken, setSelectedToken] = useState<
-    (typeof MOCK_TOKEN_LIST)[0] | null
-  >(null);
+  const [selectedToken, setSelectedToken] = useState<TokenInfo | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
-  const [oracleSource, setOracleSource] = useState<OracleChoice>("perkOracle");
-  const [oracleAddress, setOracleAddress] = useState(""); // for pyth/dexPool
   const [maxLeverage, setMaxLeverage] = useState(10);
   const [tradingFee, setTradingFee] = useState(0.1);
-  const [initialDepth, setInitialDepth] = useState(50);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Jupiter token list
+  const [jupiterTokens, setJupiterTokens] = useState<TokenInfo[]>([]);
+  const [tokensLoading, setTokensLoading] = useState(true);
+  const [tokensError, setTokensError] = useState(false);
 
   // Custom mint address input (when pasting an address not in the list)
   const [customMint, setCustomMint] = useState<ResolvedToken | null>(null);
   const [resolvingMint, setResolvingMint] = useState(false);
+
+  // Outside-click dismiss ref
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const { client, readonlyClient } = usePerk();
   const { publicKey } = useWallet();
   const { connection } = useConnection();
   const router = useRouter();
 
-  const filtered = useMemo(() => {
-    if (!search) return MOCK_TOKEN_LIST;
-    const q = search.toLowerCase();
-    return MOCK_TOKEN_LIST.filter(
-      (t) =>
-        t.symbol.toLowerCase().includes(q) ||
-        t.name.toLowerCase().includes(q) ||
-        t.mint.toLowerCase().includes(q)
-    );
+  // Search Jupiter tokens API on query change (debounced)
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  useEffect(() => {
+    if (!search || search.length < 2) {
+      setJupiterTokens([]);
+      setTokensLoading(false);
+      setTokensError(false);
+      return;
+    }
+    setTokensLoading(true);
+    clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `https://api.jup.ag/tokens/v2/search?query=${encodeURIComponent(search)}&limit=20`,
+          { headers: { "x-api-key": process.env.NEXT_PUBLIC_JUPITER_API_KEY || "" } }
+        );
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data: Array<{
+          id: string;
+          symbol: string;
+          name: string;
+          decimals: number;
+          icon: string;
+          isVerified: boolean;
+        }> = await res.json();
+        setJupiterTokens(
+          data
+            .filter((t) => t.isVerified)
+            .map((t) => ({
+              mint: t.id,
+              symbol: t.symbol,
+              name: t.name,
+              decimals: t.decimals,
+              logoUrl: t.icon || null,
+            }))
+        );
+        setTokensError(false);
+      } catch {
+        setTokensError(true);
+      } finally {
+        setTokensLoading(false);
+      }
+    }, 300);
+    return () => clearTimeout(searchTimerRef.current);
   }, [search]);
+
+  // Outside-click dismiss
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
+        setShowDropdown(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Jupiter search is server-side, results are already filtered
+  const filtered = jupiterTokens;
 
   // Resolve a pasted mint address
   const handleSearchChange = useCallback(
@@ -78,16 +143,19 @@ export function CreateMarketForm() {
       setCustomMint(null);
       setShowDropdown(true);
 
-      // If it looks like a valid pubkey and not in the known list, resolve it
-      if (isValidPubkey(value) && !MOCK_TOKEN_LIST.find((t) => t.mint === value)) {
+      // If it looks like a valid pubkey and not in the Jupiter list, resolve it
+      if (
+        isValidPubkey(value) &&
+        !jupiterTokens.find((t) => t.mint === value)
+      ) {
         setResolvingMint(true);
         try {
-          const meta = await getTokenMeta(value, connection);
+          const info = await getTokenInfo(value, connection);
           setCustomMint({
             mint: value,
-            symbol: meta.symbol,
-            name: meta.name,
-            logoUrl: meta.logoUrl,
+            symbol: info.symbol || value.slice(0, 4) + "...",
+            name: info.name || "Custom Token",
+            logoUrl: info.logoUrl,
           });
         } catch {
           setCustomMint({
@@ -101,7 +169,7 @@ export function CreateMarketForm() {
         }
       }
     },
-    [connection]
+    [connection, jupiterTokens]
   );
 
   const revenue = useMemo(() => {
@@ -113,32 +181,10 @@ export function CreateMarketForm() {
     };
   }, [tradingFee]);
 
-  // Map initial depth slider to K value
-  const initialK = useMemo(() => {
-    if (initialDepth < 33) {
-      // Low: 1e18
-      return MIN_INITIAL_K;
-    } else if (initialDepth < 66) {
-      // Medium: 1e19
-      return MIN_INITIAL_K.mul(new BN(10));
-    } else {
-      // High: 1e20
-      return MIN_INITIAL_K.mul(new BN(100));
-    }
-  }, [initialDepth]);
+  // Default K = Medium (1e19)
+  const initialK = MIN_INITIAL_K.mul(new BN(10));
 
   const selectedMint = selectedToken?.mint ?? customMint?.mint ?? null;
-
-  const sdkOracleSource = useMemo(() => {
-    switch (oracleSource) {
-      case "perkOracle":
-        return SdkOracleSource.PerkOracle;
-      case "pyth":
-        return SdkOracleSource.Pyth;
-      case "dexPool":
-        return SdkOracleSource.DexPool;
-    }
-  }, [oracleSource]);
 
   const handleCreate = useCallback(async () => {
     if (!selectedMint) return;
@@ -148,38 +194,28 @@ export function CreateMarketForm() {
       return;
     }
 
-    if ((oracleSource === "pyth" || oracleSource === "dexPool") && !isValidPubkey(oracleAddress)) {
-      toast.error("Please enter a valid oracle address.");
-      return;
-    }
-
     setIsSubmitting(true);
     try {
       const tokenMint = new PublicKey(selectedMint);
 
-      // Determine oracle address
-      let oracle: PublicKey;
-      if (oracleSource === "perkOracle") {
-        // Check if PerkOracle exists for this token
-        const existing = await readonlyClient.fetchPerkOracleNullable(tokenMint);
-        if (!existing) {
-          toast.error(
-            "No PerkOracle exists for this token yet. " +
-            "Please contact the protocol admin to initialize one, or use Pyth/DexPool oracle."
-          );
-          setIsSubmitting(false);
-          return;
-        }
-        oracle = readonlyClient.getPerkOracleAddress(tokenMint);
-      } else {
-        oracle = new PublicKey(oracleAddress);
+      // All tokens use PerkOracle (cranker-maintained from Jupiter+Birdeye feeds)
+      // Pyth Pull Oracle deferred to v2 (requires program upgrade)
+      const existing = await readonlyClient.fetchPerkOracleNullable(tokenMint);
+      if (!existing) {
+        toast.error(
+          "No oracle exists for this token yet. The cranker needs to initialize a PerkOracle first — make sure the cranker is running and funded."
+        );
+        setIsSubmitting(false);
+        return;
       }
+      const oracle = readonlyClient.getPerkOracleAddress(tokenMint);
+      const oracleSource = SdkOracleSource.PerkOracle;
 
       const tradingFeeBps = Math.round(tradingFee * 100); // 0.10% → 10 bps
       const maxLeverageScaled = maxLeverage * LEVERAGE_SCALE;
 
       const sig = await client.createMarket(tokenMint, oracle, {
-        oracleSource: sdkOracleSource,
+        oracleSource,
         maxLeverage: maxLeverageScaled,
         tradingFeeBps,
         initialK,
@@ -187,13 +223,32 @@ export function CreateMarketForm() {
 
       toast.success("Market created!\nTX: " + sig.slice(0, 16) + "...");
 
-      // Redirect to the new market's trade page
-      const symbol = selectedToken?.symbol ?? customMint?.symbol ?? selectedMint.slice(0, 4);
-      router.push(`/trade/${symbol.toLowerCase()}`);
+      // Brief delay to let the account finalize before redirecting
+      await new Promise((r) => setTimeout(r, 2000));
+
+      // Redirect to the new market's trade page using PDA address
+      const marketAddress = client.getMarketAddress(tokenMint, publicKey);
+      router.push(`/trade/${marketAddress.toBase58()}`);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.error("Create market failed:", err);
-      toast.error("Failed to create market: " + message);
+      // Temporary debug: dump EVERYTHING about the error
+      console.error("[create-market] FULL ERROR:", err);
+      try {
+        console.error("[create-market] JSON:", JSON.stringify(err, Object.getOwnPropertyNames(err as object)));
+      } catch { /* ignore */ }
+      if (err && typeof err === "object") {
+        const e = err as Record<string, unknown>;
+        console.error("[create-market] keys:", Object.keys(e));
+        if (e.simulationResponse) console.error("[create-market] simulationResponse:", JSON.stringify(e.simulationResponse));
+        if (e.logs) console.error("[create-market] logs:", JSON.stringify(e.logs));
+        if (e.error) console.error("[create-market] .error:", JSON.stringify(e.error));
+        if (e.cause) console.error("[create-market] .cause:", e.cause);
+        if (e.code) console.error("[create-market] .code:", e.code);
+        if ((e as any).simulationLogs) console.error("[create-market] simulationLogs:", (e as any).simulationLogs);
+      }
+      if (err instanceof Error) {
+        console.error("[create-market] message:", err.message);
+      }
+      toast.error(sanitizeError(err, "create-market"));
     } finally {
       setIsSubmitting(false);
     }
@@ -201,15 +256,10 @@ export function CreateMarketForm() {
     client,
     publicKey,
     selectedMint,
-    oracleSource,
-    oracleAddress,
     tradingFee,
     maxLeverage,
     initialK,
-    sdkOracleSource,
     readonlyClient,
-    selectedToken,
-    customMint,
     router,
   ]);
 
@@ -224,7 +274,7 @@ export function CreateMarketForm() {
 
         <div className="p-4 space-y-5">
           {/* Token search */}
-          <div className="relative">
+          <div className="relative" ref={dropdownRef}>
             <label className="text-xs font-sans text-text-secondary block mb-1">
               Token
             </label>
@@ -236,8 +286,20 @@ export function CreateMarketForm() {
               placeholder="Search token or paste mint address..."
               className="w-full bg-transparent border border-zinc-800 rounded-[4px] px-3 py-2 text-sm font-mono text-white outline-none placeholder:text-text-tertiary focus:border-zinc-500 transition-colors duration-100"
             />
-            {showDropdown && !selectedToken && (filtered.length > 0 || customMint) && (
+            {showDropdown && !selectedToken && (
               <div className="absolute z-10 top-full left-0 right-0 mt-1 border border-border bg-surface rounded-[2px] max-h-48 overflow-y-auto">
+                {/* Loading state */}
+                {tokensLoading && (
+                  <div className="px-3 py-2 text-xs text-text-tertiary font-sans">
+                    Loading tokens...
+                  </div>
+                )}
+                {/* Error state */}
+                {tokensError && !tokensLoading && (
+                  <div className="px-3 py-2 text-xs text-text-tertiary font-sans">
+                    Failed to load token list. Paste a mint address instead.
+                  </div>
+                )}
                 {/* Custom mint address result */}
                 {customMint && (
                   <button
@@ -274,29 +336,39 @@ export function CreateMarketForm() {
                       setShowDropdown(false);
                     }}
                   >
-                    <TokenLogo mint={t.mint} size={20} />
+                    <TokenLogo mint={t.mint} logoUrl={t.logoUrl ?? undefined} size={20} />
                     <span className="font-sans text-sm text-white">
                       {t.symbol}
                     </span>
                     <span className="text-xs text-text-secondary">{t.name}</span>
-                    <span className="ml-auto text-xs font-mono text-text-secondary">
-                      {formatUsdCompact(t.liquidity)} liq
+                    <span className="ml-auto text-xs font-mono text-text-tertiary truncate max-w-[120px]">
+                      {t.mint.slice(0, 4)}...{t.mint.slice(-4)}
                     </span>
                   </button>
                 ))}
+                {!tokensLoading && !tokensError && filtered.length === 0 && !customMint && !resolvingMint && search.length >= 2 && (
+                  <div className="px-3 py-2 text-xs text-text-tertiary font-sans">
+                    No tokens found. Try pasting a mint address.
+                  </div>
+                )}
+                {!tokensLoading && search.length < 2 && !customMint && (
+                  <div className="px-3 py-2 text-xs text-text-tertiary font-sans">
+                    Type to search or paste a mint address.
+                  </div>
+                )}
               </div>
             )}
             {selectedToken && (
               <div className="mt-2 flex items-center gap-2 text-xs">
-                <TokenLogo mint={selectedToken.mint} size={20} />
+                <TokenLogo mint={selectedToken.mint} logoUrl={selectedToken.logoUrl ?? undefined} size={20} />
                 <span className="font-sans text-white">
                   {selectedToken.symbol}
                 </span>
                 <span className="text-text-secondary">
                   ({selectedToken.name})
                 </span>
-                <span className="text-text-secondary font-mono">
-                  {formatUsdCompact(selectedToken.liquidity)} liq
+                <span className="text-text-tertiary font-mono">
+                  {selectedToken.mint.slice(0, 4)}...{selectedToken.mint.slice(-4)}
                 </span>
               </div>
             )}
@@ -312,88 +384,17 @@ export function CreateMarketForm() {
             )}
           </div>
 
-          {/* Oracle source */}
-          <div>
-            <label className="text-xs font-sans text-text-secondary block mb-2">
-              Oracle
-            </label>
-            <div className="flex gap-3 flex-wrap">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="oracle"
-                  checked={oracleSource === "perkOracle"}
-                  onChange={() => setOracleSource("perkOracle")}
-                  className="accent-white"
-                />
-                <span
-                  className={`text-xs font-sans ${
-                    oracleSource === "perkOracle" ? "text-white" : "text-text-secondary"
-                  }`}
-                >
-                  Perk Oracle
-                </span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="oracle"
-                  checked={oracleSource === "pyth"}
-                  onChange={() => setOracleSource("pyth")}
-                  className="accent-white"
-                />
-                <span
-                  className={`text-xs font-sans ${
-                    oracleSource === "pyth" ? "text-white" : "text-text-secondary"
-                  }`}
-                >
-                  Pyth
-                </span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="oracle"
-                  checked={oracleSource === "dexPool"}
-                  onChange={() => setOracleSource("dexPool")}
-                  className="accent-white"
-                />
-                <span
-                  className={`text-xs font-sans ${
-                    oracleSource === "dexPool" ? "text-white" : "text-text-secondary"
-                  }`}
-                >
-                  DEX Pool
-                </span>
-              </label>
-            </div>
-            {/* Oracle address input (for Pyth/DexPool) */}
-            {oracleSource !== "perkOracle" && (
-              <div className="mt-2">
-                <input
-                  type="text"
-                  value={oracleAddress}
-                  onChange={(e) => setOracleAddress(e.target.value)}
-                  placeholder={
-                    oracleSource === "pyth"
-                      ? "Pyth price feed address..."
-                      : "DEX pool address..."
-                  }
-                  className="w-full bg-transparent border border-zinc-800 rounded-[4px] px-3 py-2 text-xs font-mono text-white outline-none placeholder:text-text-tertiary focus:border-zinc-500 transition-colors duration-100"
-                />
-              </div>
-            )}
-          </div>
+          {/* Oracle — always PerkOracle, cranker handles feed selection */}
 
           {/* Parameters */}
-          <div className="border-t border-border pt-4 space-y-4">
+          <div className="border-t border-border pt-4 space-y-5">
             <div className="text-xs font-sans text-text-secondary uppercase tracking-wider mb-3">
               Parameters
             </div>
 
             {/* Max Leverage */}
             <div>
-              <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-sans text-text-secondary">
                   Max Leverage
                 </span>
@@ -408,13 +409,17 @@ export function CreateMarketForm() {
                 step={1}
                 value={maxLeverage}
                 onChange={(e) => setMaxLeverage(parseInt(e.target.value))}
-                className="w-full h-1 bg-zinc-800 appearance-none cursor-pointer accent-white [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-0"
+                className="w-full h-1.5 appearance-none cursor-pointer rounded-full bg-zinc-800 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-zinc-900 [&::-webkit-slider-thumb]:shadow-[0_0_0_2px_rgba(255,255,255,0.15)] [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-zinc-900 [&::-moz-range-thumb]:cursor-pointer"
               />
+              <div className="flex justify-between mt-1.5">
+                <span className="text-[10px] font-mono text-zinc-600">2x</span>
+                <span className="text-[10px] font-mono text-zinc-600">20x</span>
+              </div>
             </div>
 
             {/* Trading Fee */}
             <div>
-              <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-sans text-text-secondary">
                   Trading Fee
                 </span>
@@ -431,35 +436,12 @@ export function CreateMarketForm() {
                 onChange={(e) =>
                   setTradingFee(parseInt(e.target.value) / 100)
                 }
-                className="w-full h-1 bg-zinc-800 appearance-none cursor-pointer accent-white [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-0"
+                className="w-full h-1.5 appearance-none cursor-pointer rounded-full bg-zinc-800 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-zinc-900 [&::-webkit-slider-thumb]:shadow-[0_0_0_2px_rgba(255,255,255,0.15)] [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-zinc-900 [&::-moz-range-thumb]:cursor-pointer"
               />
-            </div>
-
-            {/* Initial Depth */}
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-sans text-text-secondary">
-                  Initial Depth
-                </span>
-                <span className="text-xs font-mono text-white">
-                  {initialDepth < 33
-                    ? "Low"
-                    : initialDepth < 66
-                    ? "Medium"
-                    : "High"}
-                </span>
+              <div className="flex justify-between mt-1.5">
+                <span className="text-[10px] font-mono text-zinc-600">0.03%</span>
+                <span className="text-[10px] font-mono text-zinc-600">1.00%</span>
               </div>
-              <input
-                type="range"
-                min={0}
-                max={100}
-                step={1}
-                value={initialDepth}
-                onChange={(e) =>
-                  setInitialDepth(parseInt(e.target.value))
-                }
-                className="w-full h-1 bg-zinc-800 appearance-none cursor-pointer accent-white [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-0"
-              />
             </div>
           </div>
 
