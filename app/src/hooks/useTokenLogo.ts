@@ -37,6 +37,7 @@ const ALLOWED_IMAGE_ORIGINS = [
   "cf-ipfs.com",
   "nftstorage.link",
   "tokens.jup.ag",
+  "img.jup.ag",
 ];
 
 /**
