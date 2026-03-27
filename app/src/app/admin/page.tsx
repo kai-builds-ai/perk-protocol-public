@@ -635,25 +635,54 @@ function InitPerkOracle({
   const [submitting, setSubmitting] = useState(false);
   const [batchProgress, setBatchProgress] = useState('');
   const [existingOracles, setExistingOracles] = useState<Set<string>>(new Set());
+  // All on-chain oracles: mint → label (for display)
+  const [allOracleLabels, setAllOracleLabels] = useState<Map<string, string>>(new Map());
   const [checkingExisting, setCheckingExisting] = useState(true);
   const [customMintStatus, setCustomMintStatus] = useState<'idle' | 'checking' | 'exists' | 'not-found' | 'invalid'>('idle');
   const submittingRef = useRef(false);
   const customCheckTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Check which oracles already exist on mount
+  // Fetch ALL on-chain PerkOracles on mount (not just TOKEN_LIST)
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const existing = new Set<string>();
-      for (const t of TOKEN_LIST) {
-        try {
-          const oracle = await client.fetchPerkOracleNullable(new PublicKey(t.mint));
-          if (oracle) existing.add(t.mint);
-        } catch { /* skip */ }
-      }
-      if (!cancelled) {
-        setExistingOracles(existing);
-        setCheckingExisting(false);
+      try {
+        const allOracles = await client.fetchAllPerkOracles();
+        const existing = new Set<string>();
+        const labels = new Map<string, string>();
+        for (const o of allOracles) {
+          const mintStr = o.account.tokenMint.toBase58();
+          existing.add(mintStr);
+          // Try to find label from TOKEN_LIST first
+          const known = TOKEN_LIST.find(t => t.mint === mintStr);
+          if (known) {
+            labels.set(mintStr, known.label);
+          } else {
+            // Try TOKEN_META for dynamically resolved names
+            const meta = TOKEN_META[mintStr];
+            labels.set(mintStr, meta?.symbol ?? mintStr.slice(0, 6));
+          }
+        }
+        if (!cancelled) {
+          setExistingOracles(existing);
+          setAllOracleLabels(labels);
+          setCheckingExisting(false);
+        }
+      } catch {
+        // Fallback: check TOKEN_LIST one by one
+        const existing = new Set<string>();
+        const labels = new Map<string, string>();
+        for (const t of TOKEN_LIST) {
+          try {
+            const oracle = await client.fetchPerkOracleNullable(new PublicKey(t.mint));
+            if (oracle) { existing.add(t.mint); labels.set(t.mint, t.label); }
+          } catch { /* skip */ }
+        }
+        if (!cancelled) {
+          setExistingOracles(existing);
+          setAllOracleLabels(labels);
+          setCheckingExisting(false);
+        }
       }
     })();
     return () => { cancelled = true; };
@@ -704,6 +733,13 @@ function InitPerkOracle({
       );
       toast.success(`Oracle initialized — ${truncatePubkey(sig)}`);
       setExistingOracles(prev => new Set([...prev, mintStr]));
+      // Add to labels so it shows in the chip list
+      const known = TOKEN_LIST.find(t => t.mint === mintStr);
+      const meta = TOKEN_META[mintStr];
+      const label = known?.label ?? meta?.symbol ?? mintStr.slice(0, 6);
+      setAllOracleLabels(prev => new Map([...prev, [mintStr, label]]));
+      setCustomMint('');
+      setCustomMintStatus('idle');
       await onRefresh();
     } catch (err) {
       toast.error(sanitizeError(err, 'admin'));
@@ -764,7 +800,7 @@ function InitPerkOracle({
         <>
           <div className="flex items-center justify-between">
             <span className="text-xs text-text-secondary font-sans">
-              {existingOracles.size}/{TOKEN_LIST.length} initialized
+              {existingOracles.size} oracle{existingOracles.size !== 1 ? 's' : ''} on-chain
             </span>
             <button
               onClick={batchInitAll}
@@ -780,24 +816,28 @@ function InitPerkOracle({
           </div>
 
           <div className="flex flex-wrap gap-1">
-            {TOKEN_LIST.map(t => {
-              const exists = existingOracles.has(t.mint);
-              return (
-                <button
-                  key={t.mint}
-                  onClick={() => !exists && initSingle(t.mint)}
-                  disabled={submitting || exists}
-                  className={`font-mono text-xs px-2 py-1 rounded-[2px] border transition-colors ${
-                    exists
-                      ? 'border-profit/20 text-profit/50 cursor-default'
-                      : 'border-border text-text-secondary hover:text-white hover:bg-white/5'
-                  }`}
-                  title={exists ? 'Already initialized' : `Init oracle for ${t.label}`}
-                >
-                  {exists ? `✓ ${t.label}` : t.label}
-                </button>
-              );
-            })}
+            {/* Show ALL on-chain oracles first (green chips) */}
+            {Array.from(allOracleLabels.entries()).map(([mint, label]) => (
+              <span
+                key={mint}
+                className="font-mono text-xs px-2 py-1 rounded-[2px] border border-profit/20 text-profit/50 cursor-default"
+                title={mint}
+              >
+                ✓ {label}
+              </span>
+            ))}
+            {/* Then show uninitialized TOKEN_LIST tokens (gray chips, clickable) */}
+            {remaining.map(t => (
+              <button
+                key={t.mint}
+                onClick={() => initSingle(t.mint)}
+                disabled={submitting}
+                className="font-mono text-xs px-2 py-1 rounded-[2px] border border-border text-text-secondary hover:text-white hover:bg-white/5 transition-colors disabled:opacity-50"
+                title={`Init oracle for ${t.label}`}
+              >
+                {t.label}
+              </button>
+            ))}
           </div>
 
           {/* Custom mint */}
