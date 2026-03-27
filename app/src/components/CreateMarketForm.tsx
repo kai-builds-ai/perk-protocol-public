@@ -74,6 +74,7 @@ export function CreateMarketForm() {
   const [oracleExists, setOracleExists] = useState<boolean | null>(null);
   const [checkingOracle, setCheckingOracle] = useState(false);
   const [requestingMarket, setRequestingMarket] = useState(false);
+  const [requestPending, setRequestPending] = useState(false);
 
   const { client, readonlyClient } = usePerk();
   const { publicKey, sendTransaction } = useWallet();
@@ -141,29 +142,62 @@ export function CreateMarketForm() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Check oracle existence when a token is selected
+  // Check oracle existence + pending request when a token is selected
   const selectedMintForOracle = selectedToken?.mint ?? customMint?.mint ?? null;
   useEffect(() => {
     if (!selectedMintForOracle) {
       setOracleExists(null);
+      setRequestPending(false);
       return;
     }
     let cancelled = false;
     setCheckingOracle(true);
     setOracleExists(null);
-    readonlyClient
-      .fetchPerkOracleNullable(new PublicKey(selectedMintForOracle))
-      .then((oracle) => {
+    setRequestPending(false);
+
+    (async () => {
+      try {
+        const oracle = await readonlyClient.fetchPerkOracleNullable(new PublicKey(selectedMintForOracle));
         if (!cancelled) setOracleExists(oracle !== null);
-      })
-      .catch(() => {
+
+        // If no oracle, check if there's already a pending request
+        if (!oracle && !cancelled) {
+          try {
+            const res = await fetch('/api/request-market');
+            if (res.ok) {
+              const data = await res.json();
+              const pending = (data.requests ?? []).some(
+                (r: { mint: string }) => r.mint === selectedMintForOracle
+              );
+              if (!cancelled) setRequestPending(pending);
+            }
+          } catch { /* ignore — just won't show pending state */ }
+        }
+      } catch {
         if (!cancelled) setOracleExists(false);
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setCheckingOracle(false);
-      });
+      }
+    })();
+
     return () => { cancelled = true; };
   }, [selectedMintForOracle, readonlyClient]);
+
+  // Poll oracle status every 15s when request is pending — auto-flip to Create Market when approved
+  useEffect(() => {
+    if (!requestPending || !selectedMintForOracle) return;
+    const interval = setInterval(async () => {
+      try {
+        const oracle = await readonlyClient.fetchPerkOracleNullable(new PublicKey(selectedMintForOracle));
+        if (oracle) {
+          setOracleExists(true);
+          setRequestPending(false);
+          toast.success("Oracle approved! You can now create a market.");
+        }
+      } catch { /* ignore */ }
+    }, 15_000);
+    return () => clearInterval(interval);
+  }, [requestPending, selectedMintForOracle, readonlyClient]);
 
   // Protocol PDA for request market payment
   const PROGRAM_ID = useMemo(
@@ -225,6 +259,7 @@ export function CreateMarketForm() {
       }
 
       toast.success("Market requested! The team will review and initialize it.");
+      setRequestPending(true);
     } catch (err: unknown) {
       console.error("[request-market] error:", err);
       toast.error(sanitizeError(err, "request-market"));
@@ -621,8 +656,25 @@ export function CreateMarketForm() {
               </>
             )}
 
-            {/* Oracle doesn't exist → Request Market flow */}
-            {selectedMint && oracleExists === false && !checkingOracle && (
+            {/* Oracle doesn't exist + request already pending → show pending state */}
+            {selectedMint && oracleExists === false && !checkingOracle && requestPending && (
+              <>
+                <div className="border border-emerald-500/20 rounded-[4px] bg-emerald-500/[0.04] px-3 py-2.5 mb-3">
+                  <p className="text-xs text-emerald-400/90 font-sans">
+                    ✓ Market requested — awaiting team review. This page will update automatically when approved.
+                  </p>
+                </div>
+                <button
+                  disabled
+                  className="w-full py-2.5 text-sm font-sans font-medium rounded-[4px] border border-emerald-500/20 text-emerald-400/60 cursor-not-allowed"
+                >
+                  Request Pending...
+                </button>
+              </>
+            )}
+
+            {/* Oracle doesn't exist + no pending request → Request Market flow */}
+            {selectedMint && oracleExists === false && !checkingOracle && !requestPending && (
               <>
                 <div className="border border-yellow-500/20 rounded-[4px] bg-yellow-500/[0.04] px-3 py-2.5 mb-3">
                   <p className="text-xs text-yellow-400/90 font-sans">
