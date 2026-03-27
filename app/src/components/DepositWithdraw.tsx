@@ -34,6 +34,7 @@ export function DepositWithdraw({ market }: DepositWithdrawProps) {
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [vaultBalance, setVaultBalance] = useState<number | null>(null);
   const [freeCollateral, setFreeCollateral] = useState<number | null>(null);
+  const [hasOpenPosition, setHasOpenPosition] = useState(false);
 
   const { client, readonlyClient } = usePerk();
   const { publicKey } = useWallet();
@@ -97,6 +98,7 @@ export function DepositWithdraw({ market }: DepositWithdrawProps) {
         const equity = accountEquity(pos);
         const equityHuman = equity.toNumber() / scale;
         const baseSize = pos.baseSize.toNumber() / POS_SCALE;
+        if (!cancelled) setHasOpenPosition(pos.baseSize.toNumber() !== 0);
         const maxLev = marketAccount.maxLeverage / LEVERAGE_SCALE;
         const imBps = maxLev > 0 ? Math.floor(10000 / maxLev) : 10000;
         const imRequired = Math.abs(baseSize) * imBps / 10000;
@@ -248,6 +250,11 @@ export function DepositWithdraw({ market }: DepositWithdrawProps) {
           {displayFree} {collateralSymbol}
         </span>
       </div>
+      {mode === "withdraw" && hasOpenPosition && (
+        <div className="text-xs font-sans text-yellow-400 bg-yellow-400/5 border border-yellow-400/20 rounded-[4px] px-3 py-2">
+          ⚠ You have an open position. Close it first to withdraw all collateral.
+        </div>
+      )}
       <div className="flex gap-2 pt-1">
         <div className="flex-1">
           <div className="flex items-center border border-zinc-700 rounded-[4px] focus-within:border-zinc-400 transition-colors duration-100">
