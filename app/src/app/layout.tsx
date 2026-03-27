@@ -31,7 +31,7 @@ export default function RootLayout({
   );
 
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <title>Perk — Permissionless Perpetuals on Solana</title>
         <meta name="description" content="Trade any token with leverage. Permissionless perpetual futures on Solana." />
@@ -43,7 +43,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="bg-bg text-text-primary min-h-screen">
+      <body className="bg-bg text-text-primary min-h-screen" suppressHydrationWarning>
         <ConnectionProvider endpoint={SOLANA_RPC}>
           <WalletProvider wallets={wallets} autoConnect>
             <WalletModalProvider>
