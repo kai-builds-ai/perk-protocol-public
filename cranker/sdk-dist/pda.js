@@ -16,9 +16,9 @@ const constants_1 = require("./constants");
 function findProtocolAddress(programId = constants_1.PERK_PROGRAM_ID) {
     return web3_js_1.PublicKey.findProgramAddressSync([constants_1.PROTOCOL_SEED], programId);
 }
-/** Derive a market PDA from its token mint. */
-function findMarketAddress(tokenMint, programId = constants_1.PERK_PROGRAM_ID) {
-    return web3_js_1.PublicKey.findProgramAddressSync([constants_1.MARKET_SEED, tokenMint.toBuffer()], programId);
+/** Derive a market PDA from its token mint and creator. */
+function findMarketAddress(tokenMint, creator, programId = constants_1.PERK_PROGRAM_ID) {
+    return web3_js_1.PublicKey.findProgramAddressSync([constants_1.MARKET_SEED, tokenMint.toBuffer(), creator.toBuffer()], programId);
 }
 /** Derive a user position PDA. */
 function findPositionAddress(market, user, programId = constants_1.PERK_PROGRAM_ID) {

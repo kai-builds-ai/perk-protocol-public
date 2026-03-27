@@ -1,4 +1,4 @@
-import { Connection, PublicKey, TransactionSignature, TransactionInstruction, Commitment } from "@solana/web3.js";
+import { Connection, PublicKey, Transaction, TransactionSignature, TransactionInstruction, Commitment, SendOptions } from "@solana/web3.js";
 import { Program, AnchorProvider, BN, Wallet } from "@coral-xyz/anchor";
 type AnyAccounts = Record<string, {
     fetch: Function;
@@ -6,6 +6,12 @@ type AnyAccounts = Record<string, {
     fetchNullable: Function;
 }>;
 import { Side, CreateMarketParams, AdminUpdateMarketParams, TriggerOrderParams, MarketAccount, UserPositionAccount, ProtocolAccount, TriggerOrderAccount, PerkOracleAccount, InitPerkOracleParams, UpdatePerkOracleParams, UpdateOracleConfigParams, SetFallbackOracleParams } from "./types";
+/**
+ * Optional callback to send transactions via the wallet adapter's
+ * `signAndSendTransaction` flow (preferred by Phantom/Blowfish).
+ * Signature matches `useWallet().sendTransaction` from @solana/wallet-adapter-react.
+ */
+export type SendTransactionFn = (transaction: Transaction, connection: Connection, options?: SendOptions) => Promise<TransactionSignature>;
 export interface PerkClientConfig {
     connection: Connection;
     wallet: Wallet;
@@ -13,6 +19,13 @@ export interface PerkClientConfig {
     commitment?: Commitment;
     /** Instructions to prepend to every transaction (e.g., ComputeBudget priority fees). */
     preInstructions?: TransactionInstruction[];
+    /**
+     * When provided, transactions are sent via this callback instead of
+     * Anchor's default `signTransaction` + `sendRawTransaction` flow.
+     * Pass `wallet.sendTransaction` from @solana/wallet-adapter-react
+     * so Phantom uses `signAndSendTransaction` internally.
+     */
+    sendTransaction?: SendTransactionFn;
 }
 export declare class PerkClient {
     readonly connection: Connection;
@@ -24,13 +37,13 @@ export declare class PerkClient {
     readonly preInstructions: TransactionInstruction[];
     constructor(config: PerkClientConfig);
     getProtocolAddress(): PublicKey;
-    getMarketAddress(tokenMint: PublicKey): PublicKey;
+    getMarketAddress(tokenMint: PublicKey, creator: PublicKey): PublicKey;
     getPositionAddress(market: PublicKey, user: PublicKey): PublicKey;
     getVaultAddress(market: PublicKey): PublicKey;
     getTriggerOrderAddress(market: PublicKey, user: PublicKey, orderId: number | BN): PublicKey;
     getPerkOracleAddress(tokenMint: PublicKey): PublicKey;
     fetchProtocol(): Promise<ProtocolAccount>;
-    fetchMarket(tokenMint: PublicKey): Promise<MarketAccount>;
+    fetchMarket(tokenMint: PublicKey, creator: PublicKey): Promise<MarketAccount>;
     fetchMarketByAddress(address: PublicKey): Promise<MarketAccount>;
     fetchAllMarkets(): Promise<{
         address: PublicKey;
@@ -51,6 +64,11 @@ export declare class PerkClient {
     fetchPerkOracle(tokenMint: PublicKey): Promise<PerkOracleAccount>;
     /** Fetch a PerkOracle account, returning null if not found. */
     fetchPerkOracleNullable(tokenMint: PublicKey): Promise<PerkOracleAccount | null>;
+    /** Fetch all PerkOracle accounts on-chain. */
+    fetchAllPerkOracles(): Promise<{
+        address: PublicKey;
+        account: PerkOracleAccount;
+    }[]>;
     /** Initialize the protocol (admin only, once). */
     initializeProtocol(protocolFeeVault: PublicKey): Promise<TransactionSignature>;
     /** Propose a new admin (current admin only). */
@@ -60,27 +78,27 @@ export declare class PerkClient {
     /** Pause/unpause the protocol. */
     adminPause(paused: boolean): Promise<TransactionSignature>;
     /** Update market parameters (admin only). */
-    adminUpdateMarket(tokenMint: PublicKey, oracle: PublicKey | null, params: AdminUpdateMarketParams): Promise<TransactionSignature>;
+    adminUpdateMarket(tokenMint: PublicKey, creator: PublicKey, oracle: PublicKey | null, params: AdminUpdateMarketParams): Promise<TransactionSignature>;
     /** Withdraw SOL from protocol PDA (admin only). */
     adminWithdrawSol(amount: BN): Promise<TransactionSignature>;
     /** Create a new perpetual futures market. */
     createMarket(tokenMint: PublicKey, oracle: PublicKey, params: CreateMarketParams): Promise<TransactionSignature>;
     /** Initialize a position account for a user on a market. */
-    initializePosition(tokenMint: PublicKey): Promise<TransactionSignature>;
+    initializePosition(tokenMint: PublicKey, creator: PublicKey): Promise<TransactionSignature>;
     /** Deposit collateral into a position. */
-    deposit(tokenMint: PublicKey, oracle: PublicKey, amount: BN, fallbackOracle?: PublicKey): Promise<TransactionSignature>;
+    deposit(tokenMint: PublicKey, creator: PublicKey, oracle: PublicKey, amount: BN, fallbackOracle?: PublicKey): Promise<TransactionSignature>;
     /** Withdraw collateral from a position. */
-    withdraw(tokenMint: PublicKey, oracle: PublicKey, amount: BN, fallbackOracle?: PublicKey): Promise<TransactionSignature>;
+    withdraw(tokenMint: PublicKey, creator: PublicKey, oracle: PublicKey, amount: BN, fallbackOracle?: PublicKey): Promise<TransactionSignature>;
     /** Open a leveraged position. */
-    openPosition(tokenMint: PublicKey, oracle: PublicKey, side: Side, baseSize: BN, leverage: number, maxSlippageBps?: number, fallbackOracle?: PublicKey): Promise<TransactionSignature>;
+    openPosition(tokenMint: PublicKey, creator: PublicKey, oracle: PublicKey, side: Side, baseSize: BN, leverage: number, maxSlippageBps?: number, fallbackOracle?: PublicKey): Promise<TransactionSignature>;
     /** Close a position (full or partial). */
-    closePosition(tokenMint: PublicKey, oracle: PublicKey, baseSizeToClose?: BN, fallbackOracle?: PublicKey): Promise<TransactionSignature>;
+    closePosition(tokenMint: PublicKey, creator: PublicKey, oracle: PublicKey, baseSizeToClose?: BN, fallbackOracle?: PublicKey): Promise<TransactionSignature>;
     /** Place a trigger order (limit, stop-loss, take-profit). */
-    placeTriggerOrder(tokenMint: PublicKey, params: TriggerOrderParams): Promise<TransactionSignature>;
+    placeTriggerOrder(tokenMint: PublicKey, creator: PublicKey, params: TriggerOrderParams): Promise<TransactionSignature>;
     /** Cancel a trigger order. */
-    cancelTriggerOrder(tokenMint: PublicKey, orderId: number | BN): Promise<TransactionSignature>;
+    cancelTriggerOrder(tokenMint: PublicKey, creator: PublicKey, orderId: number | BN): Promise<TransactionSignature>;
     /** Claim accumulated fees (creator or protocol). */
-    claimFees(tokenMint: PublicKey, recipientTokenAccount: PublicKey): Promise<TransactionSignature>;
+    claimFees(tokenMint: PublicKey, creator: PublicKey, recipientTokenAccount: PublicKey): Promise<TransactionSignature>;
     /** Crank funding rate update. */
     crankFunding(marketAddress: PublicKey, oracle: PublicKey, fallbackOracle?: PublicKey): Promise<TransactionSignature>;
     /** Liquidate an underwater position. */
@@ -104,7 +122,7 @@ export declare class PerkClient {
     /** Update PerkOracle config (price banding). Admin only. */
     updateOracleConfig(tokenMint: PublicKey, params: UpdateOracleConfigParams): Promise<TransactionSignature>;
     /** Set or remove fallback oracle on a market. Admin only. */
-    adminSetFallbackOracle(tokenMint: PublicKey, params: SetFallbackOracleParams): Promise<TransactionSignature>;
+    adminSetFallbackOracle(tokenMint: PublicKey, creator: PublicKey, params: SetFallbackOracleParams): Promise<TransactionSignature>;
 }
 export {};
 //# sourceMappingURL=client.d.ts.map

@@ -1,9 +1,15 @@
 {
-  "name": "@perk/sdk",
-  "version": "0.1.0",
+  "name": "perk-protocol",
+  "version": "1.1.2",
   "description": "TypeScript SDK for the Perk perpetual futures protocol on Solana",
-  "main": "index.js",
-  "types": "index.d.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kai-builds-ai/perk-protocol"
+  },
+  "homepage": "https://docs.perk.fund/sdk",
+  "keywords": ["solana", "perpetuals", "defi", "trading", "perps", "perk"],
   "files": [
     "dist"
   ],

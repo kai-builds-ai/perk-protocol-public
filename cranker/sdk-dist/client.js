@@ -26,13 +26,53 @@ const ORDER_TYPE_MAP = {
     [types_1.TriggerOrderType.StopLoss]: { stopLoss: {} },
     [types_1.TriggerOrderType.TakeProfit]: { takeProfit: {} },
 };
+/**
+ * AnchorProvider subclass that routes transaction sending through the
+ * wallet adapter's `sendTransaction` (which uses `signAndSendTransaction`
+ * on wallets that support it, like Phantom). This avoids the
+ * `signTransaction` + `sendRawTransaction` pattern that Blowfish/Phantom
+ * flag as potentially unsafe.
+ */
+class WalletAdapterProvider extends anchor_1.AnchorProvider {
+    constructor(connection, wallet, opts, sendTx) {
+        super(connection, wallet, opts);
+        this._sendTx = sendTx;
+    }
+    async sendAndConfirm(tx, signers, opts) {
+        // Partial-sign with any extra signers (e.g., new keypairs for PDAs)
+        if (signers?.length) {
+            tx.partialSign(...signers);
+        }
+        // Send via wallet adapter (uses signAndSendTransaction internally)
+        const sig = await this._sendTx(tx, this.connection, {
+            skipPreflight: opts?.skipPreflight,
+        });
+        // Wait for confirmation and check for on-chain errors
+        const commitment = opts?.commitment ?? this.opts.commitment ?? "confirmed";
+        const latestBlockhash = await this.connection.getLatestBlockhash(commitment);
+        const confirmation = await this.connection.confirmTransaction({
+            signature: sig,
+            blockhash: latestBlockhash.blockhash,
+            lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+        }, commitment);
+        if (confirmation.value.err) {
+            throw new Error(`Transaction confirmed but failed on-chain: ${JSON.stringify(confirmation.value.err)}`);
+        }
+        return sig;
+    }
+}
 class PerkClient {
     constructor(config) {
         this.connection = config.connection;
         this.wallet = config.wallet;
         this.programId = config.programId ?? constants_1.PERK_PROGRAM_ID;
         this.preInstructions = config.preInstructions ?? [];
-        this.provider = new anchor_1.AnchorProvider(config.connection, config.wallet, { commitment: config.commitment ?? "confirmed" });
+        // Use WalletAdapterProvider when sendTransaction is provided (frontend),
+        // fall back to standard AnchorProvider (cranker/scripts with keypairs).
+        const opts = { commitment: config.commitment ?? "confirmed" };
+        this.provider = config.sendTransaction
+            ? new WalletAdapterProvider(config.connection, config.wallet, opts, config.sendTransaction)
+            : new anchor_1.AnchorProvider(config.connection, config.wallet, opts);
         this.program = new anchor_1.Program(idl_json_1.default, this.provider);
         this.accounts = this.program.account;
     }
@@ -42,8 +82,8 @@ class PerkClient {
     getProtocolAddress() {
         return (0, pda_1.findProtocolAddress)(this.programId)[0];
     }
-    getMarketAddress(tokenMint) {
-        return (0, pda_1.findMarketAddress)(tokenMint, this.programId)[0];
+    getMarketAddress(tokenMint, creator) {
+        return (0, pda_1.findMarketAddress)(tokenMint, creator, this.programId)[0];
     }
     getPositionAddress(market, user) {
         return (0, pda_1.findPositionAddress)(market, user, this.programId)[0];
@@ -64,8 +104,8 @@ class PerkClient {
         const address = this.getProtocolAddress();
         return (await this.accounts.protocol.fetch(address));
     }
-    async fetchMarket(tokenMint) {
-        const address = this.getMarketAddress(tokenMint);
+    async fetchMarket(tokenMint, creator) {
+        const address = this.getMarketAddress(tokenMint, creator);
         return (await this.accounts.market.fetch(address));
     }
     async fetchMarketByAddress(address) {
@@ -118,6 +158,14 @@ class PerkClient {
         const address = this.getPerkOracleAddress(tokenMint);
         return (await this.accounts.perkOraclePrice.fetchNullable(address));
     }
+    /** Fetch all PerkOracle accounts on-chain. */
+    async fetchAllPerkOracles() {
+        const raw = await this.accounts.perkOraclePrice.all();
+        return raw.map((r) => ({
+            address: r.publicKey,
+            account: r.account,
+        }));
+    }
     // ═══════════════════════════════════════════════
     // Admin Instructions
     // ═══════════════════════════════════════════════
@@ -168,9 +216,9 @@ class PerkClient {
             .preInstructions(this.preInstructions).rpc();
     }
     /** Update market parameters (admin only). */
-    async adminUpdateMarket(tokenMint, oracle, params) {
+    async adminUpdateMarket(tokenMint, creator, oracle, params) {
         const protocol = this.getProtocolAddress();
-        const market = this.getMarketAddress(tokenMint);
+        const market = this.getMarketAddress(tokenMint, creator);
         return this.program.methods
             .adminUpdateMarket(params)
             .accounts({
@@ -199,7 +247,7 @@ class PerkClient {
     /** Create a new perpetual futures market. */
     async createMarket(tokenMint, oracle, params) {
         const protocol = this.getProtocolAddress();
-        const [market] = (0, pda_1.findMarketAddress)(tokenMint, this.programId);
+        const [market] = (0, pda_1.findMarketAddress)(tokenMint, this.wallet.publicKey, this.programId);
         const [vault] = (0, pda_1.findVaultAddress)(market, this.programId);
         return this.program.methods
             .createMarket({
@@ -225,9 +273,9 @@ class PerkClient {
     // Position Instructions
     // ═══════════════════════════════════════════════
     /** Initialize a position account for a user on a market. */
-    async initializePosition(tokenMint) {
+    async initializePosition(tokenMint, creator) {
         const protocol = this.getProtocolAddress();
-        const market = this.getMarketAddress(tokenMint);
+        const market = this.getMarketAddress(tokenMint, creator);
         const position = this.getPositionAddress(market, this.wallet.publicKey);
         return this.program.methods
             .initializePosition()
@@ -241,9 +289,9 @@ class PerkClient {
             .preInstructions(this.preInstructions).rpc();
     }
     /** Deposit collateral into a position. */
-    async deposit(tokenMint, oracle, amount, fallbackOracle) {
+    async deposit(tokenMint, creator, oracle, amount, fallbackOracle) {
         const protocol = this.getProtocolAddress();
-        const market = this.getMarketAddress(tokenMint);
+        const market = this.getMarketAddress(tokenMint, creator);
         const position = this.getPositionAddress(market, this.wallet.publicKey);
         const [vault] = (0, pda_1.findVaultAddress)(market, this.programId);
         const userAta = await (0, spl_token_1.getAssociatedTokenAddress)(tokenMint, this.wallet.publicKey);
@@ -264,9 +312,9 @@ class PerkClient {
             .preInstructions(this.preInstructions).rpc();
     }
     /** Withdraw collateral from a position. */
-    async withdraw(tokenMint, oracle, amount, fallbackOracle) {
+    async withdraw(tokenMint, creator, oracle, amount, fallbackOracle) {
         const protocol = this.getProtocolAddress();
-        const market = this.getMarketAddress(tokenMint);
+        const market = this.getMarketAddress(tokenMint, creator);
         const position = this.getPositionAddress(market, this.wallet.publicKey);
         const [vault] = (0, pda_1.findVaultAddress)(market, this.programId);
         const userAta = await (0, spl_token_1.getAssociatedTokenAddress)(tokenMint, this.wallet.publicKey);
@@ -287,7 +335,7 @@ class PerkClient {
             .preInstructions(this.preInstructions).rpc();
     }
     /** Open a leveraged position. */
-    async openPosition(tokenMint, oracle, side, baseSize, leverage, maxSlippageBps = 500, fallbackOracle) {
+    async openPosition(tokenMint, creator, oracle, side, baseSize, leverage, maxSlippageBps = 500, fallbackOracle) {
         // Input validation — catch bad values before they hit Borsh serialization
         if (leverage < constants_1.MIN_LEVERAGE || leverage > constants_1.MAX_LEVERAGE) {
             throw new Error(`leverage must be ${constants_1.MIN_LEVERAGE}-${constants_1.MAX_LEVERAGE} (${constants_1.MIN_LEVERAGE / constants_1.LEVERAGE_SCALE}x-${constants_1.MAX_LEVERAGE / constants_1.LEVERAGE_SCALE}x), got ${leverage}`);
@@ -299,7 +347,7 @@ class PerkClient {
             throw new Error("leverage and maxSlippageBps must be integers");
         }
         const protocol = this.getProtocolAddress();
-        const market = this.getMarketAddress(tokenMint);
+        const market = this.getMarketAddress(tokenMint, creator);
         const position = this.getPositionAddress(market, this.wallet.publicKey);
         return this.program.methods
             .openPosition(SIDE_MAP[side], baseSize, leverage, maxSlippageBps)
@@ -315,9 +363,9 @@ class PerkClient {
             .preInstructions(this.preInstructions).rpc();
     }
     /** Close a position (full or partial). */
-    async closePosition(tokenMint, oracle, baseSizeToClose, fallbackOracle) {
+    async closePosition(tokenMint, creator, oracle, baseSizeToClose, fallbackOracle) {
         const protocol = this.getProtocolAddress();
-        const market = this.getMarketAddress(tokenMint);
+        const market = this.getMarketAddress(tokenMint, creator);
         const position = this.getPositionAddress(market, this.wallet.publicKey);
         return this.program.methods
             .closePosition(baseSizeToClose ?? null)
@@ -336,8 +384,8 @@ class PerkClient {
     // Trigger Orders
     // ═══════════════════════════════════════════════
     /** Place a trigger order (limit, stop-loss, take-profit). */
-    async placeTriggerOrder(tokenMint, params) {
-        const market = this.getMarketAddress(tokenMint);
+    async placeTriggerOrder(tokenMint, creator, params) {
+        const market = this.getMarketAddress(tokenMint, creator);
         const position = this.getPositionAddress(market, this.wallet.publicKey);
         // Fetch position to get next order ID
         const pos = await this.fetchPositionByAddress(position);
@@ -364,8 +412,8 @@ class PerkClient {
             .preInstructions(this.preInstructions).rpc();
     }
     /** Cancel a trigger order. */
-    async cancelTriggerOrder(tokenMint, orderId) {
-        const market = this.getMarketAddress(tokenMint);
+    async cancelTriggerOrder(tokenMint, creator, orderId) {
+        const market = this.getMarketAddress(tokenMint, creator);
         const position = this.getPositionAddress(market, this.wallet.publicKey);
         const triggerOrder = this.getTriggerOrderAddress(market, this.wallet.publicKey, orderId);
         return this.program.methods
@@ -383,9 +431,9 @@ class PerkClient {
     // Fee Claims
     // ═══════════════════════════════════════════════
     /** Claim accumulated fees (creator or protocol). */
-    async claimFees(tokenMint, recipientTokenAccount) {
+    async claimFees(tokenMint, creator, recipientTokenAccount) {
         const protocol = this.getProtocolAddress();
-        const market = this.getMarketAddress(tokenMint);
+        const market = this.getMarketAddress(tokenMint, creator);
         const [vault] = (0, pda_1.findVaultAddress)(market, this.programId);
         return this.program.methods
             .claimFees()
@@ -661,9 +709,9 @@ class PerkClient {
             .preInstructions(this.preInstructions).rpc();
     }
     /** Set or remove fallback oracle on a market. Admin only. */
-    async adminSetFallbackOracle(tokenMint, params) {
+    async adminSetFallbackOracle(tokenMint, creator, params) {
         const protocol = this.getProtocolAddress();
-        const market = this.getMarketAddress(tokenMint);
+        const market = this.getMarketAddress(tokenMint, creator);
         // When removing fallback (address = default/zeros), pass SystemProgram as the
         // account since Solana won't accept the null address as a transaction account.
         // The on-chain handler checks params.fallback_oracle_address == default and

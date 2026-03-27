@@ -8,7 +8,7 @@ exports.PYTH_SOL_USD_FEED = exports.PYTH_PROGRAM_ID = exports.WINDOW_BAND_MULTIP
 const web3_js_1 = require("@solana/web3.js");
 const bn_js_1 = __importDefault(require("bn.js"));
 // Program ID
-exports.PERK_PROGRAM_ID = new web3_js_1.PublicKey("5mqYowuNCA8iKFjqn6XKA7vURuaKEUUmPK5QJiCbHyMW");
+exports.PERK_PROGRAM_ID = new web3_js_1.PublicKey("3L72e4b8wKJ8ReMpLUeXxVNrRGpiK6m4VYxeSnecpNW2");
 // PDA Seeds
 exports.PROTOCOL_SEED = Buffer.from("protocol");
 exports.MARKET_SEED = Buffer.from("market");
