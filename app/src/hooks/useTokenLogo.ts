@@ -59,15 +59,16 @@ function isTrustedImageUrl(url: string): boolean {
  * Hook to resolve a token logo URL from Jupiter + Metaplex fallback.
  * Returns null while loading, the URL when resolved, or undefined if not found.
  *
- * If `overrideUrl` is provided, skips resolution and returns it directly
- * (only if from a trusted origin).
+ * If `overrideUrl` is provided (e.g. from Jupiter search), skips resolution
+ * and returns it directly. CSP img-src is the security layer for image loads.
  */
 export function useTokenLogo(
   mint: string,
   overrideUrl?: string
 ): string | null | undefined {
-  // Sanitize overrideUrl — only use if trusted
-  const safeOverride = overrideUrl && isTrustedImageUrl(overrideUrl) ? overrideUrl : undefined;
+  // Trust override URLs (from Jupiter search / our own resolution code).
+  // CSP img-src handles the actual security; JS allowlist only for self-resolved URLs.
+  const safeOverride = overrideUrl && overrideUrl.startsWith("https://") ? overrideUrl : undefined;
 
   const [logoUrl, setLogoUrl] = useState<string | null | undefined>(
     safeOverride || null
