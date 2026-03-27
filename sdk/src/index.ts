@@ -1,7 +1,7 @@
 // @perk/sdk — TypeScript SDK for the Perk perpetual futures protocol on Solana
 
 export { PerkClient } from "./client";
-export type { PerkClientConfig } from "./client";
+export type { PerkClientConfig, SendTransactionFn } from "./client";
 
 export { PerkCranker } from "./cranker";
 export type { CrankerConfig, CrankerMetrics } from "./cranker";

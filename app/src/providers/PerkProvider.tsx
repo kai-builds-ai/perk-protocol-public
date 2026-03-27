@@ -1,9 +1,9 @@
 "use client";
 
 import React, { createContext, useContext, useMemo } from "react";
-import { useConnection } from "@solana/wallet-adapter-react";
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { useAnchorWallet } from "@solana/wallet-adapter-react";
-import { AnchorProvider, Wallet } from "@coral-xyz/anchor";
+import { Wallet } from "@coral-xyz/anchor";
 import { Keypair } from "@solana/web3.js";
 import { PerkClient } from "@perk/sdk";
 
@@ -30,6 +30,7 @@ function makeDummyWallet(): Wallet {
 export function PerkProvider({ children }: { children: React.ReactNode }) {
   const { connection } = useConnection();
   const anchorWallet = useAnchorWallet();
+  const { sendTransaction } = useWallet();
 
   const readonlyClient = useMemo(() => {
     const dummyWallet = makeDummyWallet();
@@ -46,8 +47,9 @@ export function PerkProvider({ children }: { children: React.ReactNode }) {
       connection,
       wallet: anchorWallet as unknown as Wallet,
       commitment: "confirmed",
+      sendTransaction,
     });
-  }, [connection, anchorWallet]);
+  }, [connection, anchorWallet, sendTransaction]);
 
   return (
     <PerkContext.Provider value={{ client, readonlyClient }}>

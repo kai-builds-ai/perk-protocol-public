@@ -3,9 +3,11 @@ import {
   PublicKey,
   SystemProgram,
   SYSVAR_RENT_PUBKEY,
+  Transaction,
   TransactionSignature,
   TransactionInstruction,
   Commitment,
+  SendOptions,
 } from "@solana/web3.js";
 import {
   TOKEN_PROGRAM_ID,
@@ -63,6 +65,17 @@ const ORDER_TYPE_MAP = {
   [TriggerOrderType.TakeProfit]: { takeProfit: {} },
 };
 
+/**
+ * Optional callback to send transactions via the wallet adapter's
+ * `signAndSendTransaction` flow (preferred by Phantom/Blowfish).
+ * Signature matches `useWallet().sendTransaction` from @solana/wallet-adapter-react.
+ */
+export type SendTransactionFn = (
+  transaction: Transaction,
+  connection: Connection,
+  options?: SendOptions,
+) => Promise<TransactionSignature>;
+
 export interface PerkClientConfig {
   connection: Connection;
   wallet: Wallet;
@@ -70,6 +83,64 @@ export interface PerkClientConfig {
   commitment?: Commitment;
   /** Instructions to prepend to every transaction (e.g., ComputeBudget priority fees). */
   preInstructions?: TransactionInstruction[];
+  /**
+   * When provided, transactions are sent via this callback instead of
+   * Anchor's default `signTransaction` + `sendRawTransaction` flow.
+   * Pass `wallet.sendTransaction` from @solana/wallet-adapter-react
+   * so Phantom uses `signAndSendTransaction` internally.
+   */
+  sendTransaction?: SendTransactionFn;
+}
+
+/**
+ * AnchorProvider subclass that routes transaction sending through the
+ * wallet adapter's `sendTransaction` (which uses `signAndSendTransaction`
+ * on wallets that support it, like Phantom). This avoids the
+ * `signTransaction` + `sendRawTransaction` pattern that Blowfish/Phantom
+ * flag as potentially unsafe.
+ */
+class WalletAdapterProvider extends AnchorProvider {
+  private _sendTx: SendTransactionFn;
+
+  constructor(
+    connection: Connection,
+    wallet: Wallet,
+    opts: { commitment?: Commitment },
+    sendTx: SendTransactionFn,
+  ) {
+    super(connection, wallet, opts);
+    this._sendTx = sendTx;
+  }
+
+  override async sendAndConfirm(
+    tx: Transaction,
+    signers?: Array<{ publicKey: PublicKey; secretKey: Uint8Array }>,
+    opts?: { commitment?: Commitment; skipPreflight?: boolean },
+  ): Promise<TransactionSignature> {
+    // Partial-sign with any extra signers (e.g., new keypairs for PDAs)
+    if (signers?.length) {
+      tx.partialSign(...(signers as any));
+    }
+
+    // Send via wallet adapter (uses signAndSendTransaction internally)
+    const sig = await this._sendTx(tx, this.connection, {
+      skipPreflight: opts?.skipPreflight,
+    });
+
+    // Wait for confirmation
+    const commitment = opts?.commitment ?? this.opts.commitment ?? "confirmed";
+    const latestBlockhash = await this.connection.getLatestBlockhash(commitment);
+    await this.connection.confirmTransaction(
+      {
+        signature: sig,
+        blockhash: latestBlockhash.blockhash,
+        lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+      },
+      commitment,
+    );
+
+    return sig;
+  }
 }
 
 export class PerkClient {
@@ -86,11 +157,14 @@ export class PerkClient {
     this.wallet = config.wallet;
     this.programId = config.programId ?? PERK_PROGRAM_ID;
     this.preInstructions = config.preInstructions ?? [];
-    this.provider = new AnchorProvider(
-      config.connection,
-      config.wallet,
-      { commitment: config.commitment ?? "confirmed" }
-    );
+
+    // Use WalletAdapterProvider when sendTransaction is provided (frontend),
+    // fall back to standard AnchorProvider (cranker/scripts with keypairs).
+    const opts = { commitment: config.commitment ?? "confirmed" };
+    this.provider = config.sendTransaction
+      ? new WalletAdapterProvider(config.connection, config.wallet, opts, config.sendTransaction)
+      : new AnchorProvider(config.connection, config.wallet, opts);
+
     this.program = new Program(IDL as Idl, this.provider);
     this.accounts = this.program.account as unknown as AnyAccounts;
   }
