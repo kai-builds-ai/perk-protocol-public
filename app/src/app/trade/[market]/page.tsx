@@ -25,7 +25,7 @@ export default function TradingView() {
     symbol,
     market?.markPrice
   );
-  const { candles, isReal } = usePythCandles(symbol, "60", 200);
+  const { candles, isReal } = usePythCandles(symbol, "60", 200, market?.tokenMint);
 
   // Show loading state while markets are being fetched (e.g., after market creation redirect).
   // Grace period: keep showing "Loading" for up to 15s to let MarketsProvider poll new markets.
