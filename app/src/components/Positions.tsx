@@ -21,18 +21,21 @@ export const Positions = memo(function Positions({ positions, market }: Position
 
   const handleClose = useCallback(
     async (posIndex: number) => {
+      console.error("[close-position] handleClose called, index:", posIndex);
       if (!client || !publicKey) {
+        console.error("[close-position] no client or publicKey", { client: !!client, publicKey: !!publicKey });
         toast.error("Please connect your wallet.");
         return;
       }
 
       const pos = positions[posIndex];
-      if (!pos) return;
+      if (!pos) {
+        console.error("[close-position] no position at index", posIndex);
+        toast.error("Position not found");
+        return;
+      }
 
-      const confirmed = window.confirm(
-        "Are you sure you want to close this position? This will close the entire position."
-      );
-      if (!confirmed) return;
+      console.error("[close-position] position data:", { tokenMint: pos.tokenMint, creator: pos.creator, oracleAddress: pos.oracleAddress });
 
       if (!pos.tokenMint || !pos.creator || !pos.oracleAddress) {
         toast.error("Position data incomplete");
