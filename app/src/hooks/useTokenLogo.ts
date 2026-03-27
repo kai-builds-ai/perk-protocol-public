@@ -4,8 +4,8 @@ import { useState, useEffect, useRef } from "react";
 import { Connection } from "@solana/web3.js";
 import { getTokenLogo } from "@/lib/token-metadata";
 
-// Metaplex metadata lives on mainnet — always use mainnet RPC for logo resolution
-const RPC_URL = "https://api.mainnet-beta.solana.com";
+// Metaplex metadata lives on mainnet — use Helius RPC (public mainnet returns 403 from Vercel)
+const RPC_URL = process.env.NEXT_PUBLIC_HELIUS_RPC_URL || "https://mainnet.helius-rpc.com/?api-key=60b57283-2b78-4d4b-80b5-bb83495b0c09";
 
 // Shared connection instance (avoid creating per-hook)
 let sharedConnection: Connection | null = null;

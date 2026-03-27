@@ -335,7 +335,7 @@ export function CreateMarketForm() {
                       setShowDropdown(false);
                     }}
                   >
-                    <TokenLogo mint={t.mint} size={20} />
+                    <TokenLogo mint={t.mint} logoUrl={t.logoUrl ?? undefined} size={20} />
                     <span className="font-sans text-sm text-white">
                       {t.symbol}
                     </span>
@@ -359,7 +359,7 @@ export function CreateMarketForm() {
             )}
             {selectedToken && (
               <div className="mt-2 flex items-center gap-2 text-xs">
-                <TokenLogo mint={selectedToken.mint} size={20} />
+                <TokenLogo mint={selectedToken.mint} logoUrl={selectedToken.logoUrl ?? undefined} size={20} />
                 <span className="font-sans text-white">
                   {selectedToken.symbol}
                 </span>
