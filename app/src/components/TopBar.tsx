@@ -12,8 +12,8 @@ interface TopBarProps {
 }
 
 export function TopBar({
-  totalVolume = 7100000,
-  totalMarkets = 7,
+  totalVolume = 0,
+  totalMarkets = 0,
   solPrice,
 }: TopBarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
