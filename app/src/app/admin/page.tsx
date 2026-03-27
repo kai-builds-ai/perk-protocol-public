@@ -668,16 +668,35 @@ function InitPerkOracle({
           setAllOracleLabels(labels);
           setCheckingExisting(false);
         }
-      } catch {
-        // Fallback: check TOKEN_LIST one by one
+      } catch (err) {
+        console.warn('[InitPerkOracle] fetchAllPerkOracles failed, falling back to individual checks:', err);
+        // Fallback: check TOKEN_LIST one by one + fetch all markets for extra mints
         const existing = new Set<string>();
         const labels = new Map<string, string>();
+        // Check TOKEN_LIST
         for (const t of TOKEN_LIST) {
           try {
             const oracle = await client.fetchPerkOracleNullable(new PublicKey(t.mint));
             if (oracle) { existing.add(t.mint); labels.set(t.mint, t.label); }
           } catch { /* skip */ }
         }
+        // Also check all on-chain markets for mints not in TOKEN_LIST
+        try {
+          const allMarkets = await client.fetchAllMarkets();
+          for (const m of allMarkets) {
+            const mintStr = m.account.tokenMint.toBase58();
+            if (!existing.has(mintStr)) {
+              try {
+                const oracle = await client.fetchPerkOracleNullable(new PublicKey(mintStr));
+                if (oracle) {
+                  existing.add(mintStr);
+                  const meta = TOKEN_META[mintStr];
+                  labels.set(mintStr, meta?.symbol ?? mintStr.slice(0, 6));
+                }
+              } catch { /* skip */ }
+            }
+          }
+        } catch { /* skip market fetch */ }
         if (!cancelled) {
           setExistingOracles(existing);
           setAllOracleLabels(labels);
