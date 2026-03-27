@@ -158,7 +158,7 @@ export function startOracleLoop(
         }
 
         state.consecutiveFailures++;
-        log.error("Oracle update failed", {
+        log.error(`Oracle update failed [${mintStr.slice(0,8)}]: ${errStr.slice(0, 200)}`, {
           mint: mintStr,
           error: errStr,
           consecutiveFailures: state.consecutiveFailures,
