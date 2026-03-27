@@ -275,7 +275,6 @@ export function CreateMarketForm() {
     tradingFee,
     maxLeverage,
     initialK,
-    sdkOracleSource,
     readonlyClient,
     router,
   ]);
