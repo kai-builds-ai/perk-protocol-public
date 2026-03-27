@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{Mint, Token, TokenAccount};
+use anchor_spl::token_interface::{Mint, TokenInterface, TokenAccount};
 use crate::constants::*;
 use crate::engine::{oracle, vamm};
 use crate::errors::PerkError;
@@ -43,7 +43,7 @@ pub struct CreateMarket<'info> {
     )]
     pub market: Box<Account<'info, Market>>,
 
-    pub token_mint: Account<'info, Mint>,
+    pub token_mint: InterfaceAccount<'info, Mint>,
 
     /// CHECK: Oracle price feed account (validated in handler)
     pub oracle: UncheckedAccount<'info>,
@@ -54,16 +54,17 @@ pub struct CreateMarket<'info> {
         payer = creator,
         token::mint = token_mint,
         token::authority = market,
+        token::token_program = token_program,
         seeds = [b"vault", market.key().as_ref()],
         bump,
     )]
-    pub vault: Account<'info, TokenAccount>,
+    pub vault: InterfaceAccount<'info, TokenAccount>,
 
     #[account(mut)]
     pub creator: Signer<'info>,
 
     pub system_program: Program<'info, System>,
-    pub token_program: Program<'info, Token>,
+    pub token_program: Interface<'info, TokenInterface>,
     pub rent: Sysvar<'info, Rent>,
 }
 
@@ -104,6 +105,37 @@ pub fn handler(ctx: Context<CreateMarket>, params: CreateMarketParams) -> Result
             && ctx.accounts.token_mint.decimals <= MAX_TOKEN_DECIMALS,
         PerkError::InvalidTokenDecimals
     );
+
+    // Reject Token-2022 mints with TransferFeeConfig extension.
+    // Transfer fees cause vault insolvency: deposit records X tokens but vault receives X - fee.
+    // Detection: Token-2022 mints with extensions have data > 82 bytes (standard Mint size).
+    // We check the raw account data for the TransferFeeConfig extension type (u16 = 1).
+    {
+        let mint_info = ctx.accounts.token_mint.to_account_info();
+        let mint_data = mint_info.try_borrow_data()?;
+        // SPL Token-2022 extensions start after byte 82 (standard Mint layout).
+        // Each TLV entry: u16 type, u16 length, then data.
+        // TransferFeeConfig type = 1.
+        if mint_data.len() > 82 + 4 {
+            // Walk the TLV entries
+            let mut offset = 82usize;
+            // Skip account type byte if present (Token-2022 adds 1 byte for AccountType)
+            if offset < mint_data.len() && mint_data[offset] == 2 {
+                // AccountType::Mint = 2
+                offset += 1;
+            }
+            while offset + 4 <= mint_data.len() {
+                let ext_type = u16::from_le_bytes([mint_data[offset], mint_data[offset + 1]]);
+                let ext_len = u16::from_le_bytes([mint_data[offset + 2], mint_data[offset + 3]]) as usize;
+                // TransferFeeConfig = 1, TransferFeeAmount = 2
+                require!(
+                    ext_type != 1 && ext_type != 2,
+                    PerkError::UnsupportedTokenExtension
+                );
+                offset += 4 + ext_len;
+            }
+        }
+    }
 
     // Validate oracle
     oracle::validate_oracle(

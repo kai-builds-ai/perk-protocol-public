@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::Mint;
+use anchor_spl::token_interface::Mint;
 use crate::constants::*;
 use crate::state::{Protocol, PerkOraclePrice};
 use crate::errors::PerkError;
@@ -33,8 +33,8 @@ pub struct InitializePerkOracle<'info> {
     )]
     pub perk_oracle: Box<Account<'info, PerkOraclePrice>>,
 
-    /// Token mint to create oracle for (validated as real SPL Mint)
-    pub token_mint: Account<'info, Mint>,
+    /// Token mint to create oracle for (validated as real SPL or Token-2022 Mint)
+    pub token_mint: InterfaceAccount<'info, Mint>,
 
     /// The initial oracle authority (cranker)
     /// CHECK: Can be any pubkey — validated by admin's intent

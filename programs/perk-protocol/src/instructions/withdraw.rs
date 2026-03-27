@@ -4,7 +4,7 @@
 /// Oracle-derived margin check post-withdrawal.
 
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Token, TokenAccount, Transfer};
+use anchor_spl::token_interface::{self, TokenInterface, TokenAccount, TransferChecked, Mint};
 use crate::errors::PerkError;
 use crate::state::{Market, Protocol, UserPosition};
 use crate::engine::{warmup, risk, oracle};
@@ -39,19 +39,23 @@ pub struct Withdraw<'info> {
     /// CHECK: Fallback oracle account (pass any account if no fallback configured)
     pub fallback_oracle: UncheckedAccount<'info>,
 
+    /// Token mint (needed for transfer_checked — validated against market)
+    #[account(constraint = token_mint.key() == market.token_mint @ PerkError::TokenMintMismatch)]
+    pub token_mint: InterfaceAccount<'info, Mint>,
+
     #[account(
         mut,
         constraint = user_token_account.mint == market.token_mint,
         constraint = user_token_account.owner == user.key(),
     )]
-    pub user_token_account: Account<'info, TokenAccount>,
+    pub user_token_account: InterfaceAccount<'info, TokenAccount>,
 
     #[account(
         mut,
         seeds = [b"vault", market.key().as_ref()],
         bump = market.vault_bump,
     )]
-    pub vault: Account<'info, TokenAccount>,
+    pub vault: InterfaceAccount<'info, TokenAccount>,
 
     #[account(constraint = user.key() == user_position.authority @ PerkError::Unauthorized)]
     pub authority: Signer<'info>,
@@ -59,7 +63,7 @@ pub struct Withdraw<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
 
-    pub token_program: Program<'info, Token>,
+    pub token_program: Interface<'info, TokenInterface>,
 }
 
 pub fn handler(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
@@ -113,25 +117,28 @@ pub fn handler(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
         require!(is_above, PerkError::WithdrawalWouldLiquidate);
     }
 
-    // ── CPI transfer from vault to user ──
+    // ── CPI transfer from vault to user (transfer_checked for Token-2022 compat) ──
+    let decimals = ctx.accounts.token_mint.decimals;
     let token_mint_key = market.token_mint;
     let creator_key = market.creator;
     let market_bump = market.bump;
     let seeds = &[b"market" as &[u8], token_mint_key.as_ref(), creator_key.as_ref(), &[market_bump]];
     let signer_seeds = &[&seeds[..]];
 
-    let cpi_accounts = Transfer {
+    let cpi_accounts = TransferChecked {
         from: ctx.accounts.vault.to_account_info(),
+        mint: ctx.accounts.token_mint.to_account_info(),
         to: ctx.accounts.user_token_account.to_account_info(),
         authority: market_account_info.clone(),
     };
-    token::transfer(
+    token_interface::transfer_checked(
         CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info(),
             cpi_accounts,
             signer_seeds,
         ),
         amount,
+        decimals,
     )?;
 
     // ── Update balances — track c_tot delta ──

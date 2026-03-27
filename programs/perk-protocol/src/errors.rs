@@ -83,6 +83,10 @@ pub enum PerkError {
     TriggerOrderTooOld,
     #[msg("Token mint decimals out of supported range")]
     InvalidTokenDecimals,
+    #[msg("Token-2022 extension not supported (e.g. transfer fees)")]
+    UnsupportedTokenExtension,
+    #[msg("Token mint does not match market")]
+    TokenMintMismatch,
     #[msg("Warmup period below minimum")]
     WarmupPeriodTooSmall,
     #[msg("Position is not empty — cannot reclaim")]

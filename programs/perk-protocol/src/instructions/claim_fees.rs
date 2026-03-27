@@ -4,7 +4,7 @@
 /// Fix: verify recipient_token_account.owner == claimer.key()
 
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Token, TokenAccount, Transfer};
+use anchor_spl::token_interface::{self, TokenInterface, TokenAccount, TransferChecked, Mint};
 use crate::engine::risk;
 use crate::errors::PerkError;
 use crate::state::{Market, Protocol};
@@ -24,12 +24,16 @@ pub struct ClaimFees<'info> {
     )]
     pub market: Box<Account<'info, Market>>,
 
+    /// Token mint (needed for transfer_checked — validated against market)
+    #[account(constraint = token_mint.key() == market.token_mint @ PerkError::TokenMintMismatch)]
+    pub token_mint: InterfaceAccount<'info, Mint>,
+
     #[account(
         mut,
         seeds = [b"vault", market.key().as_ref()],
         bump = market.vault_bump,
     )]
-    pub vault: Account<'info, TokenAccount>,
+    pub vault: InterfaceAccount<'info, TokenAccount>,
 
     #[account(
         mut,
@@ -37,11 +41,11 @@ pub struct ClaimFees<'info> {
         // FIX: verify recipient_token_account.owner == claimer
         constraint = recipient_token_account.owner == claimer.key() @ PerkError::Unauthorized,
     )]
-    pub recipient_token_account: Account<'info, TokenAccount>,
+    pub recipient_token_account: InterfaceAccount<'info, TokenAccount>,
 
     pub claimer: Signer<'info>,
 
-    pub token_program: Program<'info, Token>,
+    pub token_program: Interface<'info, TokenInterface>,
 }
 
 pub fn handler(ctx: Context<ClaimFees>) -> Result<()> {
@@ -79,15 +83,17 @@ pub fn handler(ctx: Context<ClaimFees>) -> Result<()> {
         }
     }
 
-    // CPI transfer from vault using market PDA as signer
+    // CPI transfer from vault using market PDA as signer (transfer_checked for Token-2022)
+    let decimals = ctx.accounts.token_mint.decimals;
     let token_mint_key = market.token_mint;
     let creator_key = market.creator;
     let market_bump = market.bump;
     let seeds = &[b"market" as &[u8], token_mint_key.as_ref(), creator_key.as_ref(), &[market_bump]];
     let signer_seeds = &[&seeds[..]];
 
-    let cpi_accounts = Transfer {
+    let cpi_accounts = TransferChecked {
         from: ctx.accounts.vault.to_account_info(),
+        mint: ctx.accounts.token_mint.to_account_info(),
         to: ctx.accounts.recipient_token_account.to_account_info(),
         authority: market_account_info.clone(),
     };
@@ -96,7 +102,7 @@ pub fn handler(ctx: Context<ClaimFees>) -> Result<()> {
         cpi_accounts,
         signer_seeds,
     );
-    token::transfer(cpi_ctx, actual_claim)?;
+    token_interface::transfer_checked(cpi_ctx, actual_claim, decimals)?;
 
     // Update vault balance
     market.vault_balance = market.vault_balance.checked_sub(actual_claim as u128)

@@ -159,6 +159,11 @@
                 "kind": "account",
                 "path": "market.token_mint",
                 "account": "Market"
+              },
+              {
+                "kind": "account",
+                "path": "market.creator",
+                "account": "Market"
               }
             ]
           }
@@ -240,6 +245,11 @@
               {
                 "kind": "account",
                 "path": "market.token_mint",
+                "account": "Market"
+              },
+              {
+                "kind": "account",
+                "path": "market.creator",
                 "account": "Market"
               }
             ]
@@ -353,6 +363,11 @@
               {
                 "kind": "account",
                 "path": "market.token_mint",
+                "account": "Market"
+              },
+              {
+                "kind": "account",
+                "path": "market.creator",
                 "account": "Market"
               }
             ]
@@ -491,9 +506,20 @@
                 "kind": "account",
                 "path": "market.token_mint",
                 "account": "Market"
+              },
+              {
+                "kind": "account",
+                "path": "market.creator",
+                "account": "Market"
               }
             ]
           }
+        },
+        {
+          "name": "token_mint",
+          "docs": [
+            "Token mint (needed for transfer_checked — validated against market)"
+          ]
         },
         {
           "name": "vault",
@@ -526,8 +552,7 @@
           "signer": true
         },
         {
-          "name": "token_program",
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+          "name": "token_program"
         }
       ],
       "args": []
@@ -588,6 +613,11 @@
               {
                 "kind": "account",
                 "path": "market.token_mint",
+                "account": "Market"
+              },
+              {
+                "kind": "account",
+                "path": "market.creator",
                 "account": "Market"
               }
             ]
@@ -685,6 +715,11 @@
                 "kind": "account",
                 "path": "market.token_mint",
                 "account": "Market"
+              },
+              {
+                "kind": "account",
+                "path": "market.creator",
+                "account": "Market"
               }
             ]
           }
@@ -758,6 +793,10 @@
               {
                 "kind": "account",
                 "path": "token_mint"
+              },
+              {
+                "kind": "account",
+                "path": "creator"
               }
             ]
           }
@@ -800,8 +839,7 @@
           "address": "11111111111111111111111111111111"
         },
         {
-          "name": "token_program",
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+          "name": "token_program"
         },
         {
           "name": "rent",
@@ -875,6 +913,11 @@
                 "kind": "account",
                 "path": "market.token_mint",
                 "account": "Market"
+              },
+              {
+                "kind": "account",
+                "path": "market.creator",
+                "account": "Market"
               }
             ]
           }
@@ -915,6 +958,12 @@
           "name": "fallback_oracle"
         },
         {
+          "name": "token_mint",
+          "docs": [
+            "Token mint (needed for transfer_checked — validated against market)"
+          ]
+        },
+        {
           "name": "user_token_account",
           "writable": true
         },
@@ -950,8 +999,7 @@
           "address": "11111111111111111111111111111111"
         },
         {
-          "name": "token_program",
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+          "name": "token_program"
         }
       ],
       "args": [
@@ -1017,6 +1065,11 @@
               {
                 "kind": "account",
                 "path": "market.token_mint",
+                "account": "Market"
+              },
+              {
+                "kind": "account",
+                "path": "market.creator",
                 "account": "Market"
               }
             ]
@@ -1093,6 +1146,12 @@
           "name": "fallback_oracle"
         },
         {
+          "name": "token_mint",
+          "docs": [
+            "Token mint (needed for transfer_checked — validated against market)"
+          ]
+        },
+        {
           "name": "executor_token_account",
           "writable": true
         },
@@ -1124,8 +1183,7 @@
           "signer": true
         },
         {
-          "name": "token_program",
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+          "name": "token_program"
         }
       ],
       "args": []
@@ -1277,7 +1335,7 @@
         {
           "name": "token_mint",
           "docs": [
-            "Token mint to create oracle for (validated as real SPL Mint)"
+            "Token mint to create oracle for (validated as real SPL or Token-2022 Mint)"
           ]
         },
         {
@@ -1366,6 +1424,11 @@
               {
                 "kind": "account",
                 "path": "market.token_mint",
+                "account": "Market"
+              },
+              {
+                "kind": "account",
+                "path": "market.creator",
                 "account": "Market"
               }
             ]
@@ -1523,6 +1586,11 @@
                 "kind": "account",
                 "path": "market.token_mint",
                 "account": "Market"
+              },
+              {
+                "kind": "account",
+                "path": "market.creator",
+                "account": "Market"
               }
             ]
           }
@@ -1566,6 +1634,12 @@
           "name": "target_user"
         },
         {
+          "name": "token_mint",
+          "docs": [
+            "Token mint (needed for transfer_checked — validated against market)"
+          ]
+        },
+        {
           "name": "liquidator_token_account",
           "writable": true
         },
@@ -1597,8 +1671,7 @@
           "signer": true
         },
         {
-          "name": "token_program",
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+          "name": "token_program"
         }
       ],
       "args": []
@@ -1659,6 +1732,11 @@
               {
                 "kind": "account",
                 "path": "market.token_mint",
+                "account": "Market"
+              },
+              {
+                "kind": "account",
+                "path": "market.creator",
                 "account": "Market"
               }
             ]
@@ -1769,6 +1847,11 @@
               {
                 "kind": "account",
                 "path": "market.token_mint",
+                "account": "Market"
+              },
+              {
+                "kind": "account",
+                "path": "market.creator",
                 "account": "Market"
               }
             ]
@@ -1950,6 +2033,11 @@
                 "kind": "account",
                 "path": "market.token_mint",
                 "account": "Market"
+              },
+              {
+                "kind": "account",
+                "path": "market.creator",
+                "account": "Market"
               }
             ]
           }
@@ -2122,6 +2210,11 @@
               {
                 "kind": "account",
                 "path": "market.token_mint",
+                "account": "Market"
+              },
+              {
+                "kind": "account",
+                "path": "market.creator",
                 "account": "Market"
               }
             ]
@@ -2344,6 +2437,11 @@
                 "kind": "account",
                 "path": "market.token_mint",
                 "account": "Market"
+              },
+              {
+                "kind": "account",
+                "path": "market.creator",
+                "account": "Market"
               }
             ]
           }
@@ -2384,6 +2482,12 @@
           "name": "fallback_oracle"
         },
         {
+          "name": "token_mint",
+          "docs": [
+            "Token mint (needed for transfer_checked — validated against market)"
+          ]
+        },
+        {
           "name": "user_token_account",
           "writable": true
         },
@@ -2422,8 +2526,7 @@
           "signer": true
         },
         {
-          "name": "token_program",
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+          "name": "token_program"
         }
       ],
       "args": [
@@ -2694,81 +2797,91 @@
     },
     {
       "code": 6038,
+      "name": "UnsupportedTokenExtension",
+      "msg": "Token-2022 extension not supported (e.g. transfer fees)"
+    },
+    {
+      "code": 6039,
+      "name": "TokenMintMismatch",
+      "msg": "Token mint does not match market"
+    },
+    {
+      "code": 6040,
       "name": "WarmupPeriodTooSmall",
       "msg": "Warmup period below minimum"
     },
     {
-      "code": 6039,
+      "code": 6041,
       "name": "PositionNotEmpty",
       "msg": "Position is not empty — cannot reclaim"
     },
     {
-      "code": 6040,
+      "code": 6042,
       "name": "PositionHasOpenOrders",
       "msg": "Position has open trigger orders — cannot reclaim"
     },
     {
-      "code": 6041,
+      "code": 6043,
       "name": "VaultInsufficient",
       "msg": "Vault insufficient for transfer"
     },
     {
-      "code": 6042,
+      "code": 6044,
       "name": "ReclaimTooSoon",
       "msg": "Account too young to reclaim"
     },
     {
-      "code": 6043,
+      "code": 6045,
       "name": "ReclaimFeeDebt",
       "msg": "Account has outstanding fee debt — cannot reclaim"
     },
     {
-      "code": 6044,
+      "code": 6046,
       "name": "ReclaimCollateralAboveDust",
       "msg": "Account collateral above dust threshold — cannot reclaim"
     },
     {
-      "code": 6045,
+      "code": 6047,
       "name": "AdminTransferPending",
       "msg": "Admin transfer already pending — accept or cancel first"
     },
     {
-      "code": 6046,
+      "code": 6048,
       "name": "MinHoldingPeriodNotMet",
       "msg": "Must wait at least 1 slot before closing position"
     },
     {
-      "code": 6047,
+      "code": 6049,
       "name": "OracleFrozen",
       "msg": "Oracle is frozen"
     },
     {
-      "code": 6048,
+      "code": 6050,
       "name": "OracleNotFrozen",
       "msg": "Oracle must be frozen for this operation"
     },
     {
-      "code": 6049,
+      "code": 6051,
       "name": "OracleInsufficientSources",
       "msg": "Insufficient oracle sources"
     },
     {
-      "code": 6050,
+      "code": 6052,
       "name": "OracleUpdateTooFrequent",
       "msg": "Oracle update too frequent (one per slot max)"
     },
     {
-      "code": 6051,
+      "code": 6053,
       "name": "OracleGapTooLarge",
       "msg": "Oracle gap too large — unfreeze required"
     },
     {
-      "code": 6052,
+      "code": 6054,
       "name": "OracleFallbackFailed",
       "msg": "Primary and fallback oracles both failed"
     },
     {
-      "code": 6053,
+      "code": 6055,
       "name": "OracleCircuitBreakerTripped",
       "msg": "Oracle circuit breaker tripped — price deviation from EMA exceeds threshold"
     }
@@ -2896,6 +3009,9 @@
           },
           {
             "name": "creator",
+            "docs": [
+              "Immutable — part of PDA seed. Never modify after creation."
+            ],
             "type": "pubkey"
           },
           {
