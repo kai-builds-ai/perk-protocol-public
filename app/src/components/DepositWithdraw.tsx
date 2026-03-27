@@ -33,6 +33,7 @@ export function DepositWithdraw({ market }: DepositWithdrawProps) {
   const submitLockRef = useRef(false);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [vaultBalance, setVaultBalance] = useState<number | null>(null);
+  const [vaultBalanceRaw, setVaultBalanceRaw] = useState<number>(0); // lamports
   const [freeCollateral, setFreeCollateral] = useState<number | null>(null);
   const [hasOpenPosition, setHasOpenPosition] = useState(false);
 
@@ -90,8 +91,9 @@ export function DepositWithdraw({ market }: DepositWithdrawProps) {
         const creator = new PublicKey(market.creator);
         const marketAddr = readonlyClient.getMarketAddress(tokenMint, creator);
         const pos = await readonlyClient.fetchPosition(marketAddr, publicKey);
-        const depositedHuman = pos.depositedCollateral.toNumber() / scale;
-        if (!cancelled) setVaultBalance(depositedHuman);
+        const rawLamports = pos.depositedCollateral.toNumber();
+        const depositedHuman = rawLamports / scale;
+        if (!cancelled) { setVaultBalance(depositedHuman); setVaultBalanceRaw(rawLamports); }
 
         // Free collateral = equity - initial margin requirement
         const marketAccount = await readonlyClient.fetchMarket(tokenMint, creator);
@@ -131,8 +133,8 @@ export function DepositWithdraw({ market }: DepositWithdrawProps) {
     }
     if (mode === "withdraw" && vaultBalance !== null) {
       if (amountNum > vaultBalance) {
-        // Rounding tolerance: if within 0.1%, clamp DOWN to vault balance
-        if (amountNum <= vaultBalance * 1.001) {
+        // Rounding tolerance: if within 0.5%, clamp DOWN to exact vault balance
+        if (amountNum <= vaultBalance * 1.005) {
           amountNum = vaultBalance;
         } else {
           toast.error("Insufficient vault balance.");
@@ -146,7 +148,10 @@ export function DepositWithdraw({ market }: DepositWithdrawProps) {
     try {
       const tokenMint = new PublicKey(market.tokenMint);
       const oracle = new PublicKey(market.oracleAddress);
-      const amountBN = new BN(Math.floor(amountNum * scale));
+      // For withdrawals, use raw lamport value to avoid float rounding issues
+      const amountBN = mode === "withdraw" && amountNum === vaultBalance
+        ? new BN(vaultBalanceRaw)
+        : new BN(Math.floor(amountNum * scale));
 
       // Ensure position account exists
       const creator = new PublicKey(market.creator);
