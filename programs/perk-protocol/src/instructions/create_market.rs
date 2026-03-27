@@ -45,14 +45,18 @@ pub struct CreateMarket<'info> {
 
     pub token_mint: InterfaceAccount<'info, Mint>,
 
+    /// Collateral mint (e.g. USDC). Must be 6 decimals for Percolator math compatibility.
+    pub collateral_mint: InterfaceAccount<'info, Mint>,
+
     /// CHECK: Oracle price feed account (validated in handler)
     pub oracle: UncheckedAccount<'info>,
 
     // C2: Vault authority is the Market PDA (not the vault itself)
+    // Vault holds collateral tokens (not the base token)
     #[account(
         init,
         payer = creator,
-        token::mint = token_mint,
+        token::mint = collateral_mint,
         token::authority = market,
         token::token_program = token_program,
         seeds = [b"vault", market.key().as_ref()],
@@ -106,12 +110,20 @@ pub fn handler(ctx: Context<CreateMarket>, params: CreateMarketParams) -> Result
         PerkError::InvalidTokenDecimals
     );
 
+    // Validate collateral mint: must be 6 decimals for Percolator math compatibility
+    // (POS_SCALE = PRICE_SCALE = 10^6 assumes 6-decimal collateral)
+    require!(
+        ctx.accounts.collateral_mint.decimals == 6,
+        PerkError::InvalidTokenDecimals
+    );
+
     // Reject Token-2022 mints with TransferFeeConfig extension.
     // Transfer fees cause vault insolvency: deposit records X tokens but vault receives X - fee.
+    // Check BOTH token_mint (base) and collateral_mint for safety.
     // Detection: Token-2022 mints with extensions have data > 82 bytes (standard Mint size).
     // We check the raw account data for the TransferFeeConfig extension type (u16 = 1).
-    {
-        let mint_info = ctx.accounts.token_mint.to_account_info();
+    for mint_account in [&ctx.accounts.token_mint, &ctx.accounts.collateral_mint] {
+        let mint_info = mint_account.to_account_info();
         let mint_data = mint_info.try_borrow_data()?;
         // SPL Token-2022 extensions start after byte 82 (standard Mint layout).
         // Each TLV entry: u16 type, u16 length, then data.
@@ -169,7 +181,7 @@ pub fn handler(ctx: Context<CreateMarket>, params: CreateMarketParams) -> Result
 
     market.market_index = protocol_mut.market_count;
     market.token_mint = ctx.accounts.token_mint.key();
-    market.collateral_mint = ctx.accounts.token_mint.key(); // Coin-margined
+    market.collateral_mint = ctx.accounts.collateral_mint.key(); // Stablecoin-margined
     market.creator = ctx.accounts.creator.key();
     market.vault = ctx.accounts.vault.key();
     market.vault_bump = ctx.bumps.vault;

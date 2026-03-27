@@ -24,9 +24,9 @@ pub struct ClaimFees<'info> {
     )]
     pub market: Box<Account<'info, Market>>,
 
-    /// Token mint (needed for transfer_checked — validated against market)
-    #[account(constraint = token_mint.key() == market.token_mint @ PerkError::TokenMintMismatch)]
-    pub token_mint: InterfaceAccount<'info, Mint>,
+    /// Collateral mint (needed for transfer_checked — validated against market)
+    #[account(constraint = collateral_mint.key() == market.collateral_mint @ PerkError::TokenMintMismatch)]
+    pub collateral_mint: InterfaceAccount<'info, Mint>,
 
     #[account(
         mut,
@@ -37,7 +37,7 @@ pub struct ClaimFees<'info> {
 
     #[account(
         mut,
-        constraint = recipient_token_account.mint == market.token_mint,
+        constraint = recipient_token_account.mint == market.collateral_mint,
         // FIX: verify recipient_token_account.owner == claimer
         constraint = recipient_token_account.owner == claimer.key() @ PerkError::Unauthorized,
     )]
@@ -84,7 +84,7 @@ pub fn handler(ctx: Context<ClaimFees>) -> Result<()> {
     }
 
     // CPI transfer from vault using market PDA as signer (transfer_checked for Token-2022)
-    let decimals = ctx.accounts.token_mint.decimals;
+    let decimals = ctx.accounts.collateral_mint.decimals;
     let token_mint_key = market.token_mint;
     let creator_key = market.creator;
     let market_bump = market.bump;
@@ -93,7 +93,7 @@ pub fn handler(ctx: Context<ClaimFees>) -> Result<()> {
 
     let cpi_accounts = TransferChecked {
         from: ctx.accounts.vault.to_account_info(),
-        mint: ctx.accounts.token_mint.to_account_info(),
+        mint: ctx.accounts.collateral_mint.to_account_info(),
         to: ctx.accounts.recipient_token_account.to_account_info(),
         authority: market_account_info.clone(),
     };

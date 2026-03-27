@@ -243,6 +243,12 @@ export class PerkClient {
     )) as unknown as MarketAccount;
   }
 
+  /** Get the collateral mint for a market (reads from on-chain state). */
+  async getCollateralMint(tokenMint: PublicKey, creator: PublicKey): Promise<PublicKey> {
+    const market = await this.fetchMarket(tokenMint, creator);
+    return market.collateralMint;
+  }
+
   async fetchAllMarkets(): Promise<{ address: PublicKey; account: MarketAccount }[]> {
     const accounts = await this.accounts.market.all();
     return accounts.map((a: any) => ({
@@ -416,16 +422,19 @@ export class PerkClient {
   // Market Instructions
   // ═══════════════════════════════════════════════
 
-  /** Create a new perpetual futures market. */
+  /** Create a new perpetual futures market.
+   *  collateralMint must be a 6-decimal token (USDC, USDT, etc.) */
   async createMarket(
     tokenMint: PublicKey,
     oracle: PublicKey,
-    params: CreateMarketParams
+    params: CreateMarketParams,
+    collateralMint: PublicKey,
   ): Promise<TransactionSignature> {
     const protocol = this.getProtocolAddress();
     const [market] = findMarketAddress(tokenMint, this.wallet.publicKey, this.programId);
     const [vault] = findVaultAddress(market, this.programId);
-    const tokenProgramId = await this.getTokenProgramForMint(tokenMint);
+    // Vault holds collateral, so use the collateral mint's token program
+    const tokenProgramId = await this.getTokenProgramForMint(collateralMint);
 
     return this.program.methods
       .createMarket({
@@ -438,6 +447,7 @@ export class PerkClient {
         protocol,
         market,
         tokenMint,
+        collateralMint,
         oracle,
         vault,
         creator: this.wallet.publicKey,
@@ -485,8 +495,9 @@ export class PerkClient {
     const market = this.getMarketAddress(tokenMint, creator);
     const position = this.getPositionAddress(market, this.wallet.publicKey);
     const [vault] = findVaultAddress(market, this.programId);
-    const tokenProgramId = await this.getTokenProgramForMint(tokenMint);
-    const userAta = await getAssociatedTokenAddress(tokenMint, this.wallet.publicKey, false, tokenProgramId);
+    const collateralMint = await this.getCollateralMint(tokenMint, creator);
+    const tokenProgramId = await this.getTokenProgramForMint(collateralMint);
+    const userAta = await getAssociatedTokenAddress(collateralMint, this.wallet.publicKey, false, tokenProgramId);
 
     return this.program.methods
       .deposit(amount)
@@ -496,7 +507,7 @@ export class PerkClient {
         userPosition: position,
         oracle,
         fallbackOracle: fallbackOracle ?? SystemProgram.programId,
-        tokenMint,
+        collateralMint,
         userTokenAccount: userAta,
         vault,
         user: this.wallet.publicKey,
@@ -518,8 +529,9 @@ export class PerkClient {
     const market = this.getMarketAddress(tokenMint, creator);
     const position = this.getPositionAddress(market, this.wallet.publicKey);
     const [vault] = findVaultAddress(market, this.programId);
-    const tokenProgramId = await this.getTokenProgramForMint(tokenMint);
-    const userAta = await getAssociatedTokenAddress(tokenMint, this.wallet.publicKey, false, tokenProgramId);
+    const collateralMint = await this.getCollateralMint(tokenMint, creator);
+    const tokenProgramId = await this.getTokenProgramForMint(collateralMint);
+    const userAta = await getAssociatedTokenAddress(collateralMint, this.wallet.publicKey, false, tokenProgramId);
 
     return this.program.methods
       .withdraw(amount)
@@ -529,7 +541,7 @@ export class PerkClient {
         userPosition: position,
         oracle,
         fallbackOracle: fallbackOracle ?? SystemProgram.programId,
-        tokenMint,
+        collateralMint,
         userTokenAccount: userAta,
         vault,
         authority: this.wallet.publicKey,
@@ -685,14 +697,15 @@ export class PerkClient {
     const protocol = this.getProtocolAddress();
     const market = this.getMarketAddress(tokenMint, creator);
     const [vault] = findVaultAddress(market, this.programId);
-    const tokenProgramId = await this.getTokenProgramForMint(tokenMint);
+    const collateralMint = await this.getCollateralMint(tokenMint, creator);
+    const tokenProgramId = await this.getTokenProgramForMint(collateralMint);
 
     return this.program.methods
       .claimFees()
       .accounts({
         protocol,
         market,
-        tokenMint,
+        collateralMint,
         vault,
         recipientTokenAccount,
         claimer: this.wallet.publicKey,
@@ -734,7 +747,9 @@ export class PerkClient {
     const protocol = this.getProtocolAddress();
     const position = this.getPositionAddress(marketAddress, targetUser);
     const [vault] = findVaultAddress(marketAddress, this.programId);
-    const tokenProgramId = await this.getTokenProgramForMint(tokenMint);
+    const marketData = await this.fetchMarketByAddress(marketAddress);
+    const collateralMint = marketData.collateralMint;
+    const tokenProgramId = await this.getTokenProgramForMint(collateralMint);
 
     return this.program.methods
       .liquidate()
@@ -745,7 +760,7 @@ export class PerkClient {
         oracle,
         fallbackOracle: fallbackOracle ?? SystemProgram.programId,
         targetUser,
-        tokenMint,
+        collateralMint,
         liquidatorTokenAccount,
         vault,
         liquidator: this.wallet.publicKey,
@@ -772,7 +787,9 @@ export class PerkClient {
       orderId
     );
     const [vault] = findVaultAddress(marketAddress, this.programId);
-    const tokenProgramId = await this.getTokenProgramForMint(tokenMint);
+    const marketData = await this.fetchMarketByAddress(marketAddress);
+    const collateralMint = marketData.collateralMint;
+    const tokenProgramId = await this.getTokenProgramForMint(collateralMint);
 
     return this.program.methods
       .executeTriggerOrder()
@@ -783,7 +800,7 @@ export class PerkClient {
         triggerOrder,
         oracle,
         fallbackOracle: fallbackOracle ?? SystemProgram.programId,
-        tokenMint,
+        collateralMint,
         executorTokenAccount,
         vault,
         executor: this.wallet.publicKey,
