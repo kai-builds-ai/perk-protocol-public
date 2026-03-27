@@ -27,13 +27,21 @@ export default function TradingView() {
   );
   const { candles, isReal } = usePythCandles(symbol, "60", 200);
 
-  // Show loading state while markets are being fetched (e.g., after market creation redirect)
+  // Show loading state while markets are being fetched (e.g., after market creation redirect).
+  // Grace period: keep showing "Loading" for up to 15s to let MarketsProvider poll new markets.
+  const [gracePeriod, setGracePeriod] = React.useState(true);
+  React.useEffect(() => {
+    const timer = setTimeout(() => setGracePeriod(false), 15000);
+    return () => clearTimeout(timer);
+  }, []);
+
   if (!market) {
+    const isStillLoading = loading || gracePeriod;
     return (
       <div className="flex flex-col h-screen">
         <TopBar />
         <div className="flex-1 flex items-center justify-center text-text-secondary font-sans text-sm">
-          {loading
+          {isStillLoading
             ? "Loading market..."
             : `Market not found: ${marketKey?.slice(0, 12)}...`}
         </div>

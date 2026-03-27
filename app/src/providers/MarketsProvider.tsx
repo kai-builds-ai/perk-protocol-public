@@ -14,6 +14,7 @@ import {
 import { Market, OracleSource } from "@/types";
 import { usePerk } from "@/providers/PerkProvider";
 import { TOKEN_META, getTokenDecimals, setTokenDecimals } from "@/lib/token-meta";
+import { getTokenInfo } from "@/lib/token-metadata";
 import { fetch24hChanges } from "@/lib/price-change";
 import { useConnection } from "@solana/wallet-adapter-react";
 import { getMint } from "@solana/spl-token";
@@ -122,6 +123,8 @@ export function MarketsProvider({ children }: { children: React.ReactNode }) {
   const generationRef = useRef(0);
   // P-07: Track mints we've already fetched decimals for
   const resolvedDecimalsRef = useRef<Set<string>>(new Set());
+  // Track mints we've already resolved metadata for (name/symbol/logo)
+  const resolvedMetaRef = useRef<Set<string>>(new Set());
 
   const fetchMarkets = useCallback(async () => {
     const gen = ++generationRef.current;
@@ -148,12 +151,33 @@ export function MarketsProvider({ children }: { children: React.ReactNode }) {
         })
       );
 
+      // Resolve metadata for unknown mints before mapping
+      const unknownMetas = raw
+        .map((r) => r.account.tokenMint.toBase58())
+        .filter((mint) => !TOKEN_META[mint] && !resolvedMetaRef.current.has(mint));
+      const uniqueUnknownMetas = [...new Set(unknownMetas)];
+      await Promise.all(
+        uniqueUnknownMetas.map(async (mint) => {
+          try {
+            const info = await getTokenInfo(mint, connection);
+            if (info && (info.symbol || info.name)) {
+              TOKEN_META[mint] = {
+                symbol: info.symbol || mint.slice(0, 6),
+                name: info.name || mint.slice(0, 8) + "…",
+                logoUrl: info.logoUrl ?? undefined,
+              };
+            }
+          } catch { /* fall back to truncated mint */ }
+          resolvedMetaRef.current.add(mint);
+        })
+      );
+
       const mapped = raw
         .map((r) => toFrontendMarket(r.address, r.account))
         .filter((m) => m.active); // Hide deactivated markets from public view
       mapped.sort((a, b) => a.marketIndex - b.marketIndex);
 
-      // Fetch 24h price changes from CoinGecko (cached, max 1 req/60s)
+      // Fetch 24h price changes from DexScreener (cached, max 1 req/60s)
       const mints = mapped.map((m) => m.tokenMint);
       const changes = await fetch24hChanges(mints);
       for (const m of mapped) {
