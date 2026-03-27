@@ -437,6 +437,11 @@ function WithdrawSol({
 
   const handleWithdraw = async () => {
     if (submittingRef.current) return;
+    // Strict decimal validation — reject scientific notation, negative, non-numeric
+    if (!/^\d+(\.\d{1,9})?$/.test(amount.trim())) {
+      toast.error('Enter a valid SOL amount (e.g. 1.5)');
+      return;
+    }
     const parsed = parseFloat(amount);
     if (isNaN(parsed) || parsed <= 0) {
       toast.error('Enter a valid SOL amount');
@@ -446,7 +451,7 @@ function WithdrawSol({
     submittingRef.current = true;
     setSubmitting(true);
     try {
-      const [whole, frac = ''] = amount.split('.');
+      const [whole, frac = ''] = amount.trim().split('.');
       const padded = (frac + '000000000').slice(0, 9);
       const lamports = new BN(whole + padded);
       if (lamports.isZero()) {
@@ -621,6 +626,11 @@ function InitPerkOracle({
 
   const initSingle = async (mintStr: string) => {
     if (submittingRef.current) return;
+    // Validate mint address
+    try { new PublicKey(mintStr); } catch {
+      toast.error('Invalid token mint address');
+      return;
+    }
     submittingRef.current = true;
     setSubmitting(true);
     try {
@@ -1149,10 +1159,10 @@ function UpdateOracleConfigPanel({
       circuitBreakerDeviationBps: circuitBreakerBps ? parseInt(circuitBreakerBps, 10) : null,
     };
 
-    // Validate non-null fields are integers
+    // Validate non-null fields are non-negative integers
     for (const [key, val] of Object.entries(params) as [string, number | null][]) {
-      if (val !== null && (isNaN(val) || !Number.isInteger(val))) {
-        toast.error(`${key} must be a valid integer`);
+      if (val !== null && (isNaN(val) || !Number.isInteger(val) || val < 0)) {
+        toast.error(`${key} must be a non-negative integer`);
         return;
       }
     }

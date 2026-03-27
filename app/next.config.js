@@ -14,7 +14,7 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
+              "script-src 'self' 'unsafe-inline'",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: blob: https://raw.githubusercontent.com https://arweave.net https://assets.coingecko.com https://coin-images.coingecko.com https://static.jup.ag https://tokens.jup.ag https://metadata.jito.network https://pyth.network https://wormhole.com https://ipfs.io https://*.ipfs.cf-ipfs.com https://*.ipfs.nftstorage.link https://shdw-drive.genesysgo.net https://gateway.irys.xyz https://api.coingecko.com",

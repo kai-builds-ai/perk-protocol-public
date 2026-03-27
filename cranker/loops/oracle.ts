@@ -7,6 +7,11 @@ import { TxRateLimiter } from "../rate-limiter";
 
 const log = createLogger("oracle");
 
+/** Cache for on-chain oracle discovery — avoids getProgramAccounts every tick */
+let oracleMintsCache: Map<string, PublicKey> = new Map();
+let oracleMintsCacheTime = 0;
+const ORACLE_CACHE_TTL_MS = 60_000; // refresh every 60s
+
 interface OracleLoopState {
   running: boolean;
   consecutiveFailures: number;
@@ -46,16 +51,25 @@ export function startOracleLoop(
     }
 
     // Also discover all PerkOracle accounts on-chain (covers oracles without markets yet)
-    try {
-      const allOracles = await client.fetchAllPerkOracles();
-      for (const o of allOracles) {
-        const mintStr = o.account.tokenMint.toBase58();
-        if (!uniqueMints.has(mintStr)) {
-          uniqueMints.set(mintStr, o.account.tokenMint);
+    // Cached to avoid getProgramAccounts every tick
+    const now = Date.now();
+    if (now - oracleMintsCacheTime > ORACLE_CACHE_TTL_MS || oracleMintsCache.size === 0) {
+      try {
+        const allOracles = await client.fetchAllPerkOracles();
+        oracleMintsCache = new Map();
+        for (const o of allOracles) {
+          oracleMintsCache.set(o.account.tokenMint.toBase58(), o.account.tokenMint);
         }
+        oracleMintsCacheTime = now;
+        log.info("Refreshed oracle discovery cache", { count: oracleMintsCache.size });
+      } catch (err) {
+        log.warn("Failed to fetch all PerkOracles — using cached/market-only mints", { error: String(err) });
       }
-    } catch (err) {
-      log.warn("Failed to fetch all PerkOracles — using market-only mints", { error: String(err) });
+    }
+    for (const [mintStr, mintKey] of oracleMintsCache) {
+      if (!uniqueMints.has(mintStr)) {
+        uniqueMints.set(mintStr, mintKey);
+      }
     }
 
     if (uniqueMints.size === 0) return;
