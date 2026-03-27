@@ -193,7 +193,7 @@
         {
             "name": "admin_update_market",
             "docs": [
-                "M4: Admin market update — update oracle, active status, trading fee."
+                "M4: Admin market update ΓÇö update oracle, active status, trading fee."
             ],
             "discriminator": [
                 93,
@@ -518,7 +518,7 @@
                 {
                     "name": "token_mint",
                     "docs": [
-                        "Token mint (needed for transfer_checked — validated against market)"
+                        "Token mint (needed for transfer_checked ΓÇö validated against market)"
                     ]
                 },
                 {
@@ -740,7 +740,7 @@
         {
             "name": "create_market",
             "docs": [
-                "Create a new perpetual futures market. Permissionless — anyone can call."
+                "Create a new perpetual futures market. Permissionless ΓÇö anyone can call."
             ],
             "discriminator": [
                 103,
@@ -960,7 +960,7 @@
                 {
                     "name": "token_mint",
                     "docs": [
-                        "Token mint (needed for transfer_checked — validated against market)"
+                        "Token mint (needed for transfer_checked ΓÇö validated against market)"
                     ]
                 },
                 {
@@ -1012,7 +1012,7 @@
         {
             "name": "execute_trigger_order",
             "docs": [
-                "Execute a trigger order. Permissionless — anyone can call (cranker incentive)."
+                "Execute a trigger order. Permissionless ΓÇö anyone can call (cranker incentive)."
             ],
             "discriminator": [
                 105,
@@ -1148,7 +1148,7 @@
                 {
                     "name": "token_mint",
                     "docs": [
-                        "Token mint (needed for transfer_checked — validated against market)"
+                        "Token mint (needed for transfer_checked ΓÇö validated against market)"
                     ]
                 },
                 {
@@ -1520,7 +1520,7 @@
                 {
                     "name": "protocol_fee_vault",
                     "docs": [
-                        "CPI transfers — fee claims use per-market vaults directly. Admin-only, one-time init."
+                        "CPI transfers ΓÇö fee claims use per-market vaults directly. Admin-only, one-time init."
                     ]
                 },
                 {
@@ -1636,7 +1636,7 @@
                 {
                     "name": "token_mint",
                     "docs": [
-                        "Token mint (needed for transfer_checked — validated against market)"
+                        "Token mint (needed for transfer_checked ΓÇö validated against market)"
                     ]
                 },
                 {
@@ -2484,7 +2484,7 @@
                 {
                     "name": "token_mint",
                     "docs": [
-                        "Token mint (needed for transfer_checked — validated against market)"
+                        "Token mint (needed for transfer_checked ΓÇö validated against market)"
                     ]
                 },
                 {
@@ -2733,7 +2733,7 @@
         {
             "code": 6025,
             "name": "PositionFlipNotAllowed",
-            "msg": "Position flip not allowed — close first, then reopen"
+            "msg": "Position flip not allowed ΓÇö close first, then reopen"
         },
         {
             "code": 6026,
@@ -2763,7 +2763,7 @@
         {
             "code": 6031,
             "name": "PositionNotInitialized",
-            "msg": "Position not initialized — call initialize_position first"
+            "msg": "Position not initialized ΓÇö call initialize_position first"
         },
         {
             "code": 6032,
@@ -2813,12 +2813,12 @@
         {
             "code": 6041,
             "name": "PositionNotEmpty",
-            "msg": "Position is not empty — cannot reclaim"
+            "msg": "Position is not empty ΓÇö cannot reclaim"
         },
         {
             "code": 6042,
             "name": "PositionHasOpenOrders",
-            "msg": "Position has open trigger orders — cannot reclaim"
+            "msg": "Position has open trigger orders ΓÇö cannot reclaim"
         },
         {
             "code": 6043,
@@ -2833,17 +2833,17 @@
         {
             "code": 6045,
             "name": "ReclaimFeeDebt",
-            "msg": "Account has outstanding fee debt — cannot reclaim"
+            "msg": "Account has outstanding fee debt ΓÇö cannot reclaim"
         },
         {
             "code": 6046,
             "name": "ReclaimCollateralAboveDust",
-            "msg": "Account collateral above dust threshold — cannot reclaim"
+            "msg": "Account collateral above dust threshold ΓÇö cannot reclaim"
         },
         {
             "code": 6047,
             "name": "AdminTransferPending",
-            "msg": "Admin transfer already pending — accept or cancel first"
+            "msg": "Admin transfer already pending ΓÇö accept or cancel first"
         },
         {
             "code": 6048,
@@ -2873,7 +2873,7 @@
         {
             "code": 6053,
             "name": "OracleGapTooLarge",
-            "msg": "Oracle gap too large — unfreeze required"
+            "msg": "Oracle gap too large ΓÇö unfreeze required"
         },
         {
             "code": 6054,
@@ -2883,7 +2883,7 @@
         {
             "code": 6055,
             "name": "OracleCircuitBreakerTripped",
-            "msg": "Oracle circuit breaker tripped — price deviation from EMA exceeds threshold"
+            "msg": "Oracle circuit breaker tripped ΓÇö price deviation from EMA exceeds threshold"
         }
     ],
     "types": [
@@ -3010,7 +3010,7 @@
                     {
                         "name": "creator",
                         "docs": [
-                            "Immutable — part of PDA seed. Never modify after creation."
+                            "Immutable ΓÇö part of PDA seed. Never modify after creation."
                         ],
                         "type": "pubkey"
                     },
@@ -3257,7 +3257,7 @@
                     {
                         "name": "last_oracle_price",
                         "docs": [
-                            "Last oracle price used in accrue_market_to (spec §5.4)"
+                            "Last oracle price used in accrue_market_to (spec ┬º5.4)"
                         ],
                         "type": "u64"
                     },
@@ -3278,7 +3278,7 @@
                     {
                         "name": "funding_rate_bps_per_slot_last",
                         "docs": [
-                            "Stored funding rate for anti-retroactivity (bps per slot, spec §5.5)"
+                            "Stored funding rate for anti-retroactivity (bps per slot, spec ┬º5.5)"
                         ],
                         "type": "i64"
                     },
@@ -3292,7 +3292,7 @@
                     {
                         "name": "insurance_floor",
                         "docs": [
-                            "Insurance floor (spec §4.7)"
+                            "Insurance floor (spec ┬º4.7)"
                         ],
                         "type": "u128"
                     },
@@ -3310,7 +3310,7 @@
                     {
                         "name": "phantom_dust_bound_long_q",
                         "docs": [
-                            "Dynamic phantom dust bounds (spec §4.6, §5.7)"
+                            "Dynamic phantom dust bounds (spec ┬º4.6, ┬º5.7)"
                         ],
                         "type": "u128"
                     },
