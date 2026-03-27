@@ -227,6 +227,12 @@ export function CreateMarketForm() {
       const marketAddress = client.getMarketAddress(tokenMint, publicKey);
       router.push(`/trade/${marketAddress.toBase58()}`);
     } catch (err: unknown) {
+      // Temporary debug: log actual error to console
+      console.error("[create-market] FULL ERROR:", err);
+      if (err instanceof Error) {
+        console.error("[create-market] message:", err.message);
+        console.error("[create-market] stack:", err.stack);
+      }
       toast.error(sanitizeError(err, "create-market"));
     } finally {
       setIsSubmitting(false);
