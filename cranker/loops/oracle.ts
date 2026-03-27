@@ -30,19 +30,35 @@ export function startOracleLoop(
   });
 
   const tick = async (): Promise<void> => {
-    // Re-derive PerkOracle markets each tick so market refresh is picked up
+    // Collect mints from: (1) existing PerkOracle markets + (2) all PerkOracle accounts on-chain
+    // This ensures oracles get price updates BEFORE markets are created (bootstrap problem)
+    const uniqueMints = new Map<string, PublicKey>();
+
+    // From existing markets
     const perkOracleMarkets = markets.filter(
       (m) => m.account.oracleSource === OracleSource.PerkOracle,
     );
-    if (perkOracleMarkets.length === 0) return;
-
-    const uniqueMints = new Map<string, PublicKey>();
     for (const m of perkOracleMarkets) {
       const mintStr = m.account.tokenMint.toBase58();
       if (!uniqueMints.has(mintStr)) {
         uniqueMints.set(mintStr, m.account.tokenMint);
       }
     }
+
+    // Also discover all PerkOracle accounts on-chain (covers oracles without markets yet)
+    try {
+      const allOracles = await client.fetchAllPerkOracles();
+      for (const o of allOracles) {
+        const mintStr = o.account.tokenMint.toBase58();
+        if (!uniqueMints.has(mintStr)) {
+          uniqueMints.set(mintStr, o.account.tokenMint);
+        }
+      }
+    } catch (err) {
+      log.warn("Failed to fetch all PerkOracles — using market-only mints", { error: String(err) });
+    }
+
+    if (uniqueMints.size === 0) return;
 
     // Batch fetch all prices in 2 API calls (Jupiter + Birdeye)
     const allMints = Array.from(uniqueMints.keys());

@@ -302,6 +302,15 @@ export class PerkClient {
     return (await this.accounts.perkOraclePrice.fetchNullable(address)) as unknown as PerkOracleAccount | null;
   }
 
+  /** Fetch all PerkOracle accounts on-chain. */
+  async fetchAllPerkOracles(): Promise<{ address: PublicKey; account: PerkOracleAccount }[]> {
+    const raw = await this.accounts.perkOraclePrice.all();
+    return raw.map((r: { publicKey: PublicKey; account: unknown }) => ({
+      address: r.publicKey,
+      account: r.account as PerkOracleAccount,
+    }));
+  }
+
   // ═══════════════════════════════════════════════
   // Admin Instructions
   // ═══════════════════════════════════════════════
