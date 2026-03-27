@@ -237,6 +237,11 @@ function AdminDashboard({
       </div>
 
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-6 space-y-6">
+        {/* Section 0: Pending Market Requests */}
+        {client && (
+          <PendingMarketRequests client={client} onRefresh={fetchData} />
+        )}
+
         {/* Section 1: Protocol Overview */}
         {protocol && (
           <ProtocolOverview
@@ -276,6 +281,185 @@ function AdminDashboard({
         )}
       </div>
     </div>
+  );
+}
+
+// ── Section 0: Pending Market Requests ──
+
+interface MarketRequestItem {
+  mint: string;
+  requester: string;
+  symbol?: string;
+  name?: string;
+  txSignature: string;
+  timestamp: number;
+  status: string;
+}
+
+function PendingMarketRequests({
+  client,
+  onRefresh,
+}: {
+  client: NonNullable<ReturnType<typeof usePerk>['client']>;
+  onRefresh: () => Promise<void>;
+}) {
+  const [requests, setRequests] = useState<MarketRequestItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [actionInProgress, setActionInProgress] = useState<string | null>(null);
+
+  const fetchRequests = useCallback(async () => {
+    try {
+      const res = await fetch('/api/request-market');
+      if (!res.ok) throw new Error('Failed to fetch');
+      const data = await res.json();
+      setRequests(data.requests ?? []);
+    } catch (err) {
+      console.error('[admin] fetch requests error:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchRequests();
+  }, [fetchRequests]);
+
+  const dismissRequest = async (mint: string) => {
+    setActionInProgress(mint);
+    try {
+      const res = await fetch('/api/request-market', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mint }),
+      });
+      if (!res.ok) throw new Error('Delete failed');
+      toast.success('Request dismissed');
+      setRequests(prev => prev.filter(r => r.mint !== mint));
+    } catch (err) {
+      toast.error(sanitizeError(err, 'admin'));
+    } finally {
+      setActionInProgress(null);
+    }
+  };
+
+  const approveRequest = async (req: MarketRequestItem) => {
+    setActionInProgress(req.mint);
+    try {
+      // Initialize the PerkOracle for this token
+      const tokenMint = new PublicKey(req.mint);
+      const sig = await client.initializePerkOracle(
+        tokenMint,
+        new PublicKey(CRANKER_PUBKEY),
+        {
+          minSources: 2,
+          maxStalenessSeconds: 120,
+          maxPriceChangeBps: 0,
+          circuitBreakerDeviationBps: 0,
+        },
+      );
+      toast.success(`Oracle initialized — ${truncatePubkey(sig)}`);
+
+      // Remove the request from Redis
+      await fetch('/api/request-market', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mint: req.mint }),
+      });
+
+      setRequests(prev => prev.filter(r => r.mint !== req.mint));
+      await onRefresh();
+    } catch (err) {
+      toast.error(sanitizeError(err, 'admin'));
+    } finally {
+      setActionInProgress(null);
+    }
+  };
+
+  if (loading) {
+    return (
+      <section className="border border-border rounded-[2px] bg-surface">
+        <div className="px-5 py-3 border-b border-border">
+          <span className="font-mono text-xs text-text-tertiary uppercase tracking-wider">
+            Pending Market Requests
+          </span>
+        </div>
+        <div className="px-5 py-4 text-xs text-text-secondary font-sans animate-pulse">
+          Loading requests...
+        </div>
+      </section>
+    );
+  }
+
+  if (requests.length === 0) {
+    return (
+      <section className="border border-border rounded-[2px] bg-surface">
+        <div className="px-5 py-3 border-b border-border">
+          <span className="font-mono text-xs text-text-tertiary uppercase tracking-wider">
+            Pending Market Requests
+          </span>
+        </div>
+        <div className="px-5 py-4 text-xs text-text-tertiary font-sans">
+          No pending requests
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="border border-yellow-500/30 rounded-[2px] bg-surface">
+      <div className="px-5 py-3 border-b border-yellow-500/20 bg-yellow-500/[0.03]">
+        <span className="font-mono text-xs text-yellow-400 uppercase tracking-wider">
+          Pending Market Requests ({requests.length})
+        </span>
+      </div>
+      <div className="divide-y divide-border">
+        {requests.map((req) => (
+          <div key={req.mint} className="px-5 py-4 flex items-center gap-4">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="font-mono text-sm text-white">
+                  {req.symbol ?? truncatePubkey(req.mint)}
+                </span>
+                {req.name && (
+                  <span className="text-xs text-text-secondary font-sans">
+                    {req.name}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-3 text-xs text-text-tertiary font-mono">
+                <span title={req.mint}>Mint: {truncatePubkey(req.mint)}</span>
+                <span title={req.requester}>By: {truncatePubkey(req.requester)}</span>
+                <span>{new Date(req.timestamp).toLocaleDateString()}</span>
+                <a
+                  href={`https://solscan.io/tx/${req.txSignature}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-text-secondary hover:text-white transition-colors"
+                >
+                  TX ↗
+                </a>
+              </div>
+            </div>
+            <div className="flex gap-2 shrink-0">
+              <button
+                onClick={() => approveRequest(req)}
+                disabled={actionInProgress === req.mint}
+                className="font-mono text-xs px-3 py-1.5 rounded-[2px] border border-profit/30 text-profit hover:bg-profit/10 transition-colors disabled:opacity-50"
+              >
+                {actionInProgress === req.mint ? '...' : 'Approve'}
+              </button>
+              <button
+                onClick={() => dismissRequest(req.mint)}
+                disabled={actionInProgress === req.mint}
+                className="font-mono text-xs px-3 py-1.5 rounded-[2px] border border-border text-text-secondary hover:text-white hover:bg-white/5 transition-colors disabled:opacity-50"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
