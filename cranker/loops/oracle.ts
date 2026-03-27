@@ -142,6 +142,9 @@ export function startOracleLoop(
 
         state.consecutiveFailures = 0;
         state.backoffMs = 0;
+
+        // Throttle between oracle updates to avoid RPC rate limiting
+        await sleep(1500);
       } catch (err) {
         const errStr = String(err);
         // Handle known on-chain errors gracefully
