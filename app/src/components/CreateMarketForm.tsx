@@ -402,15 +402,22 @@ export function CreateMarketForm() {
                   {maxLeverage}x
                 </span>
               </div>
-              <input
-                type="range"
-                min={2}
-                max={20}
-                step={1}
-                value={maxLeverage}
-                onChange={(e) => setMaxLeverage(parseInt(e.target.value))}
-                className="w-full h-1.5 appearance-none cursor-pointer rounded-full bg-zinc-800 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-zinc-900 [&::-webkit-slider-thumb]:shadow-[0_0_0_2px_rgba(255,255,255,0.15)] [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-zinc-900 [&::-moz-range-thumb]:cursor-pointer"
-              />
+              <div className="relative w-full h-6 flex items-center">
+                <div className="absolute left-0 right-0 h-2 rounded-full bg-zinc-800" />
+                <div
+                  className="absolute left-0 h-2 rounded-full bg-gradient-to-r from-emerald-500/60 to-emerald-400/80"
+                  style={{ width: `${((maxLeverage - 2) / (20 - 2)) * 100}%` }}
+                />
+                <input
+                  type="range"
+                  min={2}
+                  max={20}
+                  step={1}
+                  value={maxLeverage}
+                  onChange={(e) => setMaxLeverage(parseInt(e.target.value))}
+                  className="relative w-full h-2 appearance-none cursor-pointer bg-transparent [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-zinc-900 [&::-webkit-slider-thumb]:shadow-[0_0_8px_rgba(52,211,153,0.5),0_0_0_3px_rgba(255,255,255,0.1)] [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:transition-shadow [&::-webkit-slider-thumb]:hover:shadow-[0_0_12px_rgba(52,211,153,0.7),0_0_0_3px_rgba(255,255,255,0.2)] [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-zinc-900 [&::-moz-range-thumb]:shadow-[0_0_8px_rgba(52,211,153,0.5)] [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-track]:bg-transparent [&::-webkit-slider-runnable-track]:bg-transparent"
+                />
+              </div>
               <div className="flex justify-between mt-1.5">
                 <span className="text-[10px] font-mono text-zinc-600">2x</span>
                 <span className="text-[10px] font-mono text-zinc-600">20x</span>
@@ -427,17 +434,24 @@ export function CreateMarketForm() {
                   {tradingFee.toFixed(2)}%
                 </span>
               </div>
-              <input
-                type="range"
-                min={3}
-                max={100}
-                step={1}
-                value={tradingFee * 100}
-                onChange={(e) =>
-                  setTradingFee(parseInt(e.target.value) / 100)
-                }
-                className="w-full h-1.5 appearance-none cursor-pointer rounded-full bg-zinc-800 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-zinc-900 [&::-webkit-slider-thumb]:shadow-[0_0_0_2px_rgba(255,255,255,0.15)] [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-zinc-900 [&::-moz-range-thumb]:cursor-pointer"
-              />
+              <div className="relative w-full h-6 flex items-center">
+                <div className="absolute left-0 right-0 h-2 rounded-full bg-zinc-800" />
+                <div
+                  className="absolute left-0 h-2 rounded-full bg-gradient-to-r from-emerald-500/60 to-emerald-400/80"
+                  style={{ width: `${((tradingFee * 100 - 3) / (100 - 3)) * 100}%` }}
+                />
+                <input
+                  type="range"
+                  min={3}
+                  max={100}
+                  step={1}
+                  value={tradingFee * 100}
+                  onChange={(e) =>
+                    setTradingFee(parseInt(e.target.value) / 100)
+                  }
+                  className="relative w-full h-2 appearance-none cursor-pointer bg-transparent [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-zinc-900 [&::-webkit-slider-thumb]:shadow-[0_0_8px_rgba(52,211,153,0.5),0_0_0_3px_rgba(255,255,255,0.1)] [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:transition-shadow [&::-webkit-slider-thumb]:hover:shadow-[0_0_12px_rgba(52,211,153,0.7),0_0_0_3px_rgba(255,255,255,0.2)] [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-zinc-900 [&::-moz-range-thumb]:shadow-[0_0_8px_rgba(52,211,153,0.5)] [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-track]:bg-transparent [&::-webkit-slider-runnable-track]:bg-transparent"
+                />
+              </div>
               <div className="flex justify-between mt-1.5">
                 <span className="text-[10px] font-mono text-zinc-600">0.03%</span>
                 <span className="text-[10px] font-mono text-zinc-600">1.00%</span>
