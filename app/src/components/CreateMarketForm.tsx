@@ -17,36 +17,9 @@ import { getTokenLogo } from "@/lib/token-metadata";
 import toast from "react-hot-toast";
 import { sanitizeError } from "@/lib/error-utils";
 
-/** Mainnet Pyth price feed accounts (Solana on-chain accounts) for major tokens.
- *  Source: https://pyth.network/developers/price-feed-ids#solana-mainnet */
-const PYTH_FEEDS: Record<string, PublicKey> = {
-  // SOL/USD
-  "So11111111111111111111111111111111111111112": new PublicKey("H6ARHf6YXhGYeQfUzQNGk6rDNnLBQKrenN712K4AQJEG"),
-  // BTC/USD (wBTC Portal)
-  "3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh": new PublicKey("GVXRSBjFk6e6J3NbVPXohDJwcHs1RkWXCMyd4H5hDEZr"),
-  // ETH/USD (wETH Portal)
-  "7vfCXTUXx5WJV5JADk17DUJ4ksgau7utNKj4b963voxs": new PublicKey("JBu1AL4obBcCMqKBBxhpWCNUt136ijcuMZLFvTP7iWdB"),
-  // BONK/USD
-  "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263": new PublicKey("8ihFLu5FimgTQ1Unh4dVyEHUGodJ5gJQCR9B6Kz5VVaS"),
-  // JTO/USD
-  "jtojtomepa8beP8AuQc6eXt5FriJwfFMwQx2v2f9mCL": new PublicKey("D8UUgr8a3aR3yUeHLu7v8FWK7E8Y5sSU7qrBQUkKwtKM"),
-  // JUP/USD
-  "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN": new PublicKey("g6eRCbboSwK4tSWngn773RCMexr1APQr4uA9bGZBYfo"),
-  // WIF/USD
-  "EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm": new PublicKey("6ABgrEZk8urs6kJ1JNdC1sspH5zKXRqxy8sg3ZG2cQps"),
-  // RNDR/USD (Render)
-  "rndrizKT3MK1iimdxRdWabcF7Zg7AR5T4nud4EkHBof": new PublicKey("AnLf8tVYCM816gmBjiy8n53eXKKEDydT5piYjjQDPgTB"),
-  // PYTH/USD
-  "HZ1JovNiVvGrGNiiYvEozEVgZ58xaU3RKwX8eACQBCt3": new PublicKey("nrYkQQQur7z8rYTST3G9GqATviK5SZTKz5a3GKaVqjE"),
-  // RAY/USD (Raydium)
-  "4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R": new PublicKey("AnLf8tVYCM816gmBjiy8n53eXKKEDydT5piYjjQDPgTB"),
-  // ORCA/USD
-  "orcaEKTdK7LKz57vaAYr9QeNsVEPfiu6QeMU1kektZE": new PublicKey("4ivThkX8uRxBpHsdWSqyXYihzKF3zpRGAUCqyuagnLoV"),
-  // USDC (stablecoin — useful for pairs)
-  "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v": new PublicKey("Gnt27xtC473ZT2Mw5u8wZ68Z3gULkSTb5DuxJy7eJotD"),
-  // USDT
-  "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB": new PublicKey("3vxLXJqLqF3JG5TCbYycbKWRBbCJQLxQmBGCkyqEEefL"),
-};
+// NOTE: Pyth Pull Oracle integration deferred to v2 (requires program upgrade
+// to accept oracle accounts as instruction parameters per-transaction).
+// All tokens use PerkOracle for now — cranker maintains prices from Jupiter+Birdeye.
 
 /** Validate a string as a Solana public key */
 function isValidPubkey(s: string): boolean {
@@ -225,40 +198,21 @@ export function CreateMarketForm() {
     try {
       const tokenMint = new PublicKey(selectedMint);
 
-      // Determine oracle source: Pyth for major tokens, PerkOracle for everything else
-      let oracle: PublicKey;
-      let oracleSource: SdkOracleSource;
-      const pythFeed = PYTH_FEEDS[selectedMint];
-
-      if (pythFeed) {
-        // Major token with Pyth feed
-        oracle = pythFeed;
-        oracleSource = SdkOracleSource.Pyth;
-      } else {
-        // Low-cap token — use PerkOracle
-        const existing = await readonlyClient.fetchPerkOracleNullable(tokenMint);
-        if (!existing) {
-          toast.error(
-            "No PerkOracle exists for this token yet. The cranker will initialize one automatically when price feeds are available."
-          );
-          setIsSubmitting(false);
-          return;
-        }
-        oracle = readonlyClient.getPerkOracleAddress(tokenMint);
-        oracleSource = SdkOracleSource.PerkOracle;
+      // All tokens use PerkOracle (cranker-maintained from Jupiter+Birdeye feeds)
+      // Pyth Pull Oracle deferred to v2 (requires program upgrade)
+      const existing = await readonlyClient.fetchPerkOracleNullable(tokenMint);
+      if (!existing) {
+        toast.error(
+          "No oracle exists for this token yet. The cranker needs to initialize a PerkOracle first — make sure the cranker is running and funded."
+        );
+        setIsSubmitting(false);
+        return;
       }
+      const oracle = readonlyClient.getPerkOracleAddress(tokenMint);
+      const oracleSource = SdkOracleSource.PerkOracle;
 
       const tradingFeeBps = Math.round(tradingFee * 100); // 0.10% → 10 bps
       const maxLeverageScaled = maxLeverage * LEVERAGE_SCALE;
-
-      console.log("[create-market] params:", {
-        tokenMint: tokenMint.toBase58(),
-        oracle: oracle.toBase58(),
-        oracleSource,
-        maxLeverage: maxLeverageScaled,
-        tradingFeeBps,
-        initialK: initialK.toString(),
-      });
 
       const sig = await client.createMarket(tokenMint, oracle, {
         oracleSource,
@@ -273,12 +227,6 @@ export function CreateMarketForm() {
       const marketAddress = client.getMarketAddress(tokenMint, publicKey);
       router.push(`/trade/${marketAddress.toBase58()}`);
     } catch (err: unknown) {
-      // Temporary verbose logging for debugging mainnet market creation
-      console.error("[create-market] FULL ERROR:", err);
-      if (err instanceof Error) {
-        console.error("[create-market] message:", err.message);
-        console.error("[create-market] stack:", err.stack);
-      }
       toast.error(sanitizeError(err, "create-market"));
     } finally {
       setIsSubmitting(false);

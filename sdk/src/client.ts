@@ -127,10 +127,10 @@ class WalletAdapterProvider extends AnchorProvider {
       skipPreflight: opts?.skipPreflight,
     });
 
-    // Wait for confirmation
+    // Wait for confirmation and check for on-chain errors
     const commitment = opts?.commitment ?? this.opts.commitment ?? "confirmed";
     const latestBlockhash = await this.connection.getLatestBlockhash(commitment);
-    await this.connection.confirmTransaction(
+    const confirmation = await this.connection.confirmTransaction(
       {
         signature: sig,
         blockhash: latestBlockhash.blockhash,
@@ -138,6 +138,12 @@ class WalletAdapterProvider extends AnchorProvider {
       },
       commitment,
     );
+
+    if (confirmation.value.err) {
+      throw new Error(
+        `Transaction confirmed but failed on-chain: ${JSON.stringify(confirmation.value.err)}`
+      );
+    }
 
     return sig;
   }
