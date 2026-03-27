@@ -6,6 +6,7 @@ import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { PublicKey } from '@solana/web3.js';
 import BN from 'bn.js';
+import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import toast from 'react-hot-toast';
 import { usePerk } from '@/providers/PerkProvider';
 import { useConnection } from '@solana/wallet-adapter-react';
@@ -1118,6 +1119,7 @@ function MarketEditPanel({
         </button>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-border">
+        <ClaimFeesPanel client={client} market={market} onRefresh={onRefresh} />
         <ToggleActive client={client} market={market} onRefresh={onRefresh} />
         <UpdateFee client={client} market={market} onRefresh={onRefresh} />
         <UpdateMaxLeverage client={client} market={market} onRefresh={onRefresh} />
@@ -1126,6 +1128,88 @@ function MarketEditPanel({
         <SetFallbackOraclePanel client={client} market={market} onRefresh={onRefresh} />
       </div>
     </section>
+  );
+}
+
+function ClaimFeesPanel({
+  client,
+  market,
+  onRefresh,
+}: {
+  client: NonNullable<ReturnType<typeof usePerk>['client']>;
+  market: MarketWithAddress;
+  onRefresh: () => Promise<void>;
+}) {
+  const { publicKey } = useWallet();
+  const { connection } = useConnection();
+  const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
+
+  const collateralMint = market.account.collateralMint.toBase58();
+  const { label: collateralLabel, decimals } = getCollateralInfo(collateralMint);
+  const claimableRaw = market.account.creatorClaimableFees?.toNumber() ?? 0;
+  const claimable = claimableRaw / (10 ** decimals);
+
+  const handleClaim = async () => {
+    if (submittingRef.current || !publicKey) return;
+    if (claimableRaw === 0) {
+      toast.error('No fees to claim');
+      return;
+    }
+    submittingRef.current = true;
+    setSubmitting(true);
+    try {
+      const collateralMintPk = market.account.collateralMint;
+
+      // Determine token program (Token or Token-2022)
+      const mintInfo = await connection.getAccountInfo(collateralMintPk);
+      const tokenProgramId = mintInfo?.owner ?? TOKEN_PROGRAM_ID;
+
+      const recipientAta = await getAssociatedTokenAddress(
+        collateralMintPk,
+        publicKey,
+        false,
+        tokenProgramId
+      );
+
+      const sig = await client.claimFees(
+        market.account.tokenMint,
+        market.account.creator,
+        recipientAta
+      );
+      toast.success(`Claimed ${claimable.toFixed(4)} ${collateralLabel} — ${truncatePubkey(sig)}`);
+      await onRefresh();
+    } catch (err) {
+      toast.error(sanitizeError(err, 'admin'));
+    } finally {
+      setSubmitting(false);
+      submittingRef.current = false;
+    }
+  };
+
+  return (
+    <div className="bg-surface px-5 py-5 space-y-3">
+      <div className="font-mono text-xs text-text-tertiary uppercase tracking-wider">
+        Claim Creator Fees
+      </div>
+      <div className="flex items-center justify-between">
+        <div>
+          <span className={`font-mono text-lg ${claimable > 0 ? 'text-profit' : 'text-text-tertiary'}`}>
+            {claimable.toFixed(6)} {collateralLabel}
+          </span>
+          <p className="text-xs text-text-tertiary font-sans mt-0.5">
+            Total earned: {((market.account.creatorFeesEarned?.toNumber() ?? 0) / (10 ** decimals)).toFixed(6)} {collateralLabel}
+          </p>
+        </div>
+        <button
+          onClick={handleClaim}
+          disabled={submitting || claimableRaw === 0}
+          className="font-mono text-xs px-4 py-2 rounded-[2px] border border-profit/30 text-profit hover:bg-profit/10 transition-colors disabled:opacity-50"
+        >
+          {submitting ? 'Claiming...' : claimableRaw === 0 ? 'Nothing to Claim' : `Claim ${claimable.toFixed(4)} ${collateralLabel}`}
+        </button>
+      </div>
+    </div>
   );
 }
 
