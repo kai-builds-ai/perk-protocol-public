@@ -251,6 +251,15 @@ export function CreateMarketForm() {
       const tradingFeeBps = Math.round(tradingFee * 100); // 0.10% → 10 bps
       const maxLeverageScaled = maxLeverage * LEVERAGE_SCALE;
 
+      console.log("[create-market] params:", {
+        tokenMint: tokenMint.toBase58(),
+        oracle: oracle.toBase58(),
+        oracleSource,
+        maxLeverage: maxLeverageScaled,
+        tradingFeeBps,
+        initialK: initialK.toString(),
+      });
+
       const sig = await client.createMarket(tokenMint, oracle, {
         oracleSource,
         maxLeverage: maxLeverageScaled,
@@ -264,6 +273,12 @@ export function CreateMarketForm() {
       const marketAddress = client.getMarketAddress(tokenMint, publicKey);
       router.push(`/trade/${marketAddress.toBase58()}`);
     } catch (err: unknown) {
+      // Temporary verbose logging for debugging mainnet market creation
+      console.error("[create-market] FULL ERROR:", err);
+      if (err instanceof Error) {
+        console.error("[create-market] message:", err.message);
+        console.error("[create-market] stack:", err.stack);
+      }
       toast.error(sanitizeError(err, "create-market"));
     } finally {
       setIsSubmitting(false);
