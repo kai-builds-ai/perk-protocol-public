@@ -201,6 +201,7 @@ export function startLiquidationLoop(
             const fallback = freshMarket.fallbackOracleAddress;
             const sig = await client.liquidate(
               address,
+              freshMarket.tokenMint,
               freshMarket.oracleAddress,
               targetUser,
               liquidatorAta,

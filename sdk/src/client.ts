@@ -11,6 +11,7 @@ import {
 } from "@solana/web3.js";
 import {
   TOKEN_PROGRAM_ID,
+  TOKEN_2022_PROGRAM_ID,
   getAssociatedTokenAddress,
 } from "@solana/spl-token";
 import { Program, AnchorProvider, Idl, BN, Wallet } from "@coral-xyz/anchor";
@@ -178,6 +179,17 @@ export class PerkClient {
   // ═══════════════════════════════════════════════
   // PDA Helpers
   // ═══════════════════════════════════════════════
+
+  /**
+   * Detect whether a mint is SPL Token or Token-2022 by checking the account owner.
+   * Returns the correct token program ID and ATA for the given mint + owner.
+   */
+  async getTokenProgramForMint(mint: PublicKey): Promise<PublicKey> {
+    const info = await this.connection.getAccountInfo(mint);
+    if (!info) throw new Error(`Mint account not found: ${mint.toBase58()}`);
+    if (info.owner.equals(TOKEN_2022_PROGRAM_ID)) return TOKEN_2022_PROGRAM_ID;
+    return TOKEN_PROGRAM_ID;
+  }
 
   getProtocolAddress(): PublicKey {
     return findProtocolAddress(this.programId)[0];
@@ -413,6 +425,7 @@ export class PerkClient {
     const protocol = this.getProtocolAddress();
     const [market] = findMarketAddress(tokenMint, this.wallet.publicKey, this.programId);
     const [vault] = findVaultAddress(market, this.programId);
+    const tokenProgramId = await this.getTokenProgramForMint(tokenMint);
 
     return this.program.methods
       .createMarket({
@@ -429,7 +442,7 @@ export class PerkClient {
         vault,
         creator: this.wallet.publicKey,
         systemProgram: SystemProgram.programId,
-        tokenProgram: TOKEN_PROGRAM_ID,
+        tokenProgram: tokenProgramId,
         rent: SYSVAR_RENT_PUBKEY,
       })
       .preInstructions(this.preInstructions).rpc();
@@ -472,7 +485,8 @@ export class PerkClient {
     const market = this.getMarketAddress(tokenMint, creator);
     const position = this.getPositionAddress(market, this.wallet.publicKey);
     const [vault] = findVaultAddress(market, this.programId);
-    const userAta = await getAssociatedTokenAddress(tokenMint, this.wallet.publicKey);
+    const tokenProgramId = await this.getTokenProgramForMint(tokenMint);
+    const userAta = await getAssociatedTokenAddress(tokenMint, this.wallet.publicKey, false, tokenProgramId);
 
     return this.program.methods
       .deposit(amount)
@@ -482,11 +496,12 @@ export class PerkClient {
         userPosition: position,
         oracle,
         fallbackOracle: fallbackOracle ?? SystemProgram.programId,
+        tokenMint,
         userTokenAccount: userAta,
         vault,
         user: this.wallet.publicKey,
         systemProgram: SystemProgram.programId,
-        tokenProgram: TOKEN_PROGRAM_ID,
+        tokenProgram: tokenProgramId,
       })
       .preInstructions(this.preInstructions).rpc();
   }
@@ -503,7 +518,8 @@ export class PerkClient {
     const market = this.getMarketAddress(tokenMint, creator);
     const position = this.getPositionAddress(market, this.wallet.publicKey);
     const [vault] = findVaultAddress(market, this.programId);
-    const userAta = await getAssociatedTokenAddress(tokenMint, this.wallet.publicKey);
+    const tokenProgramId = await this.getTokenProgramForMint(tokenMint);
+    const userAta = await getAssociatedTokenAddress(tokenMint, this.wallet.publicKey, false, tokenProgramId);
 
     return this.program.methods
       .withdraw(amount)
@@ -513,11 +529,12 @@ export class PerkClient {
         userPosition: position,
         oracle,
         fallbackOracle: fallbackOracle ?? SystemProgram.programId,
+        tokenMint,
         userTokenAccount: userAta,
         vault,
         authority: this.wallet.publicKey,
         user: this.wallet.publicKey,
-        tokenProgram: TOKEN_PROGRAM_ID,
+        tokenProgram: tokenProgramId,
       })
       .preInstructions(this.preInstructions).rpc();
   }
@@ -668,16 +685,18 @@ export class PerkClient {
     const protocol = this.getProtocolAddress();
     const market = this.getMarketAddress(tokenMint, creator);
     const [vault] = findVaultAddress(market, this.programId);
+    const tokenProgramId = await this.getTokenProgramForMint(tokenMint);
 
     return this.program.methods
       .claimFees()
       .accounts({
         protocol,
         market,
+        tokenMint,
         vault,
         recipientTokenAccount,
         claimer: this.wallet.publicKey,
-        tokenProgram: TOKEN_PROGRAM_ID,
+        tokenProgram: tokenProgramId,
       })
       .preInstructions(this.preInstructions).rpc();
   }
@@ -706,6 +725,7 @@ export class PerkClient {
   /** Liquidate an underwater position. */
   async liquidate(
     marketAddress: PublicKey,
+    tokenMint: PublicKey,
     oracle: PublicKey,
     targetUser: PublicKey,
     liquidatorTokenAccount: PublicKey,
@@ -714,6 +734,7 @@ export class PerkClient {
     const protocol = this.getProtocolAddress();
     const position = this.getPositionAddress(marketAddress, targetUser);
     const [vault] = findVaultAddress(marketAddress, this.programId);
+    const tokenProgramId = await this.getTokenProgramForMint(tokenMint);
 
     return this.program.methods
       .liquidate()
@@ -724,10 +745,11 @@ export class PerkClient {
         oracle,
         fallbackOracle: fallbackOracle ?? SystemProgram.programId,
         targetUser,
+        tokenMint,
         liquidatorTokenAccount,
         vault,
         liquidator: this.wallet.publicKey,
-        tokenProgram: TOKEN_PROGRAM_ID,
+        tokenProgram: tokenProgramId,
       })
       .preInstructions(this.preInstructions).rpc();
   }
@@ -735,6 +757,7 @@ export class PerkClient {
   /** Execute a trigger order that has been triggered. */
   async executeTriggerOrder(
     marketAddress: PublicKey,
+    tokenMint: PublicKey,
     oracle: PublicKey,
     targetUser: PublicKey,
     orderId: number | BN,
@@ -749,6 +772,7 @@ export class PerkClient {
       orderId
     );
     const [vault] = findVaultAddress(marketAddress, this.programId);
+    const tokenProgramId = await this.getTokenProgramForMint(tokenMint);
 
     return this.program.methods
       .executeTriggerOrder()
@@ -759,10 +783,11 @@ export class PerkClient {
         triggerOrder,
         oracle,
         fallbackOracle: fallbackOracle ?? SystemProgram.programId,
+        tokenMint,
         executorTokenAccount,
         vault,
         executor: this.wallet.publicKey,
-        tokenProgram: TOKEN_PROGRAM_ID,
+        tokenProgram: tokenProgramId,
       })
       .preInstructions(this.preInstructions).rpc();
   }

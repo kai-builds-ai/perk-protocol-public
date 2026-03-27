@@ -200,6 +200,7 @@ export function startTriggersLoop(
             const fallback = freshMarket.fallbackOracleAddress;
             const sig = await client.executeTriggerOrder(
               address,
+              freshMarket.tokenMint,
               freshMarket.oracleAddress,
               targetUser,
               orderId,

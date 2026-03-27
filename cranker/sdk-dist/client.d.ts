@@ -36,6 +36,11 @@ export declare class PerkClient {
     readonly provider: AnchorProvider;
     readonly preInstructions: TransactionInstruction[];
     constructor(config: PerkClientConfig);
+    /**
+     * Detect whether a mint is SPL Token or Token-2022 by checking the account owner.
+     * Returns the correct token program ID and ATA for the given mint + owner.
+     */
+    getTokenProgramForMint(mint: PublicKey): Promise<PublicKey>;
     getProtocolAddress(): PublicKey;
     getMarketAddress(tokenMint: PublicKey, creator: PublicKey): PublicKey;
     getPositionAddress(market: PublicKey, user: PublicKey): PublicKey;
@@ -102,9 +107,9 @@ export declare class PerkClient {
     /** Crank funding rate update. */
     crankFunding(marketAddress: PublicKey, oracle: PublicKey, fallbackOracle?: PublicKey): Promise<TransactionSignature>;
     /** Liquidate an underwater position. */
-    liquidate(marketAddress: PublicKey, oracle: PublicKey, targetUser: PublicKey, liquidatorTokenAccount: PublicKey, fallbackOracle?: PublicKey): Promise<TransactionSignature>;
+    liquidate(marketAddress: PublicKey, tokenMint: PublicKey, oracle: PublicKey, targetUser: PublicKey, liquidatorTokenAccount: PublicKey, fallbackOracle?: PublicKey): Promise<TransactionSignature>;
     /** Execute a trigger order that has been triggered. */
-    executeTriggerOrder(marketAddress: PublicKey, oracle: PublicKey, targetUser: PublicKey, orderId: number | BN, executorTokenAccount: PublicKey, fallbackOracle?: PublicKey): Promise<TransactionSignature>;
+    executeTriggerOrder(marketAddress: PublicKey, tokenMint: PublicKey, oracle: PublicKey, targetUser: PublicKey, orderId: number | BN, executorTokenAccount: PublicKey, fallbackOracle?: PublicKey): Promise<TransactionSignature>;
     /** Update the vAMM peg multiplier (permissionless). */
     updateAmm(marketAddress: PublicKey, oracle: PublicKey, fallbackOracle?: PublicKey): Promise<TransactionSignature>;
     /** Reclaim an empty/abandoned position account (permissionless). */

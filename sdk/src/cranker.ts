@@ -524,6 +524,7 @@ export class PerkCranker {
       try {
         const sig = await this.client.liquidate(
           marketAddress,
+          market.tokenMint,
           market.oracleAddress,
           pos.authority,
           rewardAccount,
@@ -581,6 +582,7 @@ export class PerkCranker {
           );
           const sig = await this.client.executeTriggerOrder(
             marketAddress,
+            market.tokenMint,
             market.oracleAddress,
             order.authority,
             order.orderId,

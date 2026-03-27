@@ -368,7 +368,7 @@ class PerkCranker {
         for (const pos of liquidatable) {
             attempted++;
             try {
-                const sig = await this.client.liquidate(marketAddress, market.oracleAddress, pos.authority, rewardAccount, resolveFallbackOracle(market));
+                const sig = await this.client.liquidate(marketAddress, market.tokenMint, market.oracleAddress, pos.authority, rewardAccount, resolveFallbackOracle(market));
                 succeeded++;
                 this.log(`Liquidated ${pos.authority.toBase58().slice(0, 8)} on ${marketAddress.toBase58().slice(0, 8)}: ${sig}`);
             }
@@ -401,7 +401,7 @@ class PerkCranker {
             if (shouldTriggerExecute(order, oraclePrice)) {
                 try {
                     const rewardAccount = await this.getRewardAccount(market.collateralMint);
-                    const sig = await this.client.executeTriggerOrder(marketAddress, market.oracleAddress, order.authority, order.orderId, rewardAccount, resolveFallbackOracle(market));
+                    const sig = await this.client.executeTriggerOrder(marketAddress, market.tokenMint, market.oracleAddress, order.authority, order.orderId, rewardAccount, resolveFallbackOracle(market));
                     executed++;
                     this.log(`Executed trigger order ${order.orderId.toString()} for ${order.authority.toBase58().slice(0, 8)}: ${sig}`);
                 }
