@@ -115,17 +115,23 @@ export const Positions = memo(function Positions({ positions, market }: Position
                   {formatUsd(p.liquidationPrice)}
                 </td>
                 <td className="px-3 py-2 text-right">
-                  <div className="flex items-center justify-end gap-1">
-                    <button className="px-1.5 py-0.5 text-[10px] font-sans text-text-secondary border border-zinc-800 rounded-[4px] hover:text-white hover:border-zinc-600 transition-colors duration-100">
+                  <div className="flex items-center justify-end gap-1.5">
+                    <button
+                      onClick={() => toast("Use the STOP/TP tab above to set a Take Profit.", { icon: "💰" })}
+                      className="px-2 py-1 text-xs font-sans text-text-secondary border border-zinc-700 rounded-[4px] hover:text-white hover:border-zinc-500 transition-colors duration-100"
+                    >
                       TP
                     </button>
-                    <button className="px-1.5 py-0.5 text-[10px] font-sans text-text-secondary border border-zinc-800 rounded-[4px] hover:text-white hover:border-zinc-600 transition-colors duration-100">
+                    <button
+                      onClick={() => toast("Use the STOP/TP tab above to set a Stop Loss.", { icon: "🛡️" })}
+                      className="px-2 py-1 text-xs font-sans text-text-secondary border border-zinc-700 rounded-[4px] hover:text-white hover:border-zinc-500 transition-colors duration-100"
+                    >
                       SL
                     </button>
                     <button
                       onClick={() => handleClose(i)}
                       disabled={isClosing}
-                      className={`px-1.5 py-0.5 text-[10px] font-sans rounded-[4px] border transition-colors duration-100 ${
+                      className={`px-2 py-1 text-xs font-sans rounded-[4px] border transition-colors duration-100 ${
                         isClosing
                           ? "text-zinc-600 border-zinc-800 cursor-not-allowed"
                           : "text-loss/80 border-loss/30 hover:text-loss hover:border-loss/50"
