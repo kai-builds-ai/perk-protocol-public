@@ -11,6 +11,7 @@ import toast from 'react-hot-toast';
 import { usePerk } from '@/providers/PerkProvider';
 import { useConnection } from '@solana/wallet-adapter-react';
 import { sanitizeError } from '@/lib/error-utils';
+import { TOKEN_META } from '@/lib/token-meta';
 import {
   ProtocolAccount,
   MarketAccount,
