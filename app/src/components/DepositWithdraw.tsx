@@ -230,7 +230,7 @@ export function DepositWithdraw({ market }: DepositWithdrawProps) {
 
   const displayWallet = walletBalance !== null ? walletBalance.toFixed(4) : "—";
   const displayVault = vaultBalance !== null ? vaultBalance.toFixed(4) : "—";
-  const displayFree = freeCollateral !== null ? freeCollateral.toFixed(4) : "—";
+  const displayFree = freeCollateral !== null ? (Math.floor(freeCollateral * 10000) / 10000).toFixed(4) : "—";
 
   return (
     <div className="border-b border-border p-4 space-y-3">
@@ -298,10 +298,10 @@ export function DepositWithdraw({ market }: DepositWithdrawProps) {
               handleSubmit();
             } else {
               setMode("withdraw");
-              // Pre-fill with free collateral (max withdrawable)
+              // Pre-fill with free collateral (max withdrawable), floor to avoid exceeding vault
               const maxWithdraw = freeCollateral ?? vaultBalance;
               if (maxWithdraw && maxWithdraw > 0) {
-                setAmount(maxWithdraw.toFixed(4));
+                setAmount((Math.floor(maxWithdraw * 10000) / 10000).toFixed(4));
               }
             }
           }}
