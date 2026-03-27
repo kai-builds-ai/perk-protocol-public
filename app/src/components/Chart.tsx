@@ -58,6 +58,11 @@ export const Chart = memo(function Chart({ data, symbol }: ChartProps) {
         },
       });
 
+      // Auto-detect decimal precision from price magnitude
+      const prices = data.map(d => d.close).filter(p => p > 0);
+      const avgPrice = prices.length > 0 ? prices.reduce((a, b) => a + b, 0) / prices.length : 1;
+      const minDecimals = avgPrice >= 100 ? 2 : avgPrice >= 1 ? 4 : avgPrice >= 0.01 ? 6 : avgPrice >= 0.0001 ? 8 : 10;
+
       const series = chart.addCandlestickSeries({
         upColor: COLORS.profit,
         downColor: COLORS.loss,
@@ -65,6 +70,11 @@ export const Chart = memo(function Chart({ data, symbol }: ChartProps) {
         borderDownColor: COLORS.loss,
         wickUpColor: COLORS.profit,
         wickDownColor: COLORS.loss,
+        priceFormat: {
+          type: 'price',
+          precision: minDecimals,
+          minMove: 1 / Math.pow(10, minDecimals),
+        },
       });
 
       series.setData(
