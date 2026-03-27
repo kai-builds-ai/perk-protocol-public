@@ -12,6 +12,7 @@ import { usePerk } from '@/providers/PerkProvider';
 import { useConnection } from '@solana/wallet-adapter-react';
 import { sanitizeError } from '@/lib/error-utils';
 import { TOKEN_META } from '@/lib/token-meta';
+import { getTokenInfo } from '@/lib/token-metadata';
 import {
   ProtocolAccount,
   MarketAccount,
@@ -632,6 +633,7 @@ function InitPerkOracle({
   client: NonNullable<ReturnType<typeof usePerk>['client']>;
   onRefresh: () => Promise<void>;
 }) {
+  const { connection } = useConnection();
   const [customMint, setCustomMint] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [batchProgress, setBatchProgress] = useState('');
@@ -651,6 +653,7 @@ function InitPerkOracle({
         const allOracles = await client.fetchAllPerkOracles();
         const existing = new Set<string>();
         const labels = new Map<string, string>();
+        const unknownMints: string[] = [];
         for (const o of allOracles) {
           const mintStr = o.account.tokenMint.toBase58();
           existing.add(mintStr);
@@ -659,15 +662,31 @@ function InitPerkOracle({
           if (known) {
             labels.set(mintStr, known.label);
           } else {
-            // Try TOKEN_META for dynamically resolved names
             const meta = TOKEN_META[mintStr];
-            labels.set(mintStr, meta?.symbol ?? mintStr.slice(0, 6));
+            if (meta?.symbol) {
+              labels.set(mintStr, meta.symbol);
+            } else {
+              labels.set(mintStr, mintStr.slice(0, 6));
+              unknownMints.push(mintStr);
+            }
           }
         }
         if (!cancelled) {
           setExistingOracles(existing);
           setAllOracleLabels(labels);
           setCheckingExisting(false);
+        }
+        // Resolve unknown mint names in background (non-blocking)
+        if (unknownMints.length > 0) {
+          for (const mint of unknownMints) {
+            if (cancelled) break;
+            try {
+              const info = await getTokenInfo(mint, connection);
+              if (info?.symbol && !cancelled) {
+                setAllOracleLabels(prev => new Map([...prev, [mint, info.symbol]]));
+              }
+            } catch { /* keep truncated label */ }
+          }
         }
       } catch (err) {
         console.warn('[InitPerkOracle] fetchAllPerkOracles failed, falling back to individual checks:', err);
@@ -706,7 +725,7 @@ function InitPerkOracle({
       }
     })();
     return () => { cancelled = true; };
-  }, [client]);
+  }, [client, connection]);
 
   const remaining = TOKEN_LIST.filter(t => !existingOracles.has(t.mint));
 
