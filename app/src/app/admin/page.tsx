@@ -636,7 +636,9 @@ function InitPerkOracle({
   const [batchProgress, setBatchProgress] = useState('');
   const [existingOracles, setExistingOracles] = useState<Set<string>>(new Set());
   const [checkingExisting, setCheckingExisting] = useState(true);
+  const [customMintStatus, setCustomMintStatus] = useState<'idle' | 'checking' | 'exists' | 'not-found' | 'invalid'>('idle');
   const submittingRef = useRef(false);
+  const customCheckTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Check which oracles already exist on mount
   useEffect(() => {
@@ -658,6 +660,26 @@ function InitPerkOracle({
   }, [client]);
 
   const remaining = TOKEN_LIST.filter(t => !existingOracles.has(t.mint));
+
+  // Auto-check custom mint oracle status with debounce
+  useEffect(() => {
+    if (customCheckTimer.current) clearTimeout(customCheckTimer.current);
+    setCustomMintStatus('idle');
+    const mint = customMint.trim();
+    if (!mint) return;
+    let pk: PublicKey;
+    try { pk = new PublicKey(mint); } catch { setCustomMintStatus('invalid'); return; }
+    setCustomMintStatus('checking');
+    customCheckTimer.current = setTimeout(async () => {
+      try {
+        const oracle = await client.fetchPerkOracleNullable(pk);
+        setCustomMintStatus(oracle ? 'exists' : 'not-found');
+      } catch {
+        setCustomMintStatus('not-found');
+      }
+    }, 400);
+    return () => { if (customCheckTimer.current) clearTimeout(customCheckTimer.current); };
+  }, [customMint, client]);
 
   const initSingle = async (mintStr: string) => {
     if (submittingRef.current) return;
@@ -780,16 +802,32 @@ function InitPerkOracle({
 
           {/* Custom mint */}
           <div className="flex gap-2 pt-1">
-            <input
-              type="text"
-              value={customMint}
-              onChange={(e) => setCustomMint(e.target.value)}
-              placeholder="Custom token mint"
-              className="flex-1 bg-bg border border-border rounded-[2px] px-3 py-2 font-mono text-xs text-white placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary"
-            />
+            <div className="flex-1 relative">
+              <input
+                type="text"
+                value={customMint}
+                onChange={(e) => setCustomMint(e.target.value)}
+                placeholder="Custom token mint"
+                className={`w-full bg-bg border rounded-[2px] px-3 py-2 font-mono text-xs text-white placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary ${
+                  customMintStatus === 'exists' ? 'border-profit/50' : customMintStatus === 'invalid' ? 'border-loss/50' : 'border-border'
+                }`}
+              />
+              {customMintStatus === 'checking' && (
+                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-text-tertiary animate-pulse">checking…</span>
+              )}
+              {customMintStatus === 'exists' && (
+                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-profit">✓ exists</span>
+              )}
+              {customMintStatus === 'not-found' && (
+                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-yellow-400">not initialized</span>
+              )}
+              {customMintStatus === 'invalid' && (
+                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-loss">invalid</span>
+              )}
+            </div>
             <button
-              onClick={() => customMint && initSingle(customMint)}
-              disabled={submitting || !customMint}
+              onClick={() => customMint && initSingle(customMint.trim())}
+              disabled={submitting || !customMint.trim() || customMintStatus === 'exists' || customMintStatus === 'invalid'}
               className="font-mono text-xs px-4 py-2 rounded-[2px] border border-border text-white hover:bg-white/5 transition-colors disabled:opacity-50"
             >
               Init
