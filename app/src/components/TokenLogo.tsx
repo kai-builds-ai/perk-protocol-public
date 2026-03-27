@@ -46,17 +46,18 @@ export const TokenLogo = memo(function TokenLogo({
 }: TokenLogoProps) {
   // Resolve logo: override > Jupiter > Metaplex on-chain > identicon
   const resolvedUrl = useTokenLogo(mint, overrideUrl);
+  const [imgError, setImgError] = React.useState(false);
 
-  const identicon = useMemo(() => {
-    if (resolvedUrl) return null;
-    return {
-      color: identiconColor(mint),
-      pattern: identiconPattern(mint),
-    };
-  }, [mint, resolvedUrl]);
+  // Reset error state when URL changes
+  React.useEffect(() => { setImgError(false); }, [resolvedUrl]);
 
-  // Show resolved logo
-  if (resolvedUrl) {
+  const identicon = useMemo(() => ({
+    color: identiconColor(mint),
+    pattern: identiconPattern(mint),
+  }), [mint]);
+
+  // Show resolved logo (if not errored)
+  if (resolvedUrl && !imgError) {
     return (
       <img
         src={resolvedUrl}
@@ -65,16 +66,13 @@ export const TokenLogo = memo(function TokenLogo({
         height={size}
         className="rounded-full"
         style={{ width: size, height: size }}
-        onError={(e) => {
-          // On load failure, hide the image (identicon will show on re-render)
-          (e.target as HTMLImageElement).style.display = "none";
-        }}
+        onError={() => setImgError(true)}
       />
     );
   }
 
-  // Loading state: show a subtle pulse
-  if (resolvedUrl === null) {
+  // Loading state: show a subtle pulse (but only briefly — 2s max then identicon)
+  if (resolvedUrl === null && !imgError) {
     return (
       <div
         className="rounded-full bg-zinc-800 animate-pulse"
