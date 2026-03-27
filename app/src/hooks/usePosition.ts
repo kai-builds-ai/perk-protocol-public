@@ -68,14 +68,15 @@ function toFrontendPosition(
   const pnl = equityHuman - collateralHuman; // equity - deposited = realized + unrealized PnL
   const pnlPercent = collateralHuman > 0 ? (pnl / collateralHuman) * 100 : 0;
 
-  // Leverage: notional / equity
+  // Leverage: position size / equity (both in token units, not USD)
+  // Using USD (notional / equityUsd) would give same result but this is cleaner
   const notional = Math.abs(baseSize) * markPrice;
-  const leverage = equityHuman > 0 ? notional / equityHuman : 0;
+  const leverage = equityHuman > 0 ? Math.abs(baseSize) / equityHuman : 0;
 
-  // Available margin: equity - IM requirement
+  // Available margin: equity - IM requirement (both in token units)
   const imBps = Math.floor(10000 / (market.maxLeverage / LEVERAGE_SCALE));
-  const imRequired = notional * imBps / 10000;
-  const availableMargin = Math.max(0, equityHuman - imRequired);
+  const imRequiredTokens = Math.abs(baseSize) * imBps / 10000;
+  const availableMargin = Math.max(0, equityHuman - imRequiredTokens);
 
   // Liquidation price
   const oraclePrice = market.lastOraclePrice && !market.lastOraclePrice.isZero()
