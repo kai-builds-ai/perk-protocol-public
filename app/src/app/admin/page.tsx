@@ -8,6 +8,7 @@ import { PublicKey } from '@solana/web3.js';
 import BN from 'bn.js';
 import toast from 'react-hot-toast';
 import { usePerk } from '@/providers/PerkProvider';
+import { useConnection } from '@solana/wallet-adapter-react';
 import { sanitizeError } from '@/lib/error-utils';
 import {
   ProtocolAccount,
@@ -146,11 +147,13 @@ function AdminDashboard({
   client: ReturnType<typeof usePerk>['client'];
   readonlyClient: ReturnType<typeof usePerk>['readonlyClient'];
 }) {
+  const { connection } = useConnection();
   const [protocol, setProtocol] = useState<ProtocolAccount | null>(null);
   const [markets, setMarkets] = useState<MarketWithAddress[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedMarket, setSelectedMarket] = useState<MarketWithAddress | null>(null);
   const [fetchError, setFetchError] = useState(false);
+  const [protocolBalance, setProtocolBalance] = useState<number>(0);
 
   const fetchData = useCallback(async () => {
     try {
@@ -165,13 +168,20 @@ function AdminDashboard({
         if (!prev) return null;
         return mkts.find(m => m.address.equals(prev.address)) ?? null;
       });
+
+      // Fetch actual SOL balance of protocol PDA (includes creation fees)
+      try {
+        const protocolPDA = readonlyClient.getProtocolAddress();
+        const balance = await connection.getBalance(protocolPDA);
+        setProtocolBalance(balance / LAMPORTS_PER_SOL);
+      } catch { /* ignore */ }
     } catch (err) {
       toast.error(sanitizeError(err, 'admin-fetch'));
       setFetchError(true);
     } finally {
       setLoading(false);
     }
-  }, [readonlyClient]);
+  }, [readonlyClient, connection]);
 
   useEffect(() => {
     fetchData();
@@ -223,6 +233,7 @@ function AdminDashboard({
             protocol={protocol}
             protocolAddress={protocolAddress}
             marketCount={markets.length}
+            protocolBalance={protocolBalance}
           />
         )}
 
@@ -263,10 +274,12 @@ function ProtocolOverview({
   protocol,
   protocolAddress,
   marketCount,
+  protocolBalance,
 }: {
   protocol: ProtocolAccount;
   protocolAddress: string;
   marketCount: number;
+  protocolBalance: number;
 }) {
   return (
     <section className="border border-border rounded-[2px] bg-surface">
@@ -275,7 +288,7 @@ function ProtocolOverview({
           Protocol Overview
         </span>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-px bg-border">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-px bg-border">
         <InfoCell
           label="Protocol PDA"
           value={truncatePubkey(protocolAddress)}
@@ -295,7 +308,13 @@ function ProtocolOverview({
         />
         <InfoCell label="Markets" value={marketCount.toString()} />
         <InfoCell
-          label="Total Fees"
+          label="Treasury Balance"
+          value={`${protocolBalance.toFixed(4)} SOL`}
+          mono
+          color="text-profit"
+        />
+        <InfoCell
+          label="Trading Fees"
           value={`${lamportsToSol(protocol.totalFeesCollected)} SOL`}
           mono
         />
