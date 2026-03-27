@@ -148,7 +148,9 @@ export function MarketsProvider({ children }: { children: React.ReactNode }) {
         })
       );
 
-      const mapped = raw.map((r) => toFrontendMarket(r.address, r.account));
+      const mapped = raw
+        .map((r) => toFrontendMarket(r.address, r.account))
+        .filter((m) => m.active); // Hide deactivated markets from public view
       mapped.sort((a, b) => a.marketIndex - b.marketIndex);
 
       // Fetch 24h price changes from CoinGecko (cached, max 1 req/60s)

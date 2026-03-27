@@ -1228,7 +1228,10 @@ function ToggleActive({
 
   const handleToggle = async () => {
     if (submittingRef.current) return;
-    if (!confirm(`${active ? 'Deactivate' : 'Activate'} this market?`)) return;
+    const msg = active
+      ? 'Remove this market? It will be hidden from the public markets page. You can re-activate it later.'
+      : 'Re-activate this market? It will appear on the public markets page again.';
+    if (!confirm(msg)) return;
     submittingRef.current = true;
     setSubmitting(true);
     try {
@@ -1239,7 +1242,7 @@ function ToggleActive({
         maxLeverage: null,
       };
       const sig = await client.adminUpdateMarket(market.account.tokenMint, market.account.creator, null, params);
-      toast.success(`Market ${active ? 'deactivated' : 'activated'} — ${truncatePubkey(sig)}`);
+      toast.success(`Market ${active ? 'removed' : 'activated'} — ${truncatePubkey(sig)}`);
       await onRefresh();
     } catch (err) {
       toast.error(sanitizeError(err, 'admin'));
@@ -1252,21 +1255,22 @@ function ToggleActive({
   return (
     <div className="bg-surface px-5 py-5 space-y-3">
       <div className="font-mono text-xs text-text-tertiary uppercase tracking-wider">
-        Toggle Active
+        {active ? 'Remove Market' : 'Re-activate Market'}
       </div>
       <p className="text-xs text-text-secondary font-sans">
-        Currently: <span className={active ? 'text-profit' : 'text-loss'}>{active ? 'ACTIVE' : 'INACTIVE'}</span>
+        Status: <span className={active ? 'text-profit' : 'text-loss'}>{active ? 'LIVE' : 'REMOVED'}</span>
+        {!active && ' — hidden from public view'}
       </p>
       <button
         onClick={handleToggle}
         disabled={submitting}
-        className={`font-mono text-xs px-4 py-2 rounded-[2px] border transition-colors disabled:opacity-50 ${
+        className={`font-mono text-xs px-5 py-2.5 rounded-[2px] border transition-colors disabled:opacity-50 ${
           active
-            ? 'border-loss/30 text-loss hover:bg-loss/10'
+            ? 'border-loss/40 text-loss bg-loss/5 hover:bg-loss/15'
             : 'border-profit/30 text-profit hover:bg-profit/10'
         }`}
       >
-        {submitting ? 'Submitting...' : active ? 'Deactivate' : 'Activate'}
+        {submitting ? 'Submitting...' : active ? '\u{1F5D1} Remove Market' : '\u2713 Re-activate Market'}
       </button>
     </div>
   );
