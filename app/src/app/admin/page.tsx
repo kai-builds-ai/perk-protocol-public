@@ -369,6 +369,9 @@ function ProtocolActions({
           <InitPerkOracle client={client} onRefresh={onRefresh} />
         </div>
         <div className="md:col-span-2">
+          <UnfreezeAllOracles client={client} onRefresh={onRefresh} />
+        </div>
+        <div className="md:col-span-2">
           <TransferAdmin client={client} onRefresh={onRefresh} />
         </div>
       </div>
@@ -770,6 +773,104 @@ function InitPerkOracle({
       <p className="text-xs text-text-tertiary font-sans">
         Cranker: {truncatePubkey(CRANKER_PUBKEY)} · v2: permissionless oracle init
       </p>
+    </div>
+  );
+}
+
+// ── Unfreeze All Stale Oracles ──
+
+function UnfreezeAllOracles({
+  client,
+  onRefresh,
+}: {
+  client: NonNullable<ReturnType<typeof usePerk>['client']>;
+  onRefresh: () => Promise<void>;
+}) {
+  const [submitting, setSubmitting] = useState(false);
+  const [progress, setProgress] = useState('');
+  const [frozenCount, setFrozenCount] = useState<number | null>(null);
+  const [frozenMints, setFrozenMints] = useState<{ mint: PublicKey; label: string }[]>([]);
+  const submittingRef = useRef(false);
+
+  // Discover frozen/stale oracles on mount
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const allOracles = await client.fetchAllPerkOracles();
+        const now = Math.floor(Date.now() / 1000);
+        const frozen: { mint: PublicKey; label: string }[] = [];
+        for (const o of allOracles) {
+          const age = now - o.account.timestamp.toNumber();
+          const maxStale = o.account.maxStalenessSeconds;
+          // Consider frozen if explicitly frozen OR stale beyond 2x maxStaleness
+          if (o.account.isFrozen || age > maxStale * 2) {
+            const mintStr = o.account.tokenMint.toBase58();
+            const token = TOKEN_LIST.find(t => t.mint === mintStr);
+            frozen.push({ mint: o.account.tokenMint, label: token?.label ?? mintStr.slice(0, 8) });
+          }
+        }
+        if (!cancelled) {
+          setFrozenCount(frozen.length);
+          setFrozenMints(frozen);
+        }
+      } catch { /* ignore */ }
+    })();
+    return () => { cancelled = true; };
+  }, [client]);
+
+  const unfreezeAll = async () => {
+    if (submittingRef.current || frozenMints.length === 0) return;
+    if (!confirm(`Unfreeze ${frozenMints.length} oracles? You'll approve ${frozenMints.length} transactions.`)) return;
+    submittingRef.current = true;
+    setSubmitting(true);
+    let success = 0;
+    let failed = 0;
+    for (const { mint, label } of frozenMints) {
+      setProgress(`${label} (${success + failed + 1}/${frozenMints.length})`);
+      try {
+        await client.freezePerkOracle(mint, false);
+        success++;
+      } catch (err) {
+        failed++;
+        toast.error(`${label}: ${sanitizeError(err, 'admin')}`);
+      }
+    }
+    setProgress('');
+    toast.success(`Unfrozen: ${success} oracles, ${failed} failed`);
+    setSubmitting(false);
+    submittingRef.current = false;
+    setFrozenCount(0);
+    setFrozenMints([]);
+    await onRefresh();
+  };
+
+  return (
+    <div className="bg-surface px-5 py-5 space-y-3">
+      <div className="font-mono text-xs text-text-tertiary uppercase tracking-wider">
+        Unfreeze Stale Oracles
+      </div>
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-text-secondary font-sans">
+          {frozenCount === null ? 'Checking...' : `${frozenCount} frozen/stale oracles`}
+        </span>
+        <button
+          onClick={unfreezeAll}
+          disabled={submitting || frozenCount === 0 || frozenCount === null}
+          className="font-mono text-xs px-3 py-1.5 rounded-[2px] border border-loss/30 text-loss hover:bg-loss/10 transition-colors disabled:opacity-50"
+        >
+          {submitting && progress ? progress : frozenCount === 0 ? 'All Fresh ✓' : `Unfreeze All (${frozenCount})`}
+        </button>
+      </div>
+      {frozenMints.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {frozenMints.map(f => (
+            <span key={f.mint.toBase58()} className="font-mono text-xs px-2 py-1 rounded-[2px] border border-loss/20 text-loss/70">
+              {f.label}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
