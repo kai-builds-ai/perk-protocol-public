@@ -11,11 +11,22 @@ import {
   OracleSource as SdkOracleSource,
   LEVERAGE_SCALE,
   MIN_INITIAL_K,
+  PYTH_SOL_USD_FEED,
 } from "@perk/sdk";
 import { useRouter } from "next/navigation";
 import { getTokenLogo } from "@/lib/token-metadata";
 import toast from "react-hot-toast";
 import { sanitizeError } from "@/lib/error-utils";
+
+/** Mainnet Pyth price feed accounts for major tokens */
+const PYTH_FEEDS: Record<string, PublicKey> = {
+  // SOL/USD
+  "So11111111111111111111111111111111111111112": PYTH_SOL_USD_FEED,
+  // BTC (wBTC portal)
+  "3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh": new PublicKey("GVXRSBjFk6e6J3NbVPXohDJwcHs1RkWXCMyd4H5hDEZr"),
+  // ETH (wETH portal)
+  "7vfCXTUXx5WJV5JADk17DUJ4ksgau7utNKj4b963voxs": new PublicKey("JBu1AL4obBcCMqKBBxhpWCNUt136ijcuMZLFvTP7iWdB"),
+};
 
 /** Validate a string as a Solana public key */
 function isValidPubkey(s: string): boolean {
@@ -46,7 +57,6 @@ export function CreateMarketForm() {
   const [search, setSearch] = useState("");
   const [selectedToken, setSelectedToken] = useState<TokenInfo | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
-  // Oracle is always PerkOracle — cranker handles Pyth vs Birdeye selection
   const [maxLeverage, setMaxLeverage] = useState(10);
   const [tradingFee, setTradingFee] = useState(0.1);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -183,8 +193,6 @@ export function CreateMarketForm() {
 
   const selectedMint = selectedToken?.mint ?? customMint?.mint ?? null;
 
-  const sdkOracleSource = SdkOracleSource.PerkOracle;
-
   const handleCreate = useCallback(async () => {
     if (!selectedMint) return;
 
@@ -197,22 +205,34 @@ export function CreateMarketForm() {
     try {
       const tokenMint = new PublicKey(selectedMint);
 
-      // PerkOracle — check it exists for this token
-      const existing = await readonlyClient.fetchPerkOracleNullable(tokenMint);
-      if (!existing) {
-        toast.error(
-          "No PerkOracle exists for this token yet. The cranker will initialize one automatically when price feeds are available."
-        );
-        setIsSubmitting(false);
-        return;
+      // Determine oracle source: Pyth for major tokens, PerkOracle for everything else
+      let oracle: PublicKey;
+      let oracleSource: SdkOracleSource;
+      const pythFeed = PYTH_FEEDS[selectedMint];
+
+      if (pythFeed) {
+        // Major token with Pyth feed
+        oracle = pythFeed;
+        oracleSource = SdkOracleSource.Pyth;
+      } else {
+        // Low-cap token — use PerkOracle
+        const existing = await readonlyClient.fetchPerkOracleNullable(tokenMint);
+        if (!existing) {
+          toast.error(
+            "No PerkOracle exists for this token yet. The cranker will initialize one automatically when price feeds are available."
+          );
+          setIsSubmitting(false);
+          return;
+        }
+        oracle = readonlyClient.getPerkOracleAddress(tokenMint);
+        oracleSource = SdkOracleSource.PerkOracle;
       }
-      const oracle = readonlyClient.getPerkOracleAddress(tokenMint);
 
       const tradingFeeBps = Math.round(tradingFee * 100); // 0.10% → 10 bps
       const maxLeverageScaled = maxLeverage * LEVERAGE_SCALE;
 
       const sig = await client.createMarket(tokenMint, oracle, {
-        oracleSource: sdkOracleSource,
+        oracleSource,
         maxLeverage: maxLeverageScaled,
         tradingFeeBps,
         initialK,
