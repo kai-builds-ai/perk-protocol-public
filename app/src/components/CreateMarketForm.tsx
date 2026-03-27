@@ -11,7 +11,6 @@ import {
   OracleSource as SdkOracleSource,
   LEVERAGE_SCALE,
   MIN_INITIAL_K,
-  PYTH_SOL_USD_FEED,
 } from "@perk/sdk";
 import { useRouter } from "next/navigation";
 import { getTokenLogo } from "@/lib/token-metadata";
@@ -22,7 +21,7 @@ import { sanitizeError } from "@/lib/error-utils";
  *  Source: https://pyth.network/developers/price-feed-ids#solana-mainnet */
 const PYTH_FEEDS: Record<string, PublicKey> = {
   // SOL/USD
-  "So11111111111111111111111111111111111111112": PYTH_SOL_USD_FEED,
+  "So11111111111111111111111111111111111111112": new PublicKey("H6ARHf6YXhGYeQfUzQNGk6rDNnLBQKrenN712K4AQJEG"),
   // BTC/USD (wBTC Portal)
   "3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh": new PublicKey("GVXRSBjFk6e6J3NbVPXohDJwcHs1RkWXCMyd4H5hDEZr"),
   // ETH/USD (wETH Portal)
