@@ -112,7 +112,7 @@ export function DepositWithdraw({ market }: DepositWithdrawProps) {
   }, [publicKey, readonlyClient, market.tokenMint, scale]);
 
   const handleSubmit = useCallback(async () => {
-    const amountNum = parseFloat(amount);
+    let amountNum = parseFloat(amount);
     if (submitLockRef.current) return;
     // H-02 fix: reject NaN, Infinity, zero, negative
     if (!Number.isFinite(amountNum) || amountNum <= 0) return;
@@ -127,9 +127,16 @@ export function DepositWithdraw({ market }: DepositWithdrawProps) {
       toast.error("Not enough in wallet. Top up first!");
       return;
     }
-    if (mode === "withdraw" && vaultBalance !== null && amountNum > vaultBalance * 1.001) {
-      toast.error("Insufficient vault balance.");
-      return;
+    if (mode === "withdraw" && vaultBalance !== null) {
+      if (amountNum > vaultBalance) {
+        // Rounding tolerance: if within 0.1%, clamp DOWN to vault balance
+        if (amountNum <= vaultBalance * 1.001) {
+          amountNum = vaultBalance;
+        } else {
+          toast.error("Insufficient vault balance.");
+          return;
+        }
+      }
     }
 
     submitLockRef.current = true;
