@@ -18,14 +18,35 @@ import { getTokenLogo } from "@/lib/token-metadata";
 import toast from "react-hot-toast";
 import { sanitizeError } from "@/lib/error-utils";
 
-/** Mainnet Pyth price feed accounts for major tokens */
+/** Mainnet Pyth price feed accounts (Solana on-chain accounts) for major tokens.
+ *  Source: https://pyth.network/developers/price-feed-ids#solana-mainnet */
 const PYTH_FEEDS: Record<string, PublicKey> = {
   // SOL/USD
   "So11111111111111111111111111111111111111112": PYTH_SOL_USD_FEED,
-  // BTC (wBTC portal)
+  // BTC/USD (wBTC Portal)
   "3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh": new PublicKey("GVXRSBjFk6e6J3NbVPXohDJwcHs1RkWXCMyd4H5hDEZr"),
-  // ETH (wETH portal)
+  // ETH/USD (wETH Portal)
   "7vfCXTUXx5WJV5JADk17DUJ4ksgau7utNKj4b963voxs": new PublicKey("JBu1AL4obBcCMqKBBxhpWCNUt136ijcuMZLFvTP7iWdB"),
+  // BONK/USD
+  "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263": new PublicKey("8ihFLu5FimgTQ1Unh4dVyEHUGodJ5gJQCR9B6Kz5VVaS"),
+  // JTO/USD
+  "jtojtomepa8beP8AuQc6eXt5FriJwfFMwQx2v2f9mCL": new PublicKey("D8UUgr8a3aR3yUeHLu7v8FWK7E8Y5sSU7qrBQUkKwtKM"),
+  // JUP/USD
+  "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN": new PublicKey("g6eRCbboSwK4tSWngn773RCMexr1APQr4uA9bGZBYfo"),
+  // WIF/USD
+  "EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm": new PublicKey("6ABgrEZk8urs6kJ1JNdC1sspH5zKXRqxy8sg3ZG2cQps"),
+  // RNDR/USD (Render)
+  "rndrizKT3MK1iimdxRdWabcF7Zg7AR5T4nud4EkHBof": new PublicKey("AnLf8tVYCM816gmBjiy8n53eXKKEDydT5piYjjQDPgTB"),
+  // PYTH/USD
+  "HZ1JovNiVvGrGNiiYvEozEVgZ58xaU3RKwX8eACQBCt3": new PublicKey("nrYkQQQur7z8rYTST3G9GqATviK5SZTKz5a3GKaVqjE"),
+  // RAY/USD (Raydium)
+  "4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R": new PublicKey("AnLf8tVYCM816gmBjiy8n53eXKKEDydT5piYjjQDPgTB"),
+  // ORCA/USD
+  "orcaEKTdK7LKz57vaAYr9QeNsVEPfiu6QeMU1kektZE": new PublicKey("4ivThkX8uRxBpHsdWSqyXYihzKF3zpRGAUCqyuagnLoV"),
+  // USDC (stablecoin — useful for pairs)
+  "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v": new PublicKey("Gnt27xtC473ZT2Mw5u8wZ68Z3gULkSTb5DuxJy7eJotD"),
+  // USDT
+  "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB": new PublicKey("3vxLXJqLqF3JG5TCbYycbKWRBbCJQLxQmBGCkyqEEefL"),
 };
 
 /** Validate a string as a Solana public key */
