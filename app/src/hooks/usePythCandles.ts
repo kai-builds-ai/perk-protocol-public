@@ -46,9 +46,14 @@ async function fetchGeckoTerminalCandles(
       .filter((c: CandleData) => c.open > 0 && c.close > 0 && c.high > 0 && c.low > 0)
       .sort((a: CandleData, b: CandleData) => (a.time as number) - (b.time as number));
 
-    // 4. Clamp extreme wicks — cap high/low to 3x the open/close range
-    //    This prevents single-candle liquidity spikes from crushing the chart
-    return raw.map((c: CandleData) => {
+    // 4. Trim to last 7 days — launch-day pump spikes crush the chart
+    const sevenDaysAgo = Math.floor(Date.now() / 1000) - 7 * 24 * 3600;
+    const recent = raw.filter((c: CandleData) => (c.time as number) >= sevenDaysAgo);
+    // Fall back to last 48 candles if all data is older than 7 days
+    const trimmed = recent.length > 10 ? recent : raw.slice(-48);
+
+    // 5. Clamp extreme wicks — cap high/low to 3x the open/close range
+    return trimmed.map((c: CandleData) => {
       const body = Math.max(c.open, c.close);
       const bodyLow = Math.min(c.open, c.close);
       const maxWick = body * 3;
