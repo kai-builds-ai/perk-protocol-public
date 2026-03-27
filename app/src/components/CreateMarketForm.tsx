@@ -300,8 +300,8 @@ export function CreateMarketForm() {
                     Failed to load token list. Paste a mint address instead.
                   </div>
                 )}
-                {/* Custom mint address result */}
-                {customMint && (
+                {/* Custom mint address result — hide if Jupiter already found it */}
+                {customMint && !filtered.some(t => t.mint === customMint.mint) && (
                   <button
                     className="w-full flex items-center gap-2 px-3 py-2 hover:bg-white/[0.02] text-left transition-colors duration-75 border-b border-border"
                     onClick={() => {
