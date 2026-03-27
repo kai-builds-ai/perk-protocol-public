@@ -436,7 +436,22 @@ export async function getTokenInfo(
       uri = uri || t22.uri;
     }
 
-    // 3. Resolve image from URI
+    // 3. If we have a URI but no name/symbol, fetch the metadata JSON
+    if (uri && (!name || !symbol)) {
+      try {
+        const resolvedUri = ipfsToHttps(uri);
+        if (!/\.(png|jpg|jpeg|gif|svg|webp)(\?.*)?$/i.test(resolvedUri)) {
+          const resp = await fetch(resolvedUri, { signal: AbortSignal.timeout(5000) });
+          if (resp.ok) {
+            const json = await resp.json();
+            if (!name && json.name) name = String(json.name).trim();
+            if (!symbol && json.symbol) symbol = String(json.symbol).trim();
+          }
+        }
+      } catch { /* keep what we have */ }
+    }
+
+    // 4. Resolve image from URI
     let logoUrl: string | null = null;
     if (uri) {
       const resolvedUri = ipfsToHttps(uri);
