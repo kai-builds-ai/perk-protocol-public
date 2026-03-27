@@ -278,7 +278,98 @@ export async function getTokenLogos(
 }
 
 /**
- * Resolve full token info (name, symbol, logo) from on-chain Metaplex metadata.
+ * Parse Token-2022 metadata extension from a mint account.
+ * Token-2022 embeds name/symbol/uri directly in the mint data after the base 82-byte layout.
+ */
+function parseToken2022Metadata(data: Buffer): MetadataFields {
+  try {
+    // Find readable strings — Token-2022 metadata extension uses TLV format
+    // Extension type 18 (TokenMetadata) after base mint data (82 bytes) + account type (1) + padding
+    // Simpler approach: scan for the metadata extension pattern
+    const text = data.toString("utf8");
+    
+    // Look for HTTPS URI pattern to locate metadata region
+    const uriMatch = text.match(/(https?:\/\/[^\x00\x01-\x1f]+)/);
+    if (!uriMatch) return { name: null, symbol: null, uri: null };
+    
+    const uri = uriMatch[1].trim();
+    
+    // Token-2022 metadata layout after extensions header:
+    // ... update_authority (32) + mint (32) + name (4-byte len + string) + symbol (4-byte len + string) + uri (4-byte len + string)
+    // Find the name/symbol by looking backwards from the URI
+    const uriIdx = data.indexOf(uri);
+    if (uriIdx < 0) return { name: null, symbol: null, uri };
+    
+    // URI is preceded by a 4-byte length prefix
+    const uriLenOffset = uriIdx - 4;
+    if (uriLenOffset < 0) return { name: null, symbol: null, uri };
+    
+    const uriLen = data.readUInt32LE(uriLenOffset);
+    if (uriLen !== uri.length) return { name: null, symbol: null, uri };
+    
+    // Before URI length: symbol string + 4-byte length
+    // Walk backwards to find symbol
+    let pos = uriLenOffset;
+    
+    // Read symbol (just before URI length prefix)
+    if (pos < 4) return { name: null, symbol: null, uri };
+    const symLen = data.readUInt32LE(pos - 4);
+    if (symLen > 0 && symLen < 32 && pos - 4 - symLen >= 0) {
+      const symStart = pos - 4 - symLen;
+      // Verify there's a length prefix for symbol
+      // Actually symbol length is at symStart - 0, symbol data starts at symStart
+      // Let me re-approach: the layout is name_len(4) + name + symbol_len(4) + symbol + uri_len(4) + uri
+      // So before uri: uri_len(4) at uriLenOffset
+      // Before that: symbol data ending at uriLenOffset
+      // Before symbol data: symbol_len(4)
+    }
+    
+    // Simpler: scan the data region for readable text segments
+    // Token-2022 metadata has: [32 bytes update_auth] [32 bytes mint] [4+name] [4+symbol] [4+uri]
+    // Find a region with sequential length-prefixed strings ending with our URI
+    
+    // Try every possible start position for the name field
+    for (let start = 82; start < uriIdx - 8; start++) {
+      try {
+        let off = start;
+        const nLen = data.readUInt32LE(off);
+        if (nLen < 1 || nLen > 64) continue;
+        off += 4;
+        if (off + nLen > data.length) continue;
+        const candidateName = data.subarray(off, off + nLen).toString("utf8").replace(/\0+$/, "").trim();
+        if (!candidateName || !/^[\x20-\x7E]+$/.test(candidateName)) continue;
+        off += nLen;
+        
+        const sLen = data.readUInt32LE(off);
+        if (sLen < 1 || sLen > 16) continue;
+        off += 4;
+        if (off + sLen > data.length) continue;
+        const candidateSymbol = data.subarray(off, off + sLen).toString("utf8").replace(/\0+$/, "").trim();
+        if (!candidateSymbol || !/^[\x20-\x7E]+$/.test(candidateSymbol)) continue;
+        off += sLen;
+        
+        const uLen = data.readUInt32LE(off);
+        off += 4;
+        if (off + uLen > data.length) continue;
+        const candidateUri = data.subarray(off, off + uLen).toString("utf8").replace(/\0+$/, "").trim();
+        
+        if (candidateUri === uri) {
+          return { name: candidateName, symbol: candidateSymbol, uri };
+        }
+      } catch {
+        continue;
+      }
+    }
+    
+    return { name: null, symbol: null, uri };
+  } catch {
+    return { name: null, symbol: null, uri: null };
+  }
+}
+
+/**
+ * Resolve full token info (name, symbol, logo) from on-chain metadata.
+ * Tries Metaplex first, then Token-2022 metadata extension.
  * Returns null fields for anything that can't be resolved.
  */
 export async function getTokenInfo(
@@ -287,29 +378,44 @@ export async function getTokenInfo(
 ): Promise<{ name: string | null; symbol: string | null; logoUrl: string | null }> {
   try {
     const mintPubkey = new PublicKey(mint);
+    
+    // 1. Try Metaplex metadata PDA
     const metadataPDA = getMetadataPDA(mintPubkey);
-    const accountInfo = await connection.getAccountInfo(metadataPDA);
+    const [metadataAccount, mintAccount] = await Promise.all([
+      connection.getAccountInfo(metadataPDA),
+      connection.getAccountInfo(mintPubkey),
+    ]);
 
-    if (!accountInfo?.data) {
-      return { name: null, symbol: null, logoUrl: null };
+    let name: string | null = null;
+    let symbol: string | null = null;
+    let uri: string | null = null;
+
+    if (metadataAccount?.data) {
+      const fields = decodeMetadataFields(Buffer.from(metadataAccount.data));
+      name = fields.name;
+      symbol = fields.symbol;
+      uri = fields.uri;
+    }
+    
+    // 2. If no Metaplex metadata, try Token-2022 extension
+    if (!name && mintAccount?.data && mintAccount.data.length > 200) {
+      const t22 = parseToken2022Metadata(Buffer.from(mintAccount.data));
+      name = t22.name;
+      symbol = t22.symbol;
+      uri = uri || t22.uri;
     }
 
-    const fields = decodeMetadataFields(Buffer.from(accountInfo.data));
+    // 3. Resolve image from URI
     let logoUrl: string | null = null;
-
-    if (fields.uri) {
-      if (/\.(png|jpg|jpeg|gif|svg|webp)(\?.*)?$/i.test(fields.uri)) {
-        logoUrl = fields.uri;
+    if (uri) {
+      if (/\.(png|jpg|jpeg|gif|svg|webp)(\?.*)?$/i.test(uri)) {
+        logoUrl = uri;
       } else {
-        logoUrl = await fetchImageFromUri(fields.uri);
+        logoUrl = await fetchImageFromUri(uri);
       }
     }
 
-    return {
-      name: fields.name,
-      symbol: fields.symbol,
-      logoUrl,
-    };
+    return { name, symbol, logoUrl };
   } catch {
     return { name: null, symbol: null, logoUrl: null };
   }
