@@ -148,18 +148,31 @@ export function DepositWithdraw({ market }: DepositWithdrawProps) {
     try {
       const tokenMint = new PublicKey(market.tokenMint);
       const oracle = new PublicKey(market.oracleAddress);
-      // For withdrawals, use raw lamport value to avoid float rounding issues
-      const amountBN = mode === "withdraw" && amountNum === vaultBalance
-        ? new BN(vaultBalanceRaw)
-        : new BN(Math.floor(amountNum * scale));
-
-      // Ensure position account exists
       const creator = new PublicKey(market.creator);
       const marketAddr = client.getMarketAddress(tokenMint, creator);
+
+      // Ensure position account exists
+      let pos;
       try {
-        await client.fetchPosition(marketAddr, publicKey);
+        pos = await client.fetchPosition(marketAddr, publicKey);
       } catch {
         await client.initializePosition(tokenMint, creator);
+        pos = await client.fetchPosition(marketAddr, publicKey);
+      }
+
+      // For withdrawals, re-read on-chain collateral to avoid stale/rounded values
+      let amountBN: InstanceType<typeof BN>;
+      if (mode === "withdraw") {
+        const onChainCollateral = pos.depositedCollateral.toNumber();
+        const requestedLamports = Math.floor(amountNum * scale);
+        // If requesting within 1% of on-chain collateral, withdraw exact on-chain amount
+        if (requestedLamports >= onChainCollateral * 0.99) {
+          amountBN = new BN(onChainCollateral);
+        } else {
+          amountBN = new BN(requestedLamports);
+        }
+      } else {
+        amountBN = new BN(Math.floor(amountNum * scale));
       }
 
       if (mode === "deposit") {
