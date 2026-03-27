@@ -104,35 +104,45 @@ function getMetadataPDA(mint: PublicKey): PublicKey {
  *   65+4+name_len: symbol (4 bytes length + string)
  *   ...: uri (4 bytes length + string)
  */
-function decodeMetadataUri(data: Buffer): string | null {
+interface MetadataFields {
+  name: string | null;
+  symbol: string | null;
+  uri: string | null;
+}
+
+function decodeMetadataFields(data: Buffer): MetadataFields {
   try {
     let offset = 1 + 32 + 32; // key + update_authority + mint
 
     // name: 4-byte LE length prefix + string
-    if (offset + 4 > data.length) return null;
+    if (offset + 4 > data.length) return { name: null, symbol: null, uri: null };
     const nameLen = data.readUInt32LE(offset);
-    offset += 4 + nameLen;
+    offset += 4;
+    const name = data.subarray(offset, offset + nameLen).toString("utf8").replace(/\0+$/, "").trim() || null;
+    offset += nameLen;
 
     // symbol: 4-byte LE length prefix + string
-    if (offset + 4 > data.length) return null;
+    if (offset + 4 > data.length) return { name, symbol: null, uri: null };
     const symbolLen = data.readUInt32LE(offset);
-    offset += 4 + symbolLen;
+    offset += 4;
+    const symbol = data.subarray(offset, offset + symbolLen).toString("utf8").replace(/\0+$/, "").trim() || null;
+    offset += symbolLen;
 
     // uri: 4-byte LE length prefix + string
-    if (offset + 4 > data.length) return null;
+    if (offset + 4 > data.length) return { name, symbol, uri: null };
     const uriLen = data.readUInt32LE(offset);
     offset += 4;
-    if (offset + uriLen > data.length) return null;
+    if (offset + uriLen > data.length) return { name, symbol, uri: null };
+    const uri = data.subarray(offset, offset + uriLen).toString("utf8").replace(/\0+$/, "").trim() || null;
 
-    const uri = data
-      .subarray(offset, offset + uriLen)
-      .toString("utf8")
-      .replace(/\0+$/, "")
-      .trim();
-    return uri || null;
+    return { name, symbol, uri };
   } catch {
-    return null;
+    return { name: null, symbol: null, uri: null };
   }
+}
+
+function decodeMetadataUri(data: Buffer): string | null {
+  return decodeMetadataFields(data).uri;
 }
 
 /**
