@@ -79,8 +79,8 @@ export default function TradingView() {
         </div>
         {/* Right: Trade Panel */}
         <div className="w-full md:w-[320px] flex flex-col md:border-l border-border bg-surface">
-          <TradePanel market={displayMarket} />
           <DepositWithdraw market={displayMarket} />
+          <TradePanel market={displayMarket} />
         </div>
         {/* Positions + Orders — mobile only, below trade panel */}
         <div className="md:hidden border-t border-border">

@@ -206,7 +206,7 @@ export function DepositWithdraw({ market }: DepositWithdrawProps) {
   const displayVault = vaultBalance !== null ? vaultBalance.toFixed(4) : "—";
 
   return (
-    <div className="border-t border-border p-4 space-y-3">
+    <div className="border-b border-border p-4 space-y-3">
       <div className="flex items-center justify-between">
         <span className="text-sm font-sans font-medium text-text-secondary uppercase tracking-wider">Balance</span>
       </div>
@@ -237,8 +237,11 @@ export function DepositWithdraw({ market }: DepositWithdrawProps) {
         </div>
         <button
           onClick={() => {
-            setMode("deposit");
-            if (mode === "deposit" && amount) handleSubmit();
+            if (mode === "deposit" && amount) {
+              handleSubmit();
+            } else {
+              setMode("deposit");
+            }
           }}
           disabled={isSubmitting}
           className={`px-4 py-2 text-sm font-sans rounded-[4px] border transition-colors duration-100 ${
@@ -253,8 +256,15 @@ export function DepositWithdraw({ market }: DepositWithdrawProps) {
         </button>
         <button
           onClick={() => {
-            setMode("withdraw");
-            if (mode === "withdraw" && amount) handleSubmit();
+            if (mode === "withdraw" && amount) {
+              handleSubmit();
+            } else {
+              setMode("withdraw");
+              // Pre-fill with vault balance (max withdrawable)
+              if (vaultBalance && vaultBalance > 0) {
+                setAmount(vaultBalance.toFixed(4));
+              }
+            }
           }}
           disabled={isSubmitting}
           className={`px-4 py-2 text-sm font-sans rounded-[4px] border transition-colors duration-100 ${

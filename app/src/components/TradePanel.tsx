@@ -108,11 +108,20 @@ export function TradePanel({ market }: TradePanelProps) {
       if (tab === "market") {
         // Ensure position account exists
         const marketAddr = client.getMarketAddress(tokenMint, creator);
+        let hasCollateral = false;
         try {
-          await client.fetchPosition(marketAddr, publicKey);
+          const pos = await client.fetchPosition(marketAddr, publicKey);
+          hasCollateral = pos.depositedCollateral.toNumber() > 0;
         } catch {
           // Position doesn't exist — initialize it
           await client.initializePosition(tokenMint, creator);
+        }
+
+        if (!hasCollateral) {
+          toast.error("Deposit collateral first — use the Deposit section above.");
+          submitLockRef.current = false;
+          setIsSubmitting(false);
+          return;
         }
 
         const baseSize = new BN(Math.floor(sizeNum * POS_SCALE));
