@@ -560,6 +560,30 @@ function TransferAdmin({
 
 const CRANKER_PUBKEY = '99mUUwVBvCD1pLP7fk5z7xPuBoGpyuUGpyTBhW53yw99';
 
+// Top Solana tokens by market cap — batch init all at once
+const TOKEN_LIST: { label: string; mint: string }[] = [
+  { label: 'SOL', mint: 'So11111111111111111111111111111111111111112' },
+  { label: 'USDC', mint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v' },
+  { label: 'USDT', mint: 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB' },
+  { label: 'JUP', mint: 'JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN' },
+  { label: 'JTO', mint: 'jtojtomepa8beP8AuQc6eXt5FriJwfFMwQx2v2f9mCL' },
+  { label: 'BONK', mint: 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263' },
+  { label: 'WIF', mint: 'EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm' },
+  { label: 'PYTH', mint: 'HZ1JovNiVvGrGNiiYvEozEVgZ58xaU3RKwX8eACQBCt3' },
+  { label: 'RAY', mint: '4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R' },
+  { label: 'ORCA', mint: 'orcaEKTdK7LKz57vaAYr9QeNsVEPfiu6QeMU1kektZE' },
+  { label: 'RNDR', mint: 'rndrizKT3MK1iimdxRdWabcF7Zg7AR5T4nud4EkHBof' },
+  { label: 'HNT', mint: 'hntyVP6YFm1Hg25TN9WGLqM12b8TQmcknKrdu1oxWux' },
+  { label: 'TENSOR', mint: 'TNSRxcUxoT9xBG3de7PiJyTDYu7kskLqcpddxnEJAS6' },
+  { label: 'W', mint: '85VBFQZC9TZkfaptBWjvUw7YbZjy52A6mjtPGjstQAmQ' },
+  { label: 'POPCAT', mint: '7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr' },
+  { label: 'MEW', mint: 'MEW1gQWJ3nEXg2qgERiKu7FAFj79PHvQVREQUzScPP5' },
+  { label: 'PENGU', mint: '2zMMhcVQEXDtdE6vsFS7S7D5oUodfJHE8vd1gnBouauv' },
+  { label: 'AI16Z', mint: 'HeLp6NuQkmYB4pYWo2zYs22mESHXPQYzXbB8n4V98jwC' },
+  { label: 'FARTCOIN', mint: '9BB6NFEcjBCtnNLFko2FqVQBq8HHM13kCyYcdQbgpump' },
+  { label: 'TRUMP', mint: '6p6xgHyF7AeE6TZkSmFsko444wqoP15icUSqi2jfGiPN' },
+];
+
 function InitPerkOracle({
   client,
   onRefresh,
@@ -567,47 +591,52 @@ function InitPerkOracle({
   client: NonNullable<ReturnType<typeof usePerk>['client']>;
   onRefresh: () => Promise<void>;
 }) {
-  const [mint, setMint] = useState('');
+  const [customMint, setCustomMint] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [batchProgress, setBatchProgress] = useState('');
+  const [existingOracles, setExistingOracles] = useState<Set<string>>(new Set());
+  const [checkingExisting, setCheckingExisting] = useState(true);
   const submittingRef = useRef(false);
 
-  const handleInit = async () => {
-    if (submittingRef.current) return;
-    let tokenMint: PublicKey;
-    try {
-      tokenMint = new PublicKey(mint);
-    } catch {
-      toast.error('Invalid token mint address');
-      return;
-    }
-
-    // Check if already exists
-    try {
-      const existing = await client.fetchPerkOracleNullable(tokenMint);
-      if (existing) {
-        toast.error('PerkOracle already exists for this token');
-        return;
+  // Check which oracles already exist on mount
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const existing = new Set<string>();
+      for (const t of TOKEN_LIST) {
+        try {
+          const oracle = await client.fetchPerkOracleNullable(new PublicKey(t.mint));
+          if (oracle) existing.add(t.mint);
+        } catch { /* skip */ }
       }
-    } catch {
-      // fetchNullable failed — proceed anyway
-    }
+      if (!cancelled) {
+        setExistingOracles(existing);
+        setCheckingExisting(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [client]);
 
-    if (!confirm(`Initialize PerkOracle for ${truncatePubkey(mint)}?\nCranker: ${truncatePubkey(CRANKER_PUBKEY)}`)) return;
+  const remaining = TOKEN_LIST.filter(t => !existingOracles.has(t.mint));
+
+  const initSingle = async (mintStr: string) => {
+    if (submittingRef.current) return;
     submittingRef.current = true;
     setSubmitting(true);
     try {
+      const tokenMint = new PublicKey(mintStr);
       const sig = await client.initializePerkOracle(
         tokenMint,
         new PublicKey(CRANKER_PUBKEY),
         {
           minSources: 2,
           maxStalenessSeconds: 120,
-          maxPriceChangeBps: 0,         // no banding — memecoins move freely
-          circuitBreakerDeviationBps: 0, // disabled
+          maxPriceChangeBps: 0,
+          circuitBreakerDeviationBps: 0,
         },
       );
-      toast.success(`PerkOracle initialized — ${truncatePubkey(sig)}`);
-      setMint('');
+      toast.success(`Oracle initialized — ${truncatePubkey(sig)}`);
+      setExistingOracles(prev => new Set([...prev, mintStr]));
       await onRefresh();
     } catch (err) {
       toast.error(sanitizeError(err, 'admin'));
@@ -617,53 +646,115 @@ function InitPerkOracle({
     }
   };
 
-  // Well-known token mints for quick-select
-  const QUICK_MINTS = [
-    { label: 'SOL', mint: 'So11111111111111111111111111111111111111112' },
-    { label: 'BONK', mint: 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263' },
-    { label: 'WIF', mint: 'EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm' },
-    { label: 'JUP', mint: 'JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN' },
-    { label: 'JTO', mint: 'jtojtomepa8beP8AuQc6eXt5FriJwfFMwQx2v2f9mCL' },
-  ];
+  const batchInitAll = async () => {
+    if (submittingRef.current) return;
+    if (remaining.length === 0) {
+      toast.success('All oracles already initialized!');
+      return;
+    }
+    if (!confirm(`Initialize ${remaining.length} PerkOracles?\nYou'll approve ${remaining.length} transactions in Phantom.`)) return;
+    submittingRef.current = true;
+    setSubmitting(true);
+    let success = 0;
+    let failed = 0;
+    for (const t of remaining) {
+      setBatchProgress(`${t.label} (${success + failed + 1}/${remaining.length})`);
+      try {
+        const tokenMint = new PublicKey(t.mint);
+        await client.initializePerkOracle(
+          tokenMint,
+          new PublicKey(CRANKER_PUBKEY),
+          {
+            minSources: 2,
+            maxStalenessSeconds: 120,
+            maxPriceChangeBps: 0,
+            circuitBreakerDeviationBps: 0,
+          },
+        );
+        success++;
+        setExistingOracles(prev => new Set([...prev, t.mint]));
+      } catch (err) {
+        failed++;
+        toast.error(`${t.label}: ${sanitizeError(err, 'admin')}`);
+      }
+    }
+    setBatchProgress('');
+    toast.success(`Done: ${success} initialized, ${failed} failed`);
+    setSubmitting(false);
+    submittingRef.current = false;
+    await onRefresh();
+  };
 
   return (
     <div className="bg-surface px-5 py-5 space-y-3">
       <div className="font-mono text-xs text-text-tertiary uppercase tracking-wider">
-        Init PerkOracle
+        Init PerkOracles
       </div>
-      <div className="flex flex-wrap gap-1">
-        {QUICK_MINTS.map(t => (
-          <button
-            key={t.mint}
-            onClick={() => setMint(t.mint)}
-            className={`font-mono text-xs px-2 py-1 rounded-[2px] border transition-colors ${
-              mint === t.mint
-                ? 'border-blue text-blue bg-blue/10'
-                : 'border-border text-text-secondary hover:text-white hover:bg-white/5'
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-      <div className="flex gap-2">
-        <input
-          type="text"
-          value={mint}
-          onChange={(e) => setMint(e.target.value)}
-          placeholder="Token mint address"
-          className="flex-1 bg-bg border border-border rounded-[2px] px-3 py-2 font-mono text-xs text-white placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary"
-        />
-        <button
-          onClick={handleInit}
-          disabled={submitting || !mint}
-          className="font-mono text-xs px-4 py-2 rounded-[2px] border border-profit/30 text-profit hover:bg-profit/10 transition-colors disabled:opacity-50"
-        >
-          {submitting ? '...' : 'Init'}
-        </button>
-      </div>
+
+      {checkingExisting ? (
+        <p className="text-xs text-text-secondary font-sans animate-pulse">Checking existing oracles...</p>
+      ) : (
+        <>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-text-secondary font-sans">
+              {existingOracles.size}/{TOKEN_LIST.length} initialized
+            </span>
+            <button
+              onClick={batchInitAll}
+              disabled={submitting || remaining.length === 0}
+              className="font-mono text-xs px-3 py-1.5 rounded-[2px] border border-profit/30 text-profit hover:bg-profit/10 transition-colors disabled:opacity-50"
+            >
+              {submitting && batchProgress
+                ? batchProgress
+                : remaining.length === 0
+                  ? 'All Done ✓'
+                  : `Init All (${remaining.length})`}
+            </button>
+          </div>
+
+          <div className="flex flex-wrap gap-1">
+            {TOKEN_LIST.map(t => {
+              const exists = existingOracles.has(t.mint);
+              return (
+                <button
+                  key={t.mint}
+                  onClick={() => !exists && initSingle(t.mint)}
+                  disabled={submitting || exists}
+                  className={`font-mono text-xs px-2 py-1 rounded-[2px] border transition-colors ${
+                    exists
+                      ? 'border-profit/20 text-profit/50 cursor-default'
+                      : 'border-border text-text-secondary hover:text-white hover:bg-white/5'
+                  }`}
+                  title={exists ? 'Already initialized' : `Init oracle for ${t.label}`}
+                >
+                  {exists ? `✓ ${t.label}` : t.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Custom mint */}
+          <div className="flex gap-2 pt-1">
+            <input
+              type="text"
+              value={customMint}
+              onChange={(e) => setCustomMint(e.target.value)}
+              placeholder="Custom token mint"
+              className="flex-1 bg-bg border border-border rounded-[2px] px-3 py-2 font-mono text-xs text-white placeholder:text-text-tertiary focus:outline-none focus:border-text-secondary"
+            />
+            <button
+              onClick={() => customMint && initSingle(customMint)}
+              disabled={submitting || !customMint}
+              className="font-mono text-xs px-4 py-2 rounded-[2px] border border-border text-white hover:bg-white/5 transition-colors disabled:opacity-50"
+            >
+              Init
+            </button>
+          </div>
+        </>
+      )}
+
       <p className="text-xs text-text-tertiary font-sans">
-        Cranker: {truncatePubkey(CRANKER_PUBKEY)} · minSources=2 · maxStale=120s
+        Cranker: {truncatePubkey(CRANKER_PUBKEY)} · v2: permissionless oracle init
       </p>
     </div>
   );
