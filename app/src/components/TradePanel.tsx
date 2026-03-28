@@ -54,7 +54,8 @@ export function TradePanel({ market }: TradePanelProps) {
 
   const sizeNum = parseFloat(size) || 0;
 
-  // Size = collateral amount. Position = Size × Leverage.
+  // Size = collateral (USDC). Notional = Size × Leverage (USDC).
+  // positionSize is in USDC notional terms.
   const positionSize = sizeNum * leverage;
 
   const estimates = useMemo(() => {
@@ -63,17 +64,18 @@ export function TradePanel({ market }: TradePanelProps) {
       tab === "limit" || tab === "stop"
         ? parseFloat(triggerPrice) || market.markPrice
         : market.markPrice;
-    const notional = positionSize * entryPrice;
+    const notional = positionSize; // already in USDC (collateral × leverage)
     const fee = notional * (market.tradingFeeBps / 10000);
-    const margin = sizeNum * entryPrice; // collateral in USD
+    const margin = sizeNum; // collateral in USDC
     const liqDistance = margin * 0.95;
+    const tokenCount = positionSize / entryPrice; // token units for liq price calc
     const liqPrice =
       side === Side.Long
-        ? entryPrice - liqDistance / positionSize
-        : entryPrice + liqDistance / positionSize;
+        ? entryPrice - liqDistance / tokenCount
+        : entryPrice + liqDistance / tokenCount;
     // M-04 fix: estimate slippage from vAMM constant product (x*y=k)
     const slippagePct = market.baseReserve > 0
-      ? Math.abs(positionSize) / market.baseReserve
+      ? Math.abs(tokenCount) / market.baseReserve
       : 0;
     return { entryPrice, fee, liqPrice: Math.max(0, liqPrice), slippage: slippagePct };
   }, [sizeNum, positionSize, market, leverage, side, tab, triggerPrice]);
@@ -127,8 +129,11 @@ export function TradePanel({ market }: TradePanelProps) {
           return;
         }
 
-        // Size = collateral. Position = size × leverage.
-        const baseSize = new BN(Math.floor(positionSize * POS_SCALE));
+        // Size = collateral (USDC). Notional = size × leverage (USDC).
+        // Convert USDC notional to token base units using mark price.
+        const markPrice = market.markPrice || 1;
+        const tokenCount = positionSize / markPrice; // USDC notional → token units
+        const baseSize = new BN(Math.floor(tokenCount * POS_SCALE));
         const leverageScaled = Math.floor(leverage * LEVERAGE_SCALE);
 
         const sig = await client.openPosition(
@@ -183,10 +188,11 @@ export function TradePanel({ market }: TradePanelProps) {
           await client.initializePosition(tokenMint, creator);
         }
 
+        const triggerTokenCount = positionSize / (parseFloat(triggerPrice) || market.markPrice);
         const sig = await client.placeTriggerOrder(tokenMint, creator, {
           orderType,
           side: sdkSide,
-          size: new BN(Math.floor(positionSize * POS_SCALE)),
+          size: new BN(Math.floor(triggerTokenCount * POS_SCALE)),
           triggerPrice: new BN(Math.floor(price * PRICE_SCALE)),
           leverage: Math.floor(leverage * LEVERAGE_SCALE),
           reduceOnly,
