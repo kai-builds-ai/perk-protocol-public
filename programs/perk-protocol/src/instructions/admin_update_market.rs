@@ -2,6 +2,8 @@
 /// Allows admin to update oracle_address, active status, and trading_fee_bps.
 
 use anchor_lang::prelude::*;
+use anchor_lang::prelude::InterfaceAccount;
+use anchor_spl::token_interface::Mint;
 use crate::constants::{MIN_LEVERAGE, MAX_LEVERAGE};
 use crate::engine::oracle;
 use crate::errors::PerkError;
@@ -17,6 +19,8 @@ pub struct AdminUpdateMarketParams {
     pub trading_fee_bps: Option<u16>,
     /// H4 (Pashov2): New max leverage (100x-scaled, e.g. 2000 = 20x). None = keep current.
     pub max_leverage: Option<u32>,
+    /// New collateral mint (None = keep current). Must be 6 decimals.
+    pub collateral_mint: Option<Pubkey>,
 }
 
 #[derive(Accounts)]
@@ -37,6 +41,9 @@ pub struct AdminUpdateMarket<'info> {
 
     /// CHECK: New oracle account (only validated if oracle_address is being updated)
     pub oracle: Option<UncheckedAccount<'info>>,
+
+    /// New collateral mint (only validated if collateral_mint is being updated)
+    pub new_collateral_mint: Option<InterfaceAccount<'info, Mint>>,
 
     pub admin: Signer<'info>,
 }
@@ -85,6 +92,16 @@ pub fn handler(ctx: Context<AdminUpdateMarket>, params: AdminUpdateMarketParams)
         );
         market.max_leverage = leverage;
         msg!("Max leverage updated to {}", leverage);
+    }
+
+    // Update collateral mint (must be 6 decimals for Percolator math)
+    if let Some(new_col) = params.collateral_mint {
+        let mint_account = ctx.accounts.new_collateral_mint.as_ref()
+            .ok_or(PerkError::TokenMintMismatch)?;
+        require!(mint_account.key() == new_col, PerkError::TokenMintMismatch);
+        require!(mint_account.decimals == 6, PerkError::InvalidTokenDecimals);
+        market.collateral_mint = new_col;
+        msg!("Collateral mint updated to {}", new_col);
     }
 
     Ok(())
