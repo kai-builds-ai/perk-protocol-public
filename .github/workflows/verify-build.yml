@@ -1,0 +1,40 @@
+name: Build and Deploy Perk Protocol
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    container:
+      image: backpackapp/build:v0.30.1
+      options: --user root
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build program
+        run: anchor build
+
+      - name: Deploy to mainnet
+        env:
+          DEPLOYER_KEYPAIR: ${{ secrets.DEPLOYER_KEYPAIR }}
+          HELIUS_RPC_URL: ${{ secrets.HELIUS_RPC_URL }}
+        run: |
+          echo "$DEPLOYER_KEYPAIR" > /tmp/deployer.json
+          solana config set --url "$HELIUS_RPC_URL" --keypair /tmp/deployer.json
+          solana program deploy \
+            --program-id 3L72e4b8wKJ8ReMpLUeXxVNrRGpiK6m4VYxeSnecpNW2 \
+            --upgrade-authority /tmp/deployer.json \
+            target/deploy/perk_protocol.so \
+            --with-compute-unit-price 50000 \
+            --max-sign-attempts 20
+          rm /tmp/deployer.json
+
+      - name: Verify with OtterSec
+        run: |
+          cargo install --git https://github.com/AuditDeploy/verify --rev 09e2dcc
+          solana-verify verify-from-repo \
+            --url "$(solana config get | grep 'RPC URL' | awk '{print $3}')" \
+            --program-id 3L72e4b8wKJ8ReMpLUeXxVNrRGpiK6m4VYxeSnecpNW2 \
+            https://github.com/kai-builds-ai/perk-protocol-public \
+            -- --no-default-features
