@@ -247,7 +247,6 @@ export interface AdminUpdateMarketParams {
   active: boolean | null;
   tradingFeeBps: number | null;
   maxLeverage: number | null;
-  collateralMint: PublicKey | null;
 }
 
 export interface TriggerOrderParams {

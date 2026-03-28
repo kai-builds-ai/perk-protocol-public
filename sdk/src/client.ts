@@ -391,7 +391,6 @@ export class PerkClient {
     creator: PublicKey,
     oracle: PublicKey | null,
     params: AdminUpdateMarketParams,
-    newCollateralMint?: PublicKey,
   ): Promise<TransactionSignature> {
     const protocol = this.getProtocolAddress();
     const market = this.getMarketAddress(tokenMint, creator);
@@ -401,7 +400,6 @@ export class PerkClient {
         protocol,
         market,
         oracle: oracle ?? this.programId, // Anchor optional-absent sentinel
-        newCollateralMint: newCollateralMint ?? this.programId, // Anchor optional-absent sentinel
         admin: this.wallet.publicKey,
       })
       .preInstructions(this.preInstructions).rpc();

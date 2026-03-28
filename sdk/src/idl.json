@@ -260,13 +260,6 @@
           "optional": true
         },
         {
-          "name": "new_collateral_mint",
-          "docs": [
-            "New collateral mint (only validated if collateral_mint is being updated)"
-          ],
-          "optional": true
-        },
-        {
           "name": "admin",
           "signer": true
         }
@@ -2939,15 +2932,6 @@
             ],
             "type": {
               "option": "u32"
-            }
-          },
-          {
-            "name": "collateral_mint",
-            "docs": [
-              "New collateral mint (None = keep current). Must be 6 decimals."
-            ],
-            "type": {
-              "option": "pubkey"
             }
           }
         ]
