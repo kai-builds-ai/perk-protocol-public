@@ -38,6 +38,19 @@ jobs:
           cargo install solana-verify --force
           solana-verify --version
 
+      - name: Build verified binary
+        run: |
+          solana-verify build --library-name ${{ env.PROGRAM_LIB_NAME }}
+          echo "Build complete. Checking hash..."
+          sha256sum target/deploy/${{ env.PROGRAM_LIB_NAME }}.so
+
+      - name: Upload verified binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: verified-program
+          path: target/deploy/${{ env.PROGRAM_LIB_NAME }}.so
+          retention-days: 7
+
       - name: Configure Solana
         run: |
           solana config set --url ${{ secrets.HELIUS_RPC_URL }}
@@ -46,7 +59,15 @@ jobs:
           solana address
           solana balance
 
-      - name: Verify from repo (remote)
+      - name: Deploy verified binary
+        run: |
+          solana program deploy \
+            target/deploy/${{ env.PROGRAM_LIB_NAME }}.so \
+            --program-id ${{ env.PROGRAM_ID }} \
+            --url ${{ secrets.HELIUS_RPC_URL }} \
+            --keypair /tmp/deployer.json
+
+      - name: Submit to OtterSec
         run: |
           echo "y" | solana-verify verify-from-repo \
             --remote \
