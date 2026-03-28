@@ -34,7 +34,12 @@ import {
 // const ADMIN_PUBKEY = 'CxtsPjsmDFnjxtX25UWznyB8mgzAsHdFueGspcUM69LX';
 const LAMPORTS_PER_SOL = 1_000_000_000;
 
-// ── Blacklisted mints (initialized by mistake, can't close on-chain) ──
+// ── Blacklisted market PDAs (can't close on-chain) ──
+const MARKET_BLACKLIST = new Set<string>([
+  '4m3Yzvi6FgQEtse6nbFg2yVei4wRJRFbZm7tPkrzoKQk', // duplicate pumpCm market (wrong creator)
+]);
+
+// ── Blacklisted mints ──
 const MINT_BLACKLIST = new Set<string>([
   // empty for now
 ]);
@@ -178,7 +183,7 @@ function AdminDashboard({
       ]);
       setFetchError(false);
       setProtocol(proto);
-      setMarkets(mkts.filter(m => !MINT_BLACKLIST.has(m.account.tokenMint.toBase58())));
+      setMarkets(mkts.filter(m => !MINT_BLACKLIST.has(m.account.tokenMint.toBase58()) && !MARKET_BLACKLIST.has(m.address.toBase58())));
       setSelectedMarket(prev => {
         if (!prev) return null;
         return mkts.find(m => m.address.equals(prev.address)) ?? null;
