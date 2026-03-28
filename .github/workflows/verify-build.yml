@@ -1,0 +1,74 @@
+name: Build, Deploy & Verify
+
+on:
+  workflow_dispatch:
+
+env:
+  PROGRAM_ID: "3L72e4b8wKJ8ReMpLUeXxVNrRGpiK6m4VYxeSnecpNW2"
+
+jobs:
+  build-deploy-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Cargo registry + build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: cargo-registry-
+
+      - name: Install Solana CLI
+        run: |
+          sh -c "$(curl -sSfL https://release.anza.xyz/v2.1.5/install)"
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
+
+      - name: Install solana-verify (force rebuild)
+        run: cargo install solana-verify --force
+
+      - name: Build verified binary in Docker
+        run: solana-verify build --library-name perk_protocol
+
+      - name: Upload .so artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: perk_protocol.so
+          path: target/deploy/perk_protocol.so
+
+      - name: Install bs58 for keypair decode
+        run: npm install bs58@4
+
+      - name: Write deployer keypair
+        run: |
+          node -e "
+            const bs58 = require('bs58');
+            const key = bs58.decode('${{ secrets.DEPLOYER_KEYPAIR }}');
+            require('fs').writeFileSync('/tmp/deployer.json', JSON.stringify(Array.from(key)));
+            console.log('Keypair written, length:', key.length);
+          "
+
+      - name: Deploy to mainnet
+        run: |
+          solana program deploy target/deploy/perk_protocol.so \
+            --program-id ${{ env.PROGRAM_ID }} \
+            --keypair /tmp/deployer.json \
+            --url "${{ secrets.HELIUS_RPC_URL }}" \
+            --with-compute-unit-price 50000
+
+      - name: Cleanup keypair
+        if: always()
+        run: rm -f /tmp/deployer.json
+
+      - name: Submit to OtterSec for verification
+        run: |
+          solana-verify verify-from-repo \
+            --url "${{ secrets.HELIUS_RPC_URL }}" \
+            --program-id ${{ env.PROGRAM_ID }} \
+            https://github.com/kai-builds-ai/perk-protocol-public \
+            --library-name perk_protocol \
+            --commit-hash $(git rev-parse HEAD) \
+            --remote
