@@ -34,6 +34,11 @@ import {
 // const ADMIN_PUBKEY = 'CxtsPjsmDFnjxtX25UWznyB8mgzAsHdFueGspcUM69LX';
 const LAMPORTS_PER_SOL = 1_000_000_000;
 
+// ── Blacklisted mints (initialized by mistake, can't close on-chain) ──
+const MINT_BLACKLIST = new Set([
+  'pumpCmXqMfrsAkQ5r49WcJnRayYRqmXz6ae8H7H9Dfn', // pumpCm program address, not a token
+]);
+
 // ── Helpers ──
 
 function truncatePubkey(key: string): string {
@@ -173,7 +178,7 @@ function AdminDashboard({
       ]);
       setFetchError(false);
       setProtocol(proto);
-      setMarkets(mkts);
+      setMarkets(mkts.filter(m => !MINT_BLACKLIST.has(m.account.tokenMint.toBase58())));
       setSelectedMarket(prev => {
         if (!prev) return null;
         return mkts.find(m => m.address.equals(prev.address)) ?? null;
@@ -829,11 +834,6 @@ function InitPerkOracle({
   const submittingRef = useRef(false);
   const customCheckTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Blacklisted oracles — initialized by mistake, can't close on-chain
-  const ORACLE_BLACKLIST = new Set([
-    'pumpCmXqMfrsAkQ5r49WcJnRayYRqmXz6ae8H7H9Dfn', // pumpCm program address, not a token
-  ]);
-
   // Fetch ALL on-chain PerkOracles on mount (not just TOKEN_LIST)
   useEffect(() => {
     let cancelled = false;
@@ -845,7 +845,7 @@ function InitPerkOracle({
         const unknownMints: string[] = [];
         for (const o of allOracles) {
           const mintStr = o.account.tokenMint.toBase58();
-          if (ORACLE_BLACKLIST.has(mintStr)) continue; // skip blacklisted
+          if (MINT_BLACKLIST.has(mintStr)) continue; // skip blacklisted
           existing.add(mintStr);
           // Try to find label from TOKEN_LIST first
           const known = TOKEN_LIST.find(t => t.mint === mintStr);
