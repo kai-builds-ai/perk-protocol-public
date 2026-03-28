@@ -9,7 +9,7 @@ env:
 jobs:
   build-deploy-verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
 
@@ -34,7 +34,13 @@ jobs:
         run: cargo install solana-verify --force 2>&1 || cargo install solana-verify@0.2.13 --force 2>&1
 
       - name: Build verified binary in Docker
-        run: solana-verify build --library-name perk_protocol
+        run: |
+          echo "Starting Docker build..."
+          solana-verify build --library-name perk_protocol 2>&1 || {
+            echo "Build failed. Checking Docker logs..."
+            docker logs $(docker ps -aq --latest) 2>&1 || true
+            exit 1
+          }
 
       - name: Upload .so artifact
         uses: actions/upload-artifact@v4
