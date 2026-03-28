@@ -32,9 +32,16 @@ const ERROR_MAP: Array<{ pattern: RegExp | string; message: string }> = [
 export function sanitizeError(err: unknown, context?: string): string {
   const raw = err instanceof Error ? err.message : String(err);
 
-  // Log full error for debugging (stripped in production by minifier dead code)
-  // Always log full error for debugging (no sensitive data in tx errors)
-  console.error(`[${context ?? "error"}] transaction failed:`, raw, '| full:', err);
+  // Extract Anchor/Solana-specific error fields
+  const anyErr = err as Record<string, unknown>;
+  const code = anyErr?.code ?? anyErr?.error?.code ?? '';
+  const msg = anyErr?.msg ?? anyErr?.error?.msg ?? '';
+  const logs = anyErr?.logs ?? anyErr?.error?.logs ?? [];
+  console.error(`[${context ?? "error"}] transaction failed:`, raw,
+    '| code:', code, '| msg:', msg,
+    '| logs:', logs,
+    '| keys:', err && typeof err === 'object' ? Object.keys(err) : 'n/a',
+    '| full:', err);
 
   // Check against known patterns
   for (const { pattern, message } of ERROR_MAP) {
