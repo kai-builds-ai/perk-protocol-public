@@ -37,16 +37,17 @@ A **permissionless** perpetual futures protocol on Solana. Anyone can launch a l
 - **SDK:** TypeScript (`@Perk/sdk`) — wraps all instructions
 - **Crankers:** TypeScript — funding rate, trigger order execution, backup liquidation
 - **Frontend:** Next.js + TradingView Advanced Charts (full charting_library)
-- **Oracle:** Pyth (major tokens) + on-chain DEX pricing via PumpSwap/Raydium (memecoins)
+- **Oracle:** PerkOracle (Jupiter + Birdeye aggregation, cranker-maintained)
+- **Collateral:** USDC, USDT, PYUSD (6-decimal stablecoins)
 - **RPC:** Helius
-- **Hosting:** Vercel (frontend)
+- **Hosting:** Vercel (frontend), Railway (cranker)
 
 ### Launch Scope
 - **Permissionless market creation** — anyone can create a market for any SPL token
 - **vAMM execution** — virtual AMM for price discovery, no order book needed
 - **Trigger orders** — limit and stop orders that execute when price crosses
 - **Leverage:** 1x–20x (configurable per market)
-- **Coin-margined** — deposit the token you're trading (also support USDC-margined for majors)
+- **Stablecoin-margined** — all markets use stablecoin collateral (USDC, USDT, or PYUSD). Same model as Hyperliquid/dYdX.
 - **10% creator fee** — market creators earn forever
 
 ### What We're NOT Building (Day 1)
@@ -155,19 +156,19 @@ pub struct Protocol {
 
 ### Market (PDA, 1 per market)
 
-Seeds: `[b"market", token_mint.as_ref()]`
+Seeds: `[b"market", token_mint.as_ref(), creator.as_ref()]`
 
 ```rust
 #[account]
 pub struct Market {
     // Identity
     pub market_index: u64,             // Auto-incrementing ID
-    pub token_mint: Pubkey,            // The SPL token this market trades
-    pub collateral_mint: Pubkey,       // Same as token_mint (coin-margined) or USDC
+    pub token_mint: Pubkey,            // The SPL token this market trades (for PDA + oracle)
+    pub collateral_mint: Pubkey,       // Stablecoin (USDC/USDT/PYUSD, must be 6 decimals)
     pub creator: Pubkey,               // Market creator (earns 10% of fees)
 
     // Vault
-    pub vault: Pubkey,                 // Collateral token account
+    pub vault: Pubkey,                 // Stablecoin vault (holds collateral_mint tokens)
     pub vault_bump: u8,
 
     // vAMM State
@@ -227,8 +228,9 @@ pub struct Market {
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq)]
 pub enum OracleSource {
-    Pyth,          // Pyth price feed
-    DexPool,       // PumpSwap / Raydium pool price
+    Pyth,          // Pyth price feed (v2, deferred)
+    PerkOracle,    // Custom oracle (Jupiter+Birdeye aggregation)
+    DexPool,       // PumpSwap / Raydium pool price (deferred)
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq)]
@@ -345,41 +347,45 @@ pub enum Side {
 
 ```rust
 pub struct CreateMarketParams {
-    pub token_mint: Pubkey,           // Any SPL token
-    pub collateral_type: CollateralType, // CoinMargined or UsdcMargined
-    pub oracle_source: OracleSource,  // Pyth or DexPool
-    pub oracle_address: Pubkey,       // Feed or pool address
+    pub oracle_source: OracleSource,  // PerkOracle
     pub max_leverage: u32,            // 1x-20x (100-2000)
     pub trading_fee_bps: u16,         // Within protocol min/max bounds
     pub initial_k: u128,              // Initial vAMM depth (min enforced)
 }
+
+// Accounts:
+//   token_mint: Any SPL token (the base asset being traded)
+//   collateral_mint: 6-decimal stablecoin (USDC/USDT/PYUSD)
+//   oracle: PerkOracle PDA for this token
 ```
 
 Steps:
 1. Validate params (leverage bounds, fee bounds, k minimum)
-2. Verify oracle address is valid (Pyth feed exists or DEX pool has liquidity)
-3. Create Market PDA (seeds: `[b"market", token_mint]`)
-4. Create vault token account
-5. Initialize vAMM with initial_k and oracle peg price
-6. Set `market.creator = signer` (earns 10% of all fees forever)
-7. Market is immediately live for trading
+2. Validate collateral_mint has exactly 6 decimals (Percolator math compatibility)
+3. Reject mints with TransferFeeConfig extension (both base and collateral)
+4. Verify PerkOracle exists for this token
+5. Create Market PDA (seeds: `[b"market", token_mint, creator]`)
+6. Create vault token account (holds collateral_mint tokens)
+7. Initialize vAMM with initial_k and oracle peg price
+8. Set `market.creator = signer` (earns 10% of all fees forever)
+9. Market is immediately live for trading
 
-**One market per token mint.** First creator wins. This creates a race to launch markets — good for bootstrapping.
+**One market per token mint per creator.** Multiple creators can create markets for the same token with different parameters.
 
 ### User — Deposits/Withdrawals
 
 #### `deposit(amount: u64)`
 1. Check protocol not paused, market active
-2. Transfer collateral tokens from user ATA → vault
-3. Update `user_position.deposited_collateral += amount`
-4. **Lazy:** settle pending funding, check liquidation
+2. Transfer stablecoin collateral from user ATA → vault (transfer_checked for Token-2022 compat)
+3. Accrue market, settle side effects, advance warmup
+4. Update `user_position.deposited_collateral += amount`
+5. Conservation invariant check
 
 #### `withdraw(amount: u64)`
-1. Settle pending funding + PnL
-2. Check user isn't underwater after withdrawal
-3. Apply haircut (H) to profit portion if system stressed
-4. Transfer collateral from vault → user ATA
-5. Update balances
+1. Accrue market, settle side effects, advance warmup
+2. Check initial margin maintained after withdrawal (stricter than maintenance)
+3. Transfer stablecoin collateral from vault → user ATA (market PDA as signer)
+4. Update balances, conservation invariant check
 
 ### User — Trading
 
@@ -640,40 +646,31 @@ Assuming average 0.06% blended fee, 90% protocol share.
 
 ## 9. Oracle Integration
 
-### Dual Oracle System
+### PerkOracle System
 
-**Pyth (Major Tokens)**
-- SOL, BTC, ETH, and other tokens with Pyth feeds
-- High confidence, fast updates
-- Feed IDs hardcoded for known tokens
+**PerkOracle** is a custom oracle built for permissionless markets. The cranker aggregates prices from Jupiter and Birdeye, computes a median with outlier rejection, and writes to on-chain PDA accounts.
 
-**DEX Oracle (Memecoins / Long-Tail)**
-- Read price from PumpSwap or Raydium pool
-- TWAP over last N slots to prevent manipulation
-- Any token with an on-chain DEX pool can have a perps market
-- Higher risk, but that's the point — permissionless means permissionless
+**Key properties:**
+- Fail-closed: if sources disagree beyond `MAX_DIVERGENCE_PCT` (5%), oracle freezes
+- Minimum 2 price sources required per update
+- Admin can initialize oracles for any SPL token (including Token-2022)
+- One oracle per token mint, deterministic PDA: `[b"perk_oracle", token_mint]`
+- See `PERK-ORACLE-SPEC.md` for full specification
 
 ### Oracle Selection
-- Market creator specifies `oracle_source` and `oracle_address` at creation
-- Pyth: pass the Pyth price feed account
-- DexPool: pass the PumpSwap/Raydium pool account
-- Validated on-chain during `create_market`
+- All markets use PerkOracle (Pyth Pull and DexPool deferred to v2)
+- Oracle PDA is derived from `token_mint` — validated on-chain during `create_market`
+- Oracle authority (cranker) must be authorized by protocol admin
 
 ### Price Validation
-```rust
-// Pyth
-- Reject if price.publish_time < now - 30 seconds (stale)
-- Reject if price.confidence > price.price * 2% (too uncertain)
-
-// DEX Pool
-- Read current reserves, calculate spot price
-- TWAP: average over last 5 slots (if available) to dampen manipulation
-- Reject if pool liquidity below minimum threshold
-```
+- Cranker: median of Jupiter + Birdeye prices, reject if divergence > 5%
+- On-chain: staleness check, circuit breaker, fallback oracle support
+- Oracle writes update `price`, `confidence`, `last_update_ts`, `num_sources`
 
 ### Price Scaling
-- All prices: u64, 6 decimal places (USDC precision)
-- Position sizes: u64, token-native decimals
+- All prices: u64, 6 decimal places (matches collateral decimals)
+- Position sizes: u128 (POS_SCALE = 10^6)
+- Collateral: always 6 decimals (USDC/USDT/PYUSD)
 
 ---
 
@@ -1189,8 +1186,9 @@ pub const PEG_SCALE: u128 = 1_000_000;              // 6 decimals
 | No ADL | ✅ A/K socialization | ❌ Has ADL | ❌ | ❌ |
 | Self-healing markets | ✅ Three-phase | ❌ | ❌ | ❌ |
 | Warmup anti-manipulation | ✅ | ❌ | ❌ | ❌ |
-| Mainnet | Day 1 | ✅ Live | ✅ Live | ❌ Devnet |
+| Stablecoin collateral | ✅ USDC/USDT/PYUSD | ✅ USDC | ✅ | Coin-margined |
+| Mainnet | ✅ Live | ✅ Live | ✅ Live | ❌ Devnet |
 
-Our edge: **Anatoly's risk math** (the best in the game) + **permissionless markets** (the pump.fun model) + **first to ship it on mainnet** + **best UI in the game**.
+Our edge: **Anatoly's risk math** (the best in the game) + **permissionless markets** (the pump.fun model) + **stablecoin-margined** (no decimal mismatch issues) + **OtterSec verified** + **best UI in the game**.
 
 **Brand:** Perk (perk.fund) — Percolator's risk engine under the hood, our identity on top.

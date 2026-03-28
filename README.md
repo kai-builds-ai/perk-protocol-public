@@ -25,7 +25,7 @@ app/                      Next.js trading terminal
 
 ## Key Features
 
-- **Permissionless markets** — create a perp market for any SPL token with Pyth oracle support
+- **Permissionless markets** — create a perp market for any SPL token with PerkOracle support
 - **vAMM pricing** — virtual AMM (x\*y=k) with no order book needed
 - **Formal verification** — 117 Kani CBMC proofs covering math, safety, conservation, margins, funding, and full instruction composition
 - **Percolator risk engine** — ported from [Anatoly Yakovenko's reference implementation](https://github.com/aeyakovenko/percolator)
@@ -52,17 +52,26 @@ app/                      Next.js trading terminal
 
 Additionally, a randomized E2E fuzz campaign verified conservation, OI consistency, A-monotonicity, and margin invariants across **5.9 billion instruction sequences** (deposits, withdrawals, opens, closes, liquidations, funding cranks, ADL events) with zero findings.
 
+## Collateral Model
+
+Markets use **stablecoin collateral** (USDC, USDT, or PYUSD — all 6 decimals). The base token (e.g. SOL, BONK) is only used for PDA derivation and oracle pricing. The vault holds the chosen stablecoin. This matches the model used by Hyperliquid and dYdX.
+
+Market creators choose the collateral stablecoin at creation time. All traders on that market deposit/withdraw the same stablecoin.
+
 ## Stack
 
 - **On-chain:** Rust + Anchor
-- **Oracles:** Pyth Network (SOL/USD, BONK, WIF, JUP, JTO, RAY, ORCA)
+- **Oracles:** PerkOracle (Jupiter + Birdeye aggregation, cranker-maintained)
+- **Collateral:** USDC, USDT, PYUSD (6-decimal stablecoins)
 - **SDK:** TypeScript + BN.js (safety-critical math)
 - **Frontend:** Next.js 14 + Tailwind CSS
 - **Design:** Bloomberg Terminal meets Hyperliquid — JetBrains Mono + Space Grotesk
 
 ## Program
 
-Deployed to devnet: `3L72e4b8wKJ8ReMpLUeXxVNrRGpiK6m4VYxeSnecpNW2`
+Deployed to **mainnet**: [`3L72e4b8wKJ8ReMpLUeXxVNrRGpiK6m4VYxeSnecpNW2`](https://explorer.solana.com/address/3L72e4b8wKJ8ReMpLUeXxVNrRGpiK6m4VYxeSnecpNW2)
+
+OtterSec verified ✅
 
 ## License
 
