@@ -35,8 +35,8 @@ import {
 const LAMPORTS_PER_SOL = 1_000_000_000;
 
 // ── Blacklisted mints (initialized by mistake, can't close on-chain) ──
-const MINT_BLACKLIST = new Set([
-  'pumpCmXqMfrsAkQ5r49WcJnRayYRqmXz6ae8H7H9Dfn', // pumpCm program address, not a token
+const MINT_BLACKLIST = new Set<string>([
+  // empty for now
 ]);
 
 // ── Helpers ──
