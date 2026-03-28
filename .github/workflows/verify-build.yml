@@ -27,8 +27,11 @@ jobs:
           sh -c "$(curl -sSfL https://release.anza.xyz/v2.1.5/install)"
           echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
 
-      - name: Install solana-verify (force rebuild)
-        run: cargo install solana-verify --force
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install solana-verify
+        run: cargo install solana-verify --force 2>&1 || cargo install solana-verify@0.2.13 --force 2>&1
 
       - name: Build verified binary in Docker
         run: solana-verify build --library-name perk_protocol
