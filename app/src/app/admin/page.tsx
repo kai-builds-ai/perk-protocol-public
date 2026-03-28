@@ -1556,8 +1556,7 @@ function ToggleActive({
         oracleAddress: null,
         active: !active,
         tradingFeeBps: null,
-        maxLeverage: null,
-      };
+        maxLeverage: null, collateralMint: null, };
       const sig = await client.adminUpdateMarket(market.account.tokenMint, market.account.creator, null, params);
       toast.success(`Market ${active ? 'removed' : 'activated'} — ${truncatePubkey(sig)}`);
       await onRefresh();
@@ -1589,6 +1588,38 @@ function ToggleActive({
       >
         {submitting ? 'Submitting...' : active ? '\u{1F5D1} Remove Market' : '\u2713 Re-activate Market'}
       </button>
+      {!active && (
+        <button
+          onClick={async () => {
+            if (submittingRef.current) return;
+            const USDC = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
+            if (!confirm('Set collateral to USDC and reactivate this market?')) return;
+            submittingRef.current = true;
+            setSubmitting(true);
+            try {
+              const params: AdminUpdateMarketParams = {
+                oracleAddress: null,
+                active: true,
+                tradingFeeBps: null,
+                maxLeverage: null,
+                collateralMint: USDC,
+              };
+              const sig = await client.adminUpdateMarket(market.account.tokenMint, market.account.creator, null, params, USDC);
+              toast.success(`Collateral set to USDC & reactivated — ${truncatePubkey(sig)}`);
+              await onRefresh();
+            } catch (err) {
+              toast.error(sanitizeError(err, 'admin'));
+            } finally {
+              setSubmitting(false);
+              submittingRef.current = false;
+            }
+          }}
+          disabled={submitting}
+          className="font-mono text-xs px-5 py-2.5 rounded-[2px] border border-emerald-500/40 text-emerald-400 bg-emerald-500/5 hover:bg-emerald-500/15 transition-colors disabled:opacity-50"
+        >
+          {submitting ? 'Submitting...' : '💵 Set USDC Collateral & Reactivate'}
+        </button>
+      )}
     </div>
   );
 }
@@ -1620,8 +1651,7 @@ function UpdateFee({
         oracleAddress: null,
         active: null,
         tradingFeeBps: parsed,
-        maxLeverage: null,
-      };
+        maxLeverage: null, collateralMint: null, };
       const sig = await client.adminUpdateMarket(market.account.tokenMint, market.account.creator, null, params);
       toast.success(`Fee updated to ${parsed} bps — ${truncatePubkey(sig)}`);
       await onRefresh();
@@ -1688,8 +1718,7 @@ function UpdateMaxLeverage({
         oracleAddress: null,
         active: null,
         tradingFeeBps: null,
-        maxLeverage: parsed * LEVERAGE_SCALE,
-      };
+        maxLeverage: parsed * LEVERAGE_SCALE, collateralMint: null, };
       const sig = await client.adminUpdateMarket(market.account.tokenMint, market.account.creator, null, params);
       toast.success(`Max leverage updated to ${parsed}x — ${truncatePubkey(sig)}`);
       await onRefresh();
