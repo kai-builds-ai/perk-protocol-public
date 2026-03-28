@@ -516,9 +516,9 @@
           }
         },
         {
-          "name": "token_mint",
+          "name": "collateral_mint",
           "docs": [
-            "Token mint (needed for transfer_checked — validated against market)"
+            "Collateral mint (needed for transfer_checked — validated against market)"
           ]
         },
         {
@@ -805,6 +805,12 @@
           "name": "token_mint"
         },
         {
+          "name": "collateral_mint",
+          "docs": [
+            "Collateral mint (e.g. USDC). Must be 6 decimals for Percolator math compatibility."
+          ]
+        },
+        {
           "name": "oracle"
         },
         {
@@ -958,9 +964,9 @@
           "name": "fallback_oracle"
         },
         {
-          "name": "token_mint",
+          "name": "collateral_mint",
           "docs": [
-            "Token mint (needed for transfer_checked — validated against market)"
+            "Collateral mint (needed for transfer_checked — validated against market)"
           ]
         },
         {
@@ -1146,9 +1152,9 @@
           "name": "fallback_oracle"
         },
         {
-          "name": "token_mint",
+          "name": "collateral_mint",
           "docs": [
-            "Token mint (needed for transfer_checked — validated against market)"
+            "Collateral mint (needed for transfer_checked — validated against market)"
           ]
         },
         {
@@ -1634,9 +1640,9 @@
           "name": "target_user"
         },
         {
-          "name": "token_mint",
+          "name": "collateral_mint",
           "docs": [
-            "Token mint (needed for transfer_checked — validated against market)"
+            "Collateral mint (needed for transfer_checked — validated against market)"
           ]
         },
         {
@@ -2482,9 +2488,9 @@
           "name": "fallback_oracle"
         },
         {
-          "name": "token_mint",
+          "name": "collateral_mint",
           "docs": [
-            "Token mint (needed for transfer_checked — validated against market)"
+            "Collateral mint (needed for transfer_checked — validated against market)"
           ]
         },
         {
