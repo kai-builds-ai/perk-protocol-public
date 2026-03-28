@@ -26,6 +26,10 @@ pub struct Protocol {
 
     // M5 fix: Two-step admin transfer
     pub pending_admin: Option<Pubkey>,
+
+    // Default oracle authority for permissionless oracle init
+    // Set once by admin; all new PerkOracles inherit this as their update authority
+    pub oracle_authority: Pubkey,
 }
 
 impl Protocol {
@@ -44,5 +48,6 @@ impl Protocol {
         + 1   // bump
         + 8   // market_creation_fee
         + 33  // pending_admin (Option<Pubkey>)
-        + 64; // padding
+        + 32  // oracle_authority
+        + 32; // padding (was 64, carved 32 for oracle_authority)
 }

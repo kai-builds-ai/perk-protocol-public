@@ -853,10 +853,24 @@ export class PerkClient {
   // PerkOracle Instructions
   // ═══════════════════════════════════════════════
 
-  /** Initialize a PerkOracle price feed. Admin only. */
+  /** Set oracle authority on Protocol. Admin only — one-time setup. */
+  async adminSetOracleAuthority(
+    newAuthority: PublicKey,
+  ): Promise<TransactionSignature> {
+    const protocol = this.getProtocolAddress();
+    return this.program.methods
+      .adminSetOracleAuthority(newAuthority)
+      .accounts({
+        protocol,
+        admin: this.wallet.publicKey,
+      })
+      .preInstructions(this.preInstructions).rpc();
+  }
+
+  /** Initialize a PerkOracle price feed. Permissionless — anyone pays rent.
+   *  Oracle authority is inherited from Protocol.oracle_authority. */
   async initializePerkOracle(
     tokenMint: PublicKey,
-    oracleAuthority: PublicKey,
     params: InitPerkOracleParams,
   ): Promise<TransactionSignature> {
     // ── Client-side validation (ATK-01) ──
@@ -910,8 +924,7 @@ export class PerkClient {
         protocol,
         perkOracle,
         tokenMint,
-        oracleAuthority,
-        admin: this.wallet.publicKey,
+        payer: this.wallet.publicKey,
         systemProgram: SystemProgram.programId,
       })
       .preInstructions(this.preInstructions).rpc();

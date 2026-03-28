@@ -191,6 +191,58 @@
             ]
         },
         {
+            "name": "admin_set_oracle_authority",
+            "docs": [
+                "Set the default oracle authority (cranker pubkey) on Protocol. Admin only."
+            ],
+            "discriminator": [
+                126,
+                103,
+                189,
+                25,
+                58,
+                164,
+                252,
+                225
+            ],
+            "accounts": [
+                {
+                    "name": "protocol",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [
+                                    112,
+                                    114,
+                                    111,
+                                    116,
+                                    111,
+                                    99,
+                                    111,
+                                    108
+                                ]
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "admin",
+                    "signer": true,
+                    "relations": [
+                        "protocol"
+                    ]
+                }
+            ],
+            "args": [
+                {
+                    "name": "new_authority",
+                    "type": "pubkey"
+                }
+            ]
+        },
+        {
             "name": "admin_update_market",
             "docs": [
                 "M4: Admin market update — update oracle, active status, trading fee."
@@ -257,13 +309,6 @@
                 },
                 {
                     "name": "oracle",
-                    "optional": true
-                },
-                {
-                    "name": "new_collateral_mint",
-                    "docs": [
-                        "New collateral mint (only validated if collateral_mint is being updated)"
-                    ],
                     "optional": true
                 },
                 {
@@ -1284,7 +1329,8 @@
         {
             "name": "initialize_perk_oracle",
             "docs": [
-                "Initialize a PerkOracle price feed. Admin only."
+                "Initialize a PerkOracle price feed. Permissionless — anyone can pay rent.",
+                "Oracle authority is inherited from Protocol.oracle_authority (set by admin)."
             ],
             "discriminator": [
                 47,
@@ -1352,18 +1398,9 @@
                     ]
                 },
                 {
-                    "name": "oracle_authority",
-                    "docs": [
-                        "The initial oracle authority (cranker)"
-                    ]
-                },
-                {
-                    "name": "admin",
+                    "name": "payer",
                     "writable": true,
-                    "signer": true,
-                    "relations": [
-                        "protocol"
-                    ]
+                    "signer": true
                 },
                 {
                     "name": "system_program",
@@ -2940,15 +2977,6 @@
                         "type": {
                             "option": "u32"
                         }
-                    },
-                    {
-                        "name": "collateral_mint",
-                        "docs": [
-                            "New collateral mint (None = keep current). Must be 6 decimals."
-                        ],
-                        "type": {
-                            "option": "pubkey"
-                        }
                     }
                 ]
             }
@@ -3538,6 +3566,10 @@
                         "type": {
                             "option": "pubkey"
                         }
+                    },
+                    {
+                        "name": "oracle_authority",
+                        "type": "pubkey"
                     }
                 ]
             }

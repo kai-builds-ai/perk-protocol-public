@@ -134,7 +134,16 @@ pub mod perk_protocol {
         instructions::admin_withdraw_sol::handler(ctx, amount)
     }
 
-    /// Initialize a PerkOracle price feed. Admin only.
+    /// Set the default oracle authority (cranker pubkey) on Protocol. Admin only.
+    pub fn admin_set_oracle_authority(
+        ctx: Context<AdminSetOracleAuthority>,
+        new_authority: Pubkey,
+    ) -> Result<()> {
+        instructions::admin_set_oracle_authority::handler(ctx, new_authority)
+    }
+
+    /// Initialize a PerkOracle price feed. Permissionless — anyone can pay rent.
+    /// Oracle authority is inherited from Protocol.oracle_authority (set by admin).
     pub fn initialize_perk_oracle(
         ctx: Context<InitializePerkOracle>,
         params: InitPerkOracleParams,

@@ -365,9 +365,37 @@ export function CreateMarketForm() {
     setIsSubmitting(true);
     try {
       const tokenMint = new PublicKey(selectedMint);
-
-      // Oracle existence already verified in UI — only show Create Market when oracle exists
       const oracle = readonlyClient.getPerkOracleAddress(tokenMint);
+
+      // Auto-initialize oracle if it doesn't exist (permissionless)
+      const existingOracle = await readonlyClient.fetchPerkOracleNullable(tokenMint);
+      if (!existingOracle) {
+        toast("Initializing oracle for this token...");
+        await client.initializePerkOracle(tokenMint, {
+          minSources: 2,
+          maxStalenessSeconds: 30,
+          maxPriceChangeBps: 0, // no banding — memecoins move freely
+          circuitBreakerDeviationBps: 0, // disabled
+        });
+        toast.success("Oracle initialized! Waiting for cranker to feed first price...");
+        // Wait for cranker to feed at least one price (polls every 5s, up to 90s)
+        let priceFed = false;
+        for (let i = 0; i < 18; i++) {
+          await new Promise((r) => setTimeout(r, 5000));
+          const oracleData = await readonlyClient.fetchPerkOracleNullable(tokenMint);
+          if (oracleData && !oracleData.price.isZero()) {
+            priceFed = true;
+            break;
+          }
+        }
+        if (!priceFed) {
+          toast.error("Cranker hasn't fed a price yet. Please try creating the market again in a minute.");
+          setIsSubmitting(false);
+          return;
+        }
+        toast.success("Price feed active! Creating market...");
+      }
+
       const oracleSource = SdkOracleSource.PerkOracle;
 
       const tradingFeeBps = Math.round(tradingFee * 100); // 0.10% → 10 bps
@@ -551,8 +579,8 @@ export function CreateMarketForm() {
 
           {/* Oracle — always PerkOracle, cranker handles feed selection */}
 
-          {/* Parameters + Revenue — only shown when oracle exists (Create Market flow) */}
-          {oracleExists !== false && (<>
+          {/* Parameters + Revenue — shown when token is selected */}
+          {selectedMint && (<>
           <div className="border-t border-border pt-4 space-y-5">
             <div className="text-xs font-sans text-text-secondary uppercase tracking-wider mb-3">
               Parameters
@@ -690,20 +718,22 @@ export function CreateMarketForm() {
 
           {/* Cost + Create/Request button */}
           <div className="pt-2">
-            {/* Show oracle check status */}
-            {selectedMint && checkingOracle && (
-              <div className="text-xs text-text-tertiary font-sans mb-3 animate-pulse">
-                Checking oracle availability...
-              </div>
-            )}
-
-            {/* Oracle exists → normal Create Market flow */}
-            {selectedMint && oracleExists === true && !checkingOracle && (
+            {/* Unified Create Market flow — oracle auto-initialized if needed */}
+            {selectedMint && !checkingOracle && (
               <>
                 <div className="flex items-center justify-between text-xs mb-3">
                   <span className="text-text-secondary font-sans">Cost</span>
-                  <span className="font-mono text-text-secondary">~1 SOL + rent</span>
+                  <span className="font-mono text-text-secondary">
+                    {oracleExists ? "~1 SOL + rent" : "~1 SOL + oracle rent"}
+                  </span>
                 </div>
+                {oracleExists === false && (
+                  <div className="border border-blue-500/20 rounded-[4px] bg-blue-500/[0.04] px-3 py-2.5 mb-3">
+                    <p className="text-xs text-blue-400/90 font-sans">
+                      No oracle exists for this token yet. One will be created automatically — the cranker starts feeding prices within ~60 seconds.
+                    </p>
+                  </div>
+                )}
                 <button
                   onClick={handleCreate}
                   disabled={!selectedMint || isSubmitting}
@@ -714,53 +744,6 @@ export function CreateMarketForm() {
                   }`}
                 >
                   {isSubmitting ? "Creating Market..." : "Create Market"}
-                </button>
-              </>
-            )}
-
-            {/* Oracle doesn't exist + request already pending → show pending state */}
-            {selectedMint && oracleExists === false && !checkingOracle && requestPending && (
-              <>
-                <div className="border border-emerald-500/20 rounded-[4px] bg-emerald-500/[0.04] px-3 py-2.5 mb-3">
-                  <p className="text-xs text-emerald-400/90 font-sans">
-                    ✓ Market requested — awaiting team review. This page will update automatically when approved.
-                  </p>
-                </div>
-                <button
-                  disabled
-                  className="w-full py-2.5 text-sm font-sans font-medium rounded-[4px] border border-emerald-500/20 text-emerald-400/60 cursor-not-allowed"
-                >
-                  Request Pending...
-                </button>
-              </>
-            )}
-
-            {/* Oracle doesn't exist + no pending request → Request Market flow */}
-            {selectedMint && oracleExists === false && !checkingOracle && !requestPending && (
-              <>
-                <div className="border border-yellow-500/20 rounded-[4px] bg-yellow-500/[0.04] px-3 py-2.5 mb-3">
-                  <p className="text-xs text-yellow-400/90 font-sans">
-                    No oracle exists for this token yet. You can request the team to add it by paying a small fee (0.01 SOL).
-                  </p>
-                </div>
-                <div className="flex items-center justify-between text-xs mb-3">
-                  <span className="text-text-secondary font-sans">Request Fee</span>
-                  <span className="font-mono text-text-secondary">0.01 SOL</span>
-                </div>
-                <button
-                  onClick={handleRequestMarket}
-                  disabled={requestingMarket || !publicKey}
-                  className={`w-full py-2.5 text-sm font-sans font-medium rounded-[4px] border transition-colors duration-100 ${
-                    requestingMarket || !publicKey
-                      ? "border-zinc-800 text-zinc-600 cursor-not-allowed"
-                      : "border-yellow-500/60 text-yellow-400 hover:bg-yellow-500/10"
-                  }`}
-                >
-                  {requestingMarket
-                    ? "Requesting..."
-                    : !publicKey
-                      ? "Connect Wallet to Request"
-                      : "Request Market (0.01 SOL)"}
                 </button>
               </>
             )}
