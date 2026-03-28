@@ -41,6 +41,7 @@ const MARKET_BLACKLIST = new Set<string>([
   '7GekZMz4ZkwsjX96VsnrxDchDDPD4ypNxHCLjbKgrpuF', // vault mint mismatch (v1.0 collateral bug)
   '7xnUT7tHXy2DzYVMksUtEUUMLo2UjGP8hof39o8E9FjM', // vault mint mismatch (v1.0 collateral bug)
   '8R8ALqkAN8FVBU5dTRoCF4sj6EoHJ3idcgcBZYLmArDx', // vault mint mismatch (v1.0 collateral bug)
+  'CNeYCbE1dJrsS4utYdRkX5Fv4367kwqC9VpuDaYpmwMF', // K too low (10^19), recreating with proper K
 ]);
 
 // ── Blacklisted mints ──
