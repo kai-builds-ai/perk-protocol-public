@@ -10,6 +10,7 @@ import { DepositWithdraw } from "@/components/DepositWithdraw";
 import { Positions } from "@/components/Positions";
 import { TriggerOrders } from "@/components/TriggerOrders";
 import { useMarket } from "@/hooks/useMarkets";
+import { OracleSource } from "@/types";
 import { usePositionsForMarket } from "@/hooks/usePosition";
 import { usePythPrice } from "@/hooks/usePythPrice";
 import { usePythCandles } from "@/hooks/usePythCandles";
@@ -68,9 +69,9 @@ export default function TradingView() {
             <span className="text-xs font-mono text-profit ml-2 flex-shrink-0">● LIVE</span>
           )
         )}
-        {isReal && (
-          <span className="text-xs font-mono text-text-tertiary flex-shrink-0">PYTH</span>
-        )}
+        <span className="text-xs font-mono text-text-tertiary flex-shrink-0">
+          {displayMarket.oracleSource === OracleSource.PerkOracle ? "PERKORACLE" : displayMarket.oracleSource === OracleSource.DexPool ? "DEX" : "PYTH"}
+        </span>
       </div>
       {/* Desktop: side-by-side. Mobile: stacked single column */}
       <div className="flex flex-col md:flex-row flex-1 min-h-0 overflow-auto no-scrollbar">

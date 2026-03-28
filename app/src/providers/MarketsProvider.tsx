@@ -82,7 +82,7 @@ function toFrontendMarket(address: PublicKey, m: SDKMarketAccount): Market {
     markPrice,
     indexPrice,
     fundingRate,
-    volume24h: 0,
+    volume24h: (m.totalVolume?.toNumber() ?? 0) / (10 ** getTokenDecimals(m.collateralMint.toBase58())),
     openInterest,
     change24h: 0,
 

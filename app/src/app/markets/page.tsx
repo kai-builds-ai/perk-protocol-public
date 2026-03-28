@@ -163,8 +163,6 @@ function MarketExplorerInner() {
   return (
     <div className="flex flex-col h-screen max-w-7xl mx-auto w-full">
       <TopBar
-        totalVolume={totalVolume}
-        totalMarkets={markets.length}
         solPrice={solMarket?.markPrice}
       />
 

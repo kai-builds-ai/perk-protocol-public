@@ -1,21 +1,21 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import Link from "next/link";
 import { WalletButton } from "./WalletButton";
 import { formatUsdCompact } from "@/lib/format";
+import { MarketsContext } from "@/providers/MarketsProvider";
 
 interface TopBarProps {
-  totalVolume?: number;
-  totalMarkets?: number;
   solPrice?: number;
 }
 
 export function TopBar({
-  totalVolume = 0,
-  totalMarkets = 0,
   solPrice,
 }: TopBarProps) {
+  const { markets } = useContext(MarketsContext);
+  const totalVolume = markets.reduce((s, m) => s + m.volume24h, 0);
+  const totalMarkets = markets.length;
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
