@@ -4,3 +4,4 @@ node_modules/
 *.so
 .env
 .DS_Store
+NUL

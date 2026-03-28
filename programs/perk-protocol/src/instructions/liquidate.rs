@@ -41,13 +41,13 @@ pub struct Liquidate<'info> {
     /// CHECK: Target user whose position is being liquidated
     pub target_user: UncheckedAccount<'info>,
 
-    /// Token mint (needed for transfer_checked — validated against market)
-    #[account(constraint = token_mint.key() == market.token_mint @ PerkError::TokenMintMismatch)]
-    pub token_mint: InterfaceAccount<'info, Mint>,
+    /// Collateral mint (needed for transfer_checked — validated against market)
+    #[account(constraint = collateral_mint.key() == market.collateral_mint @ PerkError::TokenMintMismatch)]
+    pub collateral_mint: InterfaceAccount<'info, Mint>,
 
     #[account(
         mut,
-        constraint = liquidator_token_account.mint == market.token_mint,
+        constraint = liquidator_token_account.mint == market.collateral_mint,
         constraint = liquidator_token_account.owner == liquidator.key(),
     )]
     pub liquidator_token_account: InterfaceAccount<'info, TokenAccount>,
@@ -184,10 +184,10 @@ pub fn handler(ctx: Context<Liquidate>) -> Result<()> {
             let seeds = &[b"market" as &[u8], token_mint_key.as_ref(), creator_key.as_ref(), &[market_bump]];
             let signer_seeds = &[&seeds[..]];
 
-            let decimals = ctx.accounts.token_mint.decimals;
+            let decimals = ctx.accounts.collateral_mint.decimals;
             let cpi_accounts = TransferChecked {
                 from: ctx.accounts.vault.to_account_info(),
-                mint: ctx.accounts.token_mint.to_account_info(),
+                mint: ctx.accounts.collateral_mint.to_account_info(),
                 to: ctx.accounts.liquidator_token_account.to_account_info(),
                 authority: market_account_info.clone(),
             };

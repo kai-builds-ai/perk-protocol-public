@@ -39,13 +39,13 @@ pub struct Deposit<'info> {
     /// CHECK: Fallback oracle account (pass any account if no fallback configured)
     pub fallback_oracle: UncheckedAccount<'info>,
 
-    /// Token mint (needed for transfer_checked — validated against market)
-    #[account(constraint = token_mint.key() == market.token_mint @ PerkError::TokenMintMismatch)]
-    pub token_mint: InterfaceAccount<'info, Mint>,
+    /// Collateral mint (needed for transfer_checked — validated against market)
+    #[account(constraint = collateral_mint.key() == market.collateral_mint @ PerkError::TokenMintMismatch)]
+    pub collateral_mint: InterfaceAccount<'info, Mint>,
 
     #[account(
         mut,
-        constraint = user_token_account.mint == market.token_mint,
+        constraint = user_token_account.mint == market.collateral_mint,
         constraint = user_token_account.owner == user.key(),
     )]
     pub user_token_account: InterfaceAccount<'info, TokenAccount>,
@@ -99,11 +99,11 @@ pub fn handler(ctx: Context<Deposit>, amount: u64) -> Result<()> {
     let warmup_period = market.warmup_period_slots;
     warmup::advance_warmup(position, market, warmup_period, clock.slot);
 
-    // ── Transfer tokens from user to vault (transfer_checked for Token-2022 compat) ──
-    let decimals = ctx.accounts.token_mint.decimals;
+    // ── Transfer collateral from user to vault (transfer_checked for Token-2022 compat) ──
+    let decimals = ctx.accounts.collateral_mint.decimals;
     let cpi_accounts = TransferChecked {
         from: ctx.accounts.user_token_account.to_account_info(),
-        mint: ctx.accounts.token_mint.to_account_info(),
+        mint: ctx.accounts.collateral_mint.to_account_info(),
         to: ctx.accounts.vault.to_account_info(),
         authority: ctx.accounts.user.to_account_info(),
     };

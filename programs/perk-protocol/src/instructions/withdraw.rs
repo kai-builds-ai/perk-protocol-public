@@ -39,13 +39,13 @@ pub struct Withdraw<'info> {
     /// CHECK: Fallback oracle account (pass any account if no fallback configured)
     pub fallback_oracle: UncheckedAccount<'info>,
 
-    /// Token mint (needed for transfer_checked — validated against market)
-    #[account(constraint = token_mint.key() == market.token_mint @ PerkError::TokenMintMismatch)]
-    pub token_mint: InterfaceAccount<'info, Mint>,
+    /// Collateral mint (needed for transfer_checked — validated against market)
+    #[account(constraint = collateral_mint.key() == market.collateral_mint @ PerkError::TokenMintMismatch)]
+    pub collateral_mint: InterfaceAccount<'info, Mint>,
 
     #[account(
         mut,
-        constraint = user_token_account.mint == market.token_mint,
+        constraint = user_token_account.mint == market.collateral_mint,
         constraint = user_token_account.owner == user.key(),
     )]
     pub user_token_account: InterfaceAccount<'info, TokenAccount>,
@@ -118,7 +118,7 @@ pub fn handler(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
     }
 
     // ── CPI transfer from vault to user (transfer_checked for Token-2022 compat) ──
-    let decimals = ctx.accounts.token_mint.decimals;
+    let decimals = ctx.accounts.collateral_mint.decimals;
     let token_mint_key = market.token_mint;
     let creator_key = market.creator;
     let market_bump = market.bump;
@@ -127,7 +127,7 @@ pub fn handler(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
 
     let cpi_accounts = TransferChecked {
         from: ctx.accounts.vault.to_account_info(),
-        mint: ctx.accounts.token_mint.to_account_info(),
+        mint: ctx.accounts.collateral_mint.to_account_info(),
         to: ctx.accounts.user_token_account.to_account_info(),
         authority: market_account_info.clone(),
     };
