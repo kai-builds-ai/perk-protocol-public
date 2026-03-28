@@ -18,12 +18,17 @@ The protocol is a single Anchor program with three layers:
 
 The oracle subsystem (`PerkOracle`) runs independently — crankers push price updates on-chain with staleness checks, confidence banding, and automatic freeze/unfreeze logic.
 
+## Collateral Model
+
+Markets use **stablecoin collateral** — USDC, USDT, or PYUSD (all 6 decimals). The base token is only used for PDA derivation and oracle pricing. The vault holds the chosen stablecoin. Market creators choose the collateral at creation time; all traders on that market use the same stablecoin. Same model as Hyperliquid and dYdX.
+
 ## Program
 
 ```
 Program ID:  3L72e4b8wKJ8ReMpLUeXxVNrRGpiK6m4VYxeSnecpNW2  (mainnet)
 Framework:   Anchor
 Language:    Rust
+Verified:    OtterSec ✅
 ```
 
 ## Build
