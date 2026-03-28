@@ -17,6 +17,7 @@ import {
   PRICE_SCALE,
 } from "@perk/sdk";
 import { sanitizeError } from "@/lib/error-utils";
+import { getTokenSymbol } from "@/lib/token-meta";
 
 interface TradePanelProps {
   market: Market;
@@ -266,7 +267,7 @@ export function TradePanel({ market }: TradePanelProps) {
               className="flex-1 bg-transparent px-3 py-2 text-sm font-mono text-white outline-none placeholder:text-text-tertiary disabled:opacity-50"
             />
             <span className="pr-3 text-sm font-sans text-text-secondary">
-              {market.symbol}
+              {getTokenSymbol(market.collateralMint)}
             </span>
           </div>
         </div>
@@ -303,7 +304,8 @@ export function TradePanel({ market }: TradePanelProps) {
         {/* Estimates */}
         {estimates && (
           <div className="space-y-1.5 py-3 border-t border-border">
-            <Row label="Position" value={`${positionSize.toFixed(4)} ${market.symbol}`} />
+            <Row label="Collateral" value={`${sizeNum.toFixed(4)} ${getTokenSymbol(market.collateralMint)}`} />
+            <Row label="Position" value={`${positionSize.toFixed(4)} ${getTokenSymbol(market.collateralMint)}`} />
             <Row label="Entry" value={formatUsd(estimates.entryPrice)} />
             <Row label="Liq Price" value={formatUsd(estimates.liqPrice)} />
             <Row label="Fee" value={formatUsd(estimates.fee)} />
