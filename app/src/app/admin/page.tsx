@@ -37,6 +37,10 @@ const LAMPORTS_PER_SOL = 1_000_000_000;
 // ── Blacklisted market PDAs (can't close on-chain) ──
 const MARKET_BLACKLIST = new Set<string>([
   '4m3Yzvi6FgQEtse6nbFg2yVei4wRJRFbZm7tPkrzoKQk', // duplicate pumpCm market (wrong creator)
+  '2PmQxMaSY42gqBXCXvaiJVLsfN6XqECmwiRnqgxqxVxS', // vault mint mismatch (v1.0 collateral bug)
+  '7GekZMz4ZkwsjX96VsnrxDchDDPD4ypNxHCLjbKgrpuF', // vault mint mismatch (v1.0 collateral bug)
+  '7xnUT7tHXy2DzYVMksUtEUUMLo2UjGP8hof39o8E9FjM', // vault mint mismatch (v1.0 collateral bug)
+  '8R8ALqkAN8FVBU5dTRoCF4sj6EoHJ3idcgcBZYLmArDx', // vault mint mismatch (v1.0 collateral bug)
 ]);
 
 // ── Blacklisted mints ──
