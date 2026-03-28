@@ -71,16 +71,17 @@ jobs:
             --url "${{ secrets.HELIUS_RPC_URL }}" \
             --with-compute-unit-price 50000
 
-      - name: Cleanup keypair
-        if: always()
-        run: rm -f /tmp/deployer.json
-
       - name: Submit to OtterSec for verification
         run: |
-          solana-verify verify-from-repo \
+          yes | solana-verify verify-from-repo \
             --url "${{ secrets.HELIUS_RPC_URL }}" \
             --program-id ${{ env.PROGRAM_ID }} \
             https://github.com/kai-builds-ai/perk-protocol-public \
             --library-name perk_protocol \
             --commit-hash $(git rev-parse HEAD) \
+            --keypair /tmp/deployer.json \
             --remote
+
+      - name: Cleanup keypair
+        if: always()
+        run: rm -f /tmp/deployer.json
