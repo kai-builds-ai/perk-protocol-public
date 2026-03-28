@@ -33,8 +33,8 @@ export function sanitizeError(err: unknown, context?: string): string {
   const raw = err instanceof Error ? err.message : String(err);
 
   // Log full error for debugging (stripped in production by minifier dead code)
-  // Always log raw error for debugging (no sensitive data in tx errors)
-  console.error(`[${context ?? "error"}] transaction failed:`, raw);
+  // Always log full error for debugging (no sensitive data in tx errors)
+  console.error(`[${context ?? "error"}] transaction failed:`, raw, '| full:', err);
 
   // Check against known patterns
   for (const { pattern, message } of ERROR_MAP) {
