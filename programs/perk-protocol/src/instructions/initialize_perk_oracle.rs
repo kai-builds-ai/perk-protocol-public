@@ -15,18 +15,20 @@ pub struct InitPerkOracleParams {
     pub circuit_breaker_deviation_bps: u16,
 }
 
+/// Permissionless oracle initialization.
+/// Anyone can pay rent to create a PerkOracle for any SPL token.
+/// The oracle authority is read from the Protocol account (set by admin).
 #[derive(Accounts)]
 pub struct InitializePerkOracle<'info> {
     #[account(
         seeds = [b"protocol"],
         bump = protocol.bump,
-        has_one = admin,
     )]
     pub protocol: Box<Account<'info, Protocol>>,
 
     #[account(
         init,
-        payer = admin,
+        payer = payer,
         space = PerkOraclePrice::SIZE,
         seeds = [b"perk_oracle", token_mint.key().as_ref()],
         bump,
@@ -36,17 +38,21 @@ pub struct InitializePerkOracle<'info> {
     /// Token mint to create oracle for (validated as real SPL or Token-2022 Mint)
     pub token_mint: InterfaceAccount<'info, Mint>,
 
-    /// The initial oracle authority (cranker)
-    /// CHECK: Can be any pubkey — validated by admin's intent
-    pub oracle_authority: UncheckedAccount<'info>,
-
     #[account(mut)]
-    pub admin: Signer<'info>,
+    pub payer: Signer<'info>,
 
     pub system_program: Program<'info, System>,
 }
 
 pub fn handler(ctx: Context<InitializePerkOracle>, params: InitPerkOracleParams) -> Result<()> {
+    let protocol = &ctx.accounts.protocol;
+
+    // Oracle authority must be configured by admin before permissionless init works
+    require!(
+        protocol.oracle_authority != Pubkey::default(),
+        PerkError::InvalidAmount
+    );
+
     // Validate min_sources in [1, MAX_MIN_SOURCES]
     require!(params.min_sources >= 1, PerkError::InvalidAmount);
     require!(params.min_sources <= MAX_MIN_SOURCES, PerkError::InvalidAmount);
@@ -70,7 +76,8 @@ pub fn handler(ctx: Context<InitializePerkOracle>, params: InitPerkOracleParams)
     let oracle = &mut ctx.accounts.perk_oracle;
     oracle.bump = ctx.bumps.perk_oracle;
     oracle.token_mint = ctx.accounts.token_mint.key();
-    oracle.authority = ctx.accounts.oracle_authority.key();
+    // Authority comes from Protocol — cranker pubkey set by admin
+    oracle.authority = protocol.oracle_authority;
     oracle.price = 0;
     oracle.confidence = 0;
     oracle.timestamp = 0;
@@ -92,6 +99,6 @@ pub fn handler(ctx: Context<InitializePerkOracle>, params: InitPerkOracleParams)
     oracle._reserved[RESERVED_OFFSET_CIRCUIT_BREAKER_BPS] = cb_bytes[0];
     oracle._reserved[RESERVED_OFFSET_CIRCUIT_BREAKER_BPS + 1] = cb_bytes[1];
 
-    msg!("PerkOracle initialized for mint {}", oracle.token_mint);
+    msg!("PerkOracle initialized for mint {} (authority: {})", oracle.token_mint, oracle.authority);
     Ok(())
 }
