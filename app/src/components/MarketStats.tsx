@@ -25,6 +25,7 @@ export const MarketStats = memo(function MarketStats({ market }: MarketStatsProp
       />
       <Stat label="OI" value={formatUsdCompact(market.openInterest)} />
       <Stat label="24h Vol" value={formatUsdCompact(market.volume24h)} />
+      <Stat label="Vault" value={formatUsdCompact(market.vaultBalance)} />
     </div>
   );
 });

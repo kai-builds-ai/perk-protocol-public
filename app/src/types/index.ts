@@ -59,6 +59,9 @@ export interface Market {
   openInterest: number;
   change24h: number; // as decimal, e.g. 0.0241 = +2.41%
 
+  vaultBalance: number; // total USDC in market vault (human-readable)
+  totalVolume: number; // lifetime volume (human-readable)
+
   active: bool;
   totalUsers: number;
   totalPositions: number;

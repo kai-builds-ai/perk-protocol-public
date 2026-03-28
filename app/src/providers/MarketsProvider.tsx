@@ -16,6 +16,7 @@ import { usePerk } from "@/providers/PerkProvider";
 import { TOKEN_META, getTokenDecimals, setTokenDecimals } from "@/lib/token-meta";
 import { getTokenInfo } from "@/lib/token-metadata";
 import { fetch24hChanges } from "@/lib/price-change";
+import { recordVolumeSnapshot, getVolume24h } from "@/lib/volume-tracker";
 import { useConnection } from "@solana/wallet-adapter-react";
 import { getMint } from "@solana/spl-token";
 
@@ -82,7 +83,9 @@ function toFrontendMarket(address: PublicKey, m: SDKMarketAccount): Market {
     markPrice,
     indexPrice,
     fundingRate,
-    volume24h: (m.totalVolume?.toNumber() ?? 0) / (10 ** getTokenDecimals(m.collateralMint.toBase58())),
+    volume24h: 0, // computed below after mapping (needs address)
+    totalVolume: (m.totalVolume?.toNumber() ?? 0) / (10 ** getTokenDecimals(m.collateralMint.toBase58())),
+    vaultBalance: (m.vaultBalance?.toNumber() ?? 0) / (10 ** getTokenDecimals(m.collateralMint.toBase58())),
     openInterest,
     change24h: 0,
 
@@ -176,6 +179,12 @@ export function MarketsProvider({ children }: { children: React.ReactNode }) {
         .map((r) => toFrontendMarket(r.address, r.account))
         .filter((m) => m.active); // Hide deactivated markets from public view
       mapped.sort((a, b) => a.marketIndex - b.marketIndex);
+
+      // 24h volume tracking: record snapshots + compute 24h volume
+      for (const m of mapped) {
+        recordVolumeSnapshot(m.address, m.totalVolume);
+        m.volume24h = getVolume24h(m.address, m.totalVolume);
+      }
 
       // Fetch 24h price changes from DexScreener (cached, max 1 req/60s)
       const mints = mapped.map((m) => m.tokenMint);
