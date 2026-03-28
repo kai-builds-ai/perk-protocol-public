@@ -51,7 +51,7 @@ margin_ratio = (collateral + unrealized_pnl) / notional_value
 
 If your margin ratio falls below the maintenance margin requirement (5% by default), your position becomes liquidatable.
 
-> **⚠️ Coin-margined compounding risk:** Because collateral is denominated in the same token you're trading, a price drop reduces both your position value and your collateral value simultaneously. This double exposure means liquidation can occur faster than on stablecoin-margined platforms.
+> **Stablecoin collateral:** All markets use stablecoin collateral (USDC, USDT, or PYUSD). Your collateral value is stable regardless of the base token's price movement — no compounding risk.
 
 ---
 

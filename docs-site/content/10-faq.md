@@ -34,7 +34,7 @@ Up to 20x, configurable per market. The market creator sets the maximum at creat
 
 ### What collateral do I need?
 
-Perk uses coin-margined positions. For SOL-PERP, you deposit SOL. For BONK-PERP, you deposit BONK. The collateral token matches the market's base token.
+All Perk markets use stablecoin collateral — USDC, USDT, or PYUSD (all 6 decimals). The market creator chooses which stablecoin at creation time. All traders on that market deposit and withdraw the same stablecoin. This means your collateral value is stable regardless of the base token's price — no compounding risk.
 
 ### How does the vAMM determine my execution price?
 

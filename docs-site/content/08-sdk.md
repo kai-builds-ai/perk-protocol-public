@@ -68,17 +68,20 @@ const oracleOrNull = await client.fetchPerkOracleNullable(tokenMint);
 
 ### Deposit Collateral
 
+All markets use stablecoin collateral (USDC, USDT, or PYUSD — all 6 decimals). The SDK automatically reads the market's `collateralMint` from on-chain state.
+
 ```typescript
 import BN from "bn.js";
 
 // First interaction: initialize position account
 await client.initializePosition(tokenMint);
 
-// Deposit 10 SOL (in lamports)
+// Deposit 100 USDC (6 decimals)
 await client.deposit(
   tokenMint,
+  creatorPubkey,                // market creator
   oracleAddress,
-  new BN(10_000_000_000),      // 10 SOL
+  new BN(100_000_000),          // 100 USDC
   fallbackOracleAddress,        // optional
 );
 ```
@@ -121,8 +124,9 @@ await client.closePosition(
 ```typescript
 await client.withdraw(
   tokenMint,
+  creatorPubkey,                // market creator
   oracleAddress,
-  new BN(5_000_000_000),        // 5 SOL
+  new BN(50_000_000),           // 50 USDC
 );
 ```
 
@@ -187,6 +191,8 @@ await client.cancelTriggerOrder(tokenMint, orderId);
 ```typescript
 import { OracleSource } from "perk-protocol";
 
+const USDC_MINT = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
+
 await client.createMarket(
   tokenMint,
   oracleAddress,
@@ -195,9 +201,12 @@ await client.createMarket(
     maxLeverage: 1000,                              // 10x
     tradingFeeBps: 30,                               // 0.3%
     initialK: new BN("1000000000000000000"),         // 1e18
-  }
+  },
+  USDC_MINT,                                        // collateral stablecoin (must be 6 decimals)
 );
 ```
+
+Supported collateral mints: USDC, USDT, PYUSD. The on-chain program enforces exactly 6 decimals.
 
 ---
 
@@ -290,7 +299,8 @@ await client.reclaimEmptyAccount(
 
 ```typescript
 // Creator or protocol admin claims accumulated fees
-await client.claimFees(tokenMint, recipientTokenAccount);
+// recipientTokenAccount must be for the market's collateral mint (e.g. USDC ATA)
+await client.claimFees(tokenMint, creatorPubkey, recipientTokenAccount);
 ```
 
 ---

@@ -33,9 +33,7 @@ Collateral goes into the market's vault. Your deposited amount appears as availa
 
 > Your first trade on a market requires a small rent deposit (~0.01 SOL) to create your position account on-chain. This is refundable when the account is closed. Position initialization is handled automatically.
 
-> Perk uses coin-margined positions. For SOL-PERP, you deposit SOL. For BONK-PERP, you deposit BONK.
->
-> **⚠️ Compounding risk:** Coin-margined positions carry compounding risk. If the token price drops, both your position and your collateral lose value simultaneously. This means liquidation can happen faster than on stablecoin-margined platforms.
+> Perk uses stablecoin-margined positions. All markets accept stablecoin collateral (USDC, USDT, or PYUSD) — the specific stablecoin is chosen by the market creator. Your collateral value is stable regardless of the base token's price movement.
 
 ### 2. Open a Position
 
@@ -86,9 +84,7 @@ Anyone can create a perpetual futures market for any SPL token.
 
 1. Navigate to `/launch` (or click **Create Market**)
 2. Enter the token mint address or search by name
-3. Select the oracle source:
-   - **Pyth** — for tokens with Pyth price feeds (SOL, BTC, ETH, etc.)
-   - **PerkOracle** — for everything else (requires DEX liquidity on Jupiter/Birdeye)
+3. Choose the **collateral stablecoin** (USDC, USDT, or PYUSD). All traders on your market will use this stablecoin.
 4. Configure parameters:
    - **Max leverage** — 2x to 20x
    - **Trading fee** — 0.03% to 1% (you choose, immutable after creation)
@@ -98,7 +94,7 @@ Anyone can create a perpetual futures market for any SPL token.
 
 The market is live immediately. You earn 10% of every trading fee collected on it for the lifetime of the market.
 
-> One market per token mint. The first creator for a given token gets the market.
+> One market per token mint per creator. Multiple creators can create markets for the same token with different parameters.
 
 ---
 
