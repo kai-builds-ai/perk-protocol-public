@@ -349,7 +349,8 @@ export function CreateMarketForm() {
   }, [tradingFee]);
 
   // Default K = Medium (1e19)
-  const initialK = MIN_INITIAL_K.mul(new BN(10));
+  // K = 10^23 — supports ~$63K max position size, reasonable for early markets
+  const initialK = MIN_INITIAL_K.mul(new BN(100_000));
 
   const selectedMint = selectedMintForOracle;
 
