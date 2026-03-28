@@ -1,40 +1,55 @@
-name: Build and Deploy Perk Protocol
-
+name: Verify and Deploy Program
 on:
   workflow_dispatch:
 
 jobs:
-  build-and-deploy:
+  verify-and-deploy:
     runs-on: ubuntu-latest
-    container:
-      image: backpackapp/build:v0.30.1
-      options: --user root
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build program
-        run: anchor build
+      - name: Install system deps
+        run: sudo apt-get update && sudo apt-get install -y libudev-dev pkg-config
 
-      - name: Deploy to mainnet
-        env:
-          DEPLOYER_KEYPAIR: ${{ secrets.DEPLOYER_KEYPAIR }}
-          HELIUS_RPC_URL: ${{ secrets.HELIUS_RPC_URL }}
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Solana CLI
         run: |
-          echo "$DEPLOYER_KEYPAIR" > /tmp/deployer.json
-          solana config set --url "$HELIUS_RPC_URL" --keypair /tmp/deployer.json
-          solana program deploy \
+          sh -c "$(curl -sSfL https://release.anza.xyz/stable/install)"
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
+
+      - name: Install solana-verify
+        run: cargo install solana-verify --force
+
+      - name: Build verified binary in Docker
+        run: solana-verify build --library-name perk_protocol
+
+      - name: Write deployer keypair
+        run: echo '${{ secrets.DEPLOYER_KEYPAIR }}' > /tmp/deployer.json
+
+      - name: Configure Solana CLI
+        run: |
+          solana config set --url ${{ secrets.HELIUS_RPC_URL }} --keypair /tmp/deployer.json
+
+      - name: Deploy program
+        run: |
+          solana program deploy target/deploy/perk_protocol.so \
             --program-id 3L72e4b8wKJ8ReMpLUeXxVNrRGpiK6m4VYxeSnecpNW2 \
             --upgrade-authority /tmp/deployer.json \
-            target/deploy/perk_protocol.so \
+            --keypair /tmp/deployer.json \
             --with-compute-unit-price 50000 \
             --max-sign-attempts 20
-          rm /tmp/deployer.json
 
-      - name: Verify with OtterSec
+      - name: Verify on OtterSec
         run: |
-          cargo install --git https://github.com/AuditDeploy/verify --rev 09e2dcc
-          solana-verify verify-from-repo \
-            --url "$(solana config get | grep 'RPC URL' | awk '{print $3}')" \
+          echo "y" | solana-verify verify-from-repo \
+            --remote \
             --program-id 3L72e4b8wKJ8ReMpLUeXxVNrRGpiK6m4VYxeSnecpNW2 \
             https://github.com/kai-builds-ai/perk-protocol-public \
-            -- --no-default-features
+            --commit-hash ${{ github.sha }} \
+            --library-name perk_protocol
+
+      - name: Cleanup deployer keypair
+        if: always()
+        run: rm -f /tmp/deployer.json
