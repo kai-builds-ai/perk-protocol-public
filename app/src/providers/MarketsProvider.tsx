@@ -22,7 +22,15 @@ import { getMint } from "@solana/spl-token";
 
 // ── Mapping helpers ──
 
-function mapOracleSource(src: SDKOracleSource): OracleSource {
+function mapOracleSource(src: SDKOracleSource | Record<string, unknown>): OracleSource {
+  // Anchor deserializes Rust enums as objects like { perkOracle: {} }
+  if (typeof src === "object" && src !== null) {
+    const key = Object.keys(src)[0];
+    if (key === "perkOracle") return OracleSource.PerkOracle;
+    if (key === "dexPool") return OracleSource.DexPool;
+    if (key === "pyth") return OracleSource.Pyth;
+  }
+  // Numeric enum fallback
   switch (src) {
     case SDKOracleSource.Pyth:
       return OracleSource.Pyth;
