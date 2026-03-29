@@ -1138,22 +1138,29 @@ function UnfreezeAllOracles({
     let success = 0;
     let failed = 0;
     for (const { mint, label } of frozenMints) {
-      // Step 1: Bump maxStalenessSeconds to 120 so it doesn't lock out again
-      setProgress(`${label}: updating config (${success + failed + 1}/${frozenMints.length})`);
+      const step = `(${success + failed + 1}/${frozenMints.length})`;
       try {
-        await client.updateOracleConfig(mint, {
-          maxStalenessSeconds: 120,
-          maxPriceChangeBps: null,
-          minSources: null,
-          circuitBreakerDeviationBps: null,
-        });
-      } catch (err) {
-        // May fail if already at 120 or other reason — continue to unfreeze
-        toast.error(`${label} config: ${sanitizeError(err, 'admin')}`);
-      }
-      // Step 2: Unfreeze
-      setProgress(`${label}: unfreezing (${success + failed + 1}/${frozenMints.length})`);
-      try {
+        // Step 1: Freeze first (required before unfreeze — oracle may just be stale, not frozen)
+        setProgress(`${label}: freezing ${step}`);
+        try {
+          await client.freezePerkOracle(mint, true);
+        } catch {
+          // Already frozen — that's fine, continue
+        }
+        // Step 2: Bump maxStalenessSeconds to 120 so it doesn't lock out again
+        setProgress(`${label}: updating config ${step}`);
+        try {
+          await client.updateOracleConfig(mint, {
+            maxStalenessSeconds: 120,
+            maxPriceChangeBps: null,
+            minSources: null,
+            circuitBreakerDeviationBps: null,
+          });
+        } catch {
+          // May fail if already at 120 — continue to unfreeze
+        }
+        // Step 3: Unfreeze (sets unfreeze_pending flag → bypasses gap check once)
+        setProgress(`${label}: unfreezing ${step}`);
         await client.freezePerkOracle(mint, false);
         success++;
       } catch (err) {
