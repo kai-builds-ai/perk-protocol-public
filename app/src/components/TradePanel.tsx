@@ -109,31 +109,7 @@ export function TradePanel({ market }: TradePanelProps) {
       const sdkSide = side === Side.Long ? SdkSide.Long : SdkSide.Short;
       const creator = new PublicKey(market.creator);
 
-      // Check wallet balance for auto-deposit (market orders)
-      if (tab === "market") {
-        const collateralMint = new PublicKey(market.collateralMint);
-        const { getAssociatedTokenAddress } = await import("@solana/spl-token");
-        const tokenProgramId = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
-        const userAta = await getAssociatedTokenAddress(collateralMint, publicKey, false, tokenProgramId);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const conn = (client as any).program.provider.connection as import("@solana/web3.js").Connection;
-        try {
-          const ataInfo = await conn.getTokenAccountBalance(userAta);
-          const walletBalance = parseFloat(ataInfo.value.uiAmountString ?? "0");
-          if (walletBalance < sizeNum) {
-            toast.error(`Insufficient wallet balance. You have ${walletBalance.toFixed(2)} ${getTokenSymbol(market.collateralMint)} but need ${sizeNum.toFixed(2)}.`);
-            submitLockRef.current = false;
-            setIsSubmitting(false);
-            return;
-          }
-        } catch {
-          // ATA doesn't exist — no balance
-          toast.error(`No ${getTokenSymbol(market.collateralMint)} in wallet. Deposit funds first.`);
-          submitLockRef.current = false;
-          setIsSubmitting(false);
-          return;
-        }
-      }
+      // Wallet balance check happens after free collateral check (inside market tab block)
 
       if (tab === "market") {
         // Ensure position account exists
@@ -146,21 +122,67 @@ export function TradePanel({ market }: TradePanelProps) {
           await client.initializePosition(tokenMint, creator);
         }
 
-        // Auto-deposit: deposit the size amount (collateral) from wallet before opening
-        // This keeps leverage consistent when adding to existing positions
+        // Auto-deposit: only deposit what's needed beyond free collateral
         const colMint = new PublicKey(market.collateralMint);
         const decimals = colMint.toBase58() === "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" ? 6
           : colMint.toBase58() === "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB" ? 6
           : 6; // USDC/USDT/PYUSD all 6 decimals
-        const depositAmount = new BN(Math.floor(sizeNum * 10 ** decimals));
 
-        toast("Depositing collateral...", { icon: "⏳" });
-        await client.deposit(
-          tokenMint,
-          creator,
-          oracle,
-          depositAmount,
-        );
+        // Check how much free collateral is available
+        let freeCollateral = 0;
+        try {
+          const pos = await client.fetchPosition(marketAddr, publicKey);
+          const equity = pos.depositedCollateral.toNumber() / 10 ** decimals;
+          // If position has base size, some collateral is locked as margin
+          if (pos.baseSize.toNumber() !== 0) {
+            const posMarkPrice = market.markPrice || 1;
+            const posBaseSize = Math.abs(pos.baseSize.toNumber()) / POS_SCALE;
+            const posNotional = posBaseSize * posMarkPrice;
+            const maxLev = market.maxLeverage || 10;
+            const imRequired = posNotional / maxLev;
+            freeCollateral = Math.max(0, equity - imRequired);
+          } else {
+            freeCollateral = equity;
+          }
+        } catch {
+          // No position yet — freeCollateral stays 0
+        }
+
+        const needed = Math.max(0, sizeNum - freeCollateral);
+        if (needed > 0) {
+          // Check wallet balance before attempting deposit
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const conn = (client as any).program.provider.connection as import("@solana/web3.js").Connection;
+          const { getAssociatedTokenAddress } = await import("@solana/spl-token");
+          const tokenProgramId = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
+          const userAta = await getAssociatedTokenAddress(colMint, publicKey, false, tokenProgramId);
+          try {
+            const ataInfo = await conn.getTokenAccountBalance(userAta);
+            const walletBalance = parseFloat(ataInfo.value.uiAmountString ?? "0");
+            if (walletBalance < needed) {
+              toast.error(`Need ${needed.toFixed(2)} more ${getTokenSymbol(market.collateralMint)} in wallet (have ${walletBalance.toFixed(2)}, free in vault: ${freeCollateral.toFixed(2)}).`);
+              submitLockRef.current = false;
+              setIsSubmitting(false);
+              return;
+            }
+          } catch {
+            toast.error(`No ${getTokenSymbol(market.collateralMint)} in wallet.`);
+            submitLockRef.current = false;
+            setIsSubmitting(false);
+            return;
+          }
+
+          const depositAmount = new BN(Math.floor(needed * 10 ** decimals));
+          toast(`Depositing ${needed.toFixed(2)} ${getTokenSymbol(market.collateralMint)} from wallet...`, { icon: "⏳" });
+          await client.deposit(
+            tokenMint,
+            creator,
+            oracle,
+            depositAmount,
+          );
+        } else {
+          toast("Using free collateral in vault", { icon: "✓" });
+        }
 
         // Now open position with the freshly deposited collateral
         // Size = collateral (USDC). Notional = size × leverage (USDC).
@@ -372,8 +394,8 @@ export function TradePanel({ market }: TradePanelProps) {
           {isSubmitting
             ? "Submitting..."
             : isLong
-            ? `Deposit & Long`
-            : `Deposit & Short`}
+            ? "Open Long"
+            : "Open Short"}
         </button>
       </div>
     </div>
