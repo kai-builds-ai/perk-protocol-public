@@ -3,7 +3,7 @@
 **Date:** March 29, 2026  
 **Severity:** Critical — causes incorrect PNL settlement, loss of user funds  
 **Affects:** All markets, all positions (shorts much worse), all interactions  
-**Discovered by:** Roger + Kai during live mainnet testing
+**Discovered by:** Dev + Kai during live mainnet testing
 
 ---
 
