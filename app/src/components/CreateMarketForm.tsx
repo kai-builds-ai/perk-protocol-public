@@ -239,9 +239,7 @@ export function CreateMarketForm() {
     };
   }, [tradingFee]);
 
-  // Default K = Medium (1e19)
-  // K = 10^23 — supports ~$63K max position size, reasonable for early markets
-  const initialK = MIN_INITIAL_K.mul(new BN(100_000));
+  // K is computed dynamically in handleCreate based on oracle price
 
   const selectedMint = selectedMintForOracle;
 
@@ -296,6 +294,23 @@ export function CreateMarketForm() {
 
       const tradingFeeBps = Math.round(tradingFee * 100); // 0.10% → 10 bps
       const maxLeverageScaled = maxLeverage * LEVERAGE_SCALE;
+
+      // Compute K based on oracle price so low-priced tokens get usable position limits
+      // Base: 1e23 (~$63K max position for ~$1 tokens)
+      // For micro-priced tokens, scale up so max position ≈ $50K+ in USD
+      const baseK = MIN_INITIAL_K.mul(new BN(100_000)); // 1e23
+      let initialK = baseK;
+      try {
+        const oracleData = await readonlyClient.fetchPerkOracleNullable(tokenMint);
+        if (oracleData && !oracleData.price.isZero()) {
+          const priceUsd = oracleData.price.toNumber() / 1e6;
+          if (priceUsd > 0 && priceUsd < 0.01) {
+            const multiplier = Math.min(Math.ceil(0.01 / priceUsd), 10_000_000);
+            initialK = baseK.mul(new BN(multiplier));
+            console.log(`[CreateMarket] Low price ($${priceUsd}) — K scaled ${multiplier}x to ${initialK.toString()}`);
+          }
+        }
+      } catch { /* use base K if oracle read fails */ }
 
       const sig = await client.createMarket(
         tokenMint,
