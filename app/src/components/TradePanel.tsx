@@ -202,6 +202,27 @@ export function TradePanel({ market }: TradePanelProps) {
           leverageScaled,
           MAX_SLIPPAGE_BPS,
         );
+
+        // Auto-withdraw excess collateral to match target leverage
+        // Target = total notional / desired leverage
+        try {
+          const posAfter = await client.fetchPosition(marketAddr, publicKey);
+          const vaultAfter = posAfter.depositedCollateral.toNumber() / 10 ** decimals;
+          const totalBaseSize = Math.abs(posAfter.baseSize.toNumber()) / POS_SCALE;
+          const totalNotional = totalBaseSize * markPrice;
+          const targetCollateral = totalNotional / leverage;
+          const excess = vaultAfter - targetCollateral;
+          // Only withdraw if excess is meaningful (> $0.50 to avoid dust txs)
+          if (excess > 0.5) {
+            const withdrawAmount = new BN(Math.floor(excess * 10 ** decimals));
+            toast(`Withdrawing ${excess.toFixed(2)} excess collateral to wallet...`, { icon: "⏳" });
+            await client.withdraw(tokenMint, creator, oracle, withdrawAmount);
+          }
+        } catch (withdrawErr) {
+          // Non-fatal: position opened successfully, just couldn't auto-withdraw
+          console.warn("[trade] Auto-withdraw excess failed:", withdrawErr);
+        }
+
         toast.success("Position opened!\nTX: " + sig.slice(0, 16) + "...");
         setSize("");
       } else {
