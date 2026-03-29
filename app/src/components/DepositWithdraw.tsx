@@ -22,11 +22,13 @@ import { simulateTransaction } from "@/lib/tx-simulation";
 
 interface DepositWithdrawProps {
   market: Market;
+  /** Optional content rendered between balance display and margin actions (e.g. TradePanel) */
+  children?: React.ReactNode;
 }
 
 const SOL_MINT = "So11111111111111111111111111111111111111112"
 
-export function DepositWithdraw({ market }: DepositWithdrawProps) {
+export function DepositWithdraw({ market, children }: DepositWithdrawProps) {
   const [mode, setMode] = useState<"deposit" | "withdraw">("deposit");
   const [amount, setAmount] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -263,101 +265,114 @@ export function DepositWithdraw({ market }: DepositWithdrawProps) {
 
   if (!publicKey) {
     return (
-      <div className="border-b border-border p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-sans font-medium text-text-secondary uppercase tracking-wider">Balance</span>
+      <>
+        <div className="border-b border-border p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-sans font-medium text-text-secondary uppercase tracking-wider">Balance</span>
+          </div>
+          <p className="text-xs text-text-tertiary font-sans text-center py-4">
+            Connect wallet to deposit, trade, and view balances
+          </p>
         </div>
-        <p className="text-xs text-text-tertiary font-sans text-center py-4">
-          Connect wallet to deposit, trade, and view balances
-        </p>
-      </div>
+        {children}
+      </>
     );
   }
 
   return (
-    <div className="border-b border-border p-4 space-y-3">
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-sans font-medium text-text-secondary uppercase tracking-wider">Balance</span>
-      </div>
-      <BalanceRow label="Wallet" tooltip="Your wallet balance" value={`${displayWallet} ${collateralSymbol}`} />
-      <BalanceRow label="Vault" tooltip="Total collateral deposited in this market" value={`${displayVault} ${collateralSymbol}`} />
-      {marginUsed !== null && marginUsed > 0 && (
+    <>
+      {/* Balance display */}
+      <div className="border-b border-border p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-sans font-medium text-text-secondary uppercase tracking-wider">Balance</span>
+        </div>
+        <BalanceRow label="Wallet" tooltip="Your wallet balance" value={`${displayWallet} ${collateralSymbol}`} />
+        <BalanceRow label="Vault" tooltip="Total collateral deposited in this market" value={`${displayVault} ${collateralSymbol}`} />
+        {marginUsed !== null && marginUsed > 0 && (
+          <BalanceRow
+            label="Margin"
+            tooltip="Locked as margin for your open position (10% of position value at 10x max leverage)"
+            value={`${(Math.floor(marginUsed * 10000) / 10000).toFixed(4)} ${collateralSymbol}`}
+            color="text-yellow-400"
+          />
+        )}
         <BalanceRow
-          label="Margin"
-          tooltip="Locked as margin for your open position (10% of position value at 10x max leverage)"
-          value={`${(Math.floor(marginUsed * 10000) / 10000).toFixed(4)} ${collateralSymbol}`}
-          color="text-yellow-400"
+          label="Buffer"
+          tooltip="Vault minus margin — your liquidation cushion"
+          value={`${displayFree} ${collateralSymbol}`}
+          color="text-profit"
         />
-      )}
-      <BalanceRow
-        label="Buffer"
-        tooltip="Vault minus margin — your liquidation cushion"
-        value={`${displayFree} ${collateralSymbol}`}
-        color="text-profit"
-      />
-      {mode === "withdraw" && hasOpenPosition && (
-        <div className="text-xs font-sans text-yellow-400 bg-yellow-400/5 border border-yellow-400/20 rounded-[4px] px-3 py-2">
-          ⚠ You have an open position. Close it first to withdraw all collateral.
-        </div>
-      )}
-      <div className="flex gap-2 pt-1">
-        <div className="flex-1">
-          <div className="flex items-center border border-zinc-700 rounded-[4px] focus-within:border-zinc-400 transition-colors duration-100">
-            <input
-              type="number"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="0.00"
-              disabled={isSubmitting}
-              className="w-full bg-transparent px-3 py-2 text-sm font-mono text-white outline-none placeholder:text-text-tertiary disabled:opacity-50"
-            />
-          </div>
-        </div>
-        <button
-          onClick={() => {
-            if (mode === "deposit" && amount) {
-              handleSubmit();
-            } else {
-              setMode("deposit");
-            }
-          }}
-          disabled={isSubmitting}
-          className={`px-4 py-2 text-sm font-sans rounded-[4px] border transition-colors duration-100 ${
-            isSubmitting
-              ? "border-zinc-800 text-zinc-600 cursor-not-allowed"
-              : mode === "deposit"
-              ? "border-zinc-400 text-white bg-white/[0.05]"
-              : "border-zinc-700 text-text-secondary hover:text-white hover:border-zinc-500"
-          }`}
-        >
-          {isSubmitting && mode === "deposit" ? "..." : "Add Margin"}
-        </button>
-        <button
-          onClick={() => {
-            if (mode === "withdraw" && amount) {
-              handleSubmit();
-            } else {
-              setMode("withdraw");
-              // Pre-fill with free collateral (max withdrawable), floor to avoid exceeding vault
-              const maxWithdraw = freeCollateral ?? vaultBalance;
-              if (maxWithdraw && maxWithdraw > 0) {
-                setAmount((Math.floor(maxWithdraw * 10000) / 10000).toFixed(4));
-              }
-            }
-          }}
-          disabled={isSubmitting}
-          className={`px-4 py-2 text-sm font-sans rounded-[4px] border transition-colors duration-100 ${
-            isSubmitting
-              ? "border-zinc-800 text-zinc-600 cursor-not-allowed"
-              : mode === "withdraw"
-              ? "border-zinc-400 text-white bg-white/[0.05]"
-              : "border-zinc-700 text-text-secondary hover:text-white hover:border-zinc-500"
-          }`}
-        >
-          {isSubmitting && mode === "withdraw" ? "..." : "Withdraw"}
-        </button>
       </div>
-    </div>
+
+      {/* Slot for TradePanel (size, leverage, open button) */}
+      {children}
+
+      {/* Margin actions */}
+      <div className="border-b border-border p-4 space-y-3">
+        {mode === "withdraw" && hasOpenPosition && (
+          <div className="text-xs font-sans text-yellow-400 bg-yellow-400/5 border border-yellow-400/20 rounded-[4px] px-3 py-2">
+            ⚠ You have an open position. Close it first to withdraw all collateral.
+          </div>
+        )}
+        <div className="flex gap-2">
+          <div className="flex-1">
+            <div className="flex items-center border border-zinc-700 rounded-[4px] focus-within:border-zinc-400 transition-colors duration-100">
+              <input
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                onWheel={(e) => (e.target as HTMLElement).blur()}
+                placeholder="0.00"
+                disabled={isSubmitting}
+                className="w-full bg-transparent px-3 py-2 text-sm font-mono text-white outline-none placeholder:text-text-tertiary disabled:opacity-50"
+              />
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              if (mode === "deposit" && amount) {
+                handleSubmit();
+              } else {
+                setMode("deposit");
+              }
+            }}
+            disabled={isSubmitting}
+            className={`px-4 py-2 text-sm font-sans rounded-[4px] border transition-colors duration-100 ${
+              isSubmitting
+                ? "border-zinc-800 text-zinc-600 cursor-not-allowed"
+                : mode === "deposit"
+                ? "border-zinc-400 text-white bg-white/[0.05]"
+                : "border-zinc-700 text-text-secondary hover:text-white hover:border-zinc-500"
+            }`}
+          >
+            {isSubmitting && mode === "deposit" ? "..." : "Add Margin"}
+          </button>
+          <button
+            onClick={() => {
+              if (mode === "withdraw" && amount) {
+                handleSubmit();
+              } else {
+                setMode("withdraw");
+                const maxWithdraw = freeCollateral ?? vaultBalance;
+                if (maxWithdraw && maxWithdraw > 0) {
+                  setAmount((Math.floor(maxWithdraw * 10000) / 10000).toFixed(4));
+                }
+              }
+            }}
+            disabled={isSubmitting}
+            className={`px-4 py-2 text-sm font-sans rounded-[4px] border transition-colors duration-100 ${
+              isSubmitting
+                ? "border-zinc-800 text-zinc-600 cursor-not-allowed"
+                : mode === "withdraw"
+                ? "border-zinc-400 text-white bg-white/[0.05]"
+                : "border-zinc-700 text-text-secondary hover:text-white hover:border-zinc-500"
+            }`}
+          >
+            {isSubmitting && mode === "withdraw" ? "..." : "Withdraw"}
+          </button>
+        </div>
+      </div>
+    </>
   );
 }
 
