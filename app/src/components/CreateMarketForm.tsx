@@ -310,12 +310,12 @@ export function CreateMarketForm() {
           const priceUsd = oracleData.price.toNumber() / 1e6;
           if (priceUsd > 0 && priceUsd < 1) {
             // Target $50K max position size in USD
-            const targetMaxPosTokens = 50_000 / priceUsd; // tokens needed for $50K
-            const sqrtKNeeded = targetMaxPosTokens * 5 * 1e6; // in raw units (6 decimals)
-            const kNeeded = sqrtKNeeded * sqrtKNeeded;
-            // Convert to BN — use string to avoid float precision issues
-            const kStr = kNeeded.toExponential(0).replace('+', '');
-            const candidateK = new BN(kStr);
+            // maxPositionSize = sqrt(K) / 5, we want maxPositionSize * price = $50K
+            // So sqrt(K) = 50000 / price * 5 (in token units) * 1e6 (decimals)
+            // K = sqrt(K)^2. We compute in BN to avoid JS float limits.
+            const targetTokensRaw = Math.ceil(50_000 / priceUsd * 5 * 1e6); // sqrt(K) needed
+            const sqrtKBN = new BN(targetTokensRaw.toFixed(0));
+            const candidateK = sqrtKBN.mul(sqrtKBN);
             if (candidateK.gt(baseK)) {
               initialK = candidateK;
             }
