@@ -84,7 +84,11 @@ async function fetchBirdeyePrice(tokenMint: string, apiKey: string): Promise<Pri
   try {
     const url = `https://public-api.birdeye.so/defi/price?address=${tokenMint}`;
     const res = await fetchWithTimeout(url, {
-      headers: { "X-API-KEY": apiKey, "x-chain": "solana" },
+      headers: {
+        "X-API-KEY": apiKey,
+        "x-chain": "solana",
+        Origin: "https://perk.fund",
+      },
     });
     if (!res.ok) {
       log.warn("Birdeye API returned non-OK", { status: res.status }, tokenMint);
@@ -220,6 +224,7 @@ export async function fetchBirdeyeBatch(
         headers: {
           "X-API-KEY": apiKey,
           "x-chain": "solana",
+          Origin: "https://perk.fund",
         },
       }, BATCH_FETCH_TIMEOUT_MS);
       if (res.status === 401 || res.status === 403) {
