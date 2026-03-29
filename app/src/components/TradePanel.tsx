@@ -24,7 +24,7 @@ interface TradePanelProps {
   hasOpenPosition?: boolean;
 }
 
-const MAX_SLIPPAGE_BPS = 300; // 3% — vAMM with low liquidity needs higher tolerance
+const MAX_SLIPPAGE_BPS = 500; // 5% — vAMM with low liquidity has significant price impact
 
 export function TradePanel({ market, hasOpenPosition: hasOpenPositionProp }: TradePanelProps) {
   const [tab, setTab] = useState<OrderTab>("market");
