@@ -133,28 +133,50 @@ export function TradePanel({ market }: TradePanelProps) {
         const tokenProgramId = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
         const userAta = await getAssociatedTokenAddress(colMint, publicKey, false, tokenProgramId);
 
-        // Step 1: Always deposit the size (collateral) from wallet
-        // This is the simplest model: "I want to put $X at Nx leverage"
-        // means $X leaves your wallet and backs a $X*N position.
+        // Step 1: Deposit from wallet — only the amount needed beyond free collateral
+        let freeCollateral = 0;
         try {
-          const ataInfo = await conn.getTokenAccountBalance(userAta);
-          const walletBalance = parseFloat(ataInfo.value.uiAmountString ?? "0");
-          if (walletBalance < sizeNum) {
-            toast.error(`Insufficient balance. Have ${walletBalance.toFixed(2)} ${getTokenSymbol(market.collateralMint)}, need ${sizeNum.toFixed(2)}.`);
+          const pos = await client.fetchPosition(marketAddr, publicKey);
+          const deposited = pos.depositedCollateral.toNumber() / 10 ** decimals;
+          if (pos.baseSize.toNumber() !== 0) {
+            // Existing position: free = deposited - margin used
+            const posBase = Math.abs(pos.baseSize.toNumber()) / POS_SCALE;
+            const posNotional = posBase * markPrice;
+            const maxLev = market.maxLeverage || 10;
+            freeCollateral = Math.max(0, deposited - posNotional / maxLev);
+          } else {
+            freeCollateral = deposited;
+          }
+        } catch {
+          // No position yet
+        }
+
+        const needed = Math.max(0, sizeNum - freeCollateral);
+        if (needed > 0) {
+          // Check wallet balance
+          try {
+            const ataInfo = await conn.getTokenAccountBalance(userAta);
+            const walletBalance = parseFloat(ataInfo.value.uiAmountString ?? "0");
+            if (walletBalance < needed) {
+              const totalAvailable = walletBalance + freeCollateral;
+              toast.error(`Insufficient funds. Need ${sizeNum.toFixed(2)} ${getTokenSymbol(market.collateralMint)} (wallet: ${walletBalance.toFixed(2)}, free in vault: ${freeCollateral.toFixed(2)}, total: ${totalAvailable.toFixed(2)}).`);
+              submitLockRef.current = false;
+              setIsSubmitting(false);
+              return;
+            }
+          } catch {
+            toast.error(`No ${getTokenSymbol(market.collateralMint)} in wallet.`);
             submitLockRef.current = false;
             setIsSubmitting(false);
             return;
           }
-        } catch {
-          toast.error(`No ${getTokenSymbol(market.collateralMint)} in wallet.`);
-          submitLockRef.current = false;
-          setIsSubmitting(false);
-          return;
-        }
 
-        const depositAmount = new BN(Math.floor(sizeNum * 10 ** decimals));
-        toast(`Depositing ${sizeNum.toFixed(2)} ${getTokenSymbol(market.collateralMint)}...`, { icon: "⏳" });
-        await client.deposit(tokenMint, creator, oracle, depositAmount);
+          const depositAmount = new BN(Math.floor(needed * 10 ** decimals));
+          toast(`Depositing ${needed.toFixed(2)} ${getTokenSymbol(market.collateralMint)} from wallet...`, { icon: "⏳" });
+          await client.deposit(tokenMint, creator, oracle, depositAmount);
+        } else {
+          toast("Using vault collateral", { icon: "✓" });
+        }
 
         // Step 2: Open position
         const tokenCount = positionSize / markPrice;
