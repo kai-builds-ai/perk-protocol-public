@@ -640,10 +640,18 @@ export function CreateMarketForm() {
                 {oracleWaitPhase === "ready" && "Creating your market now..."}
               </p>
               {oracleWaitPhase === "waiting" && (
-                <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                <div className="w-full h-2 bg-zinc-800 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-accent/60 rounded-full transition-all duration-[4500ms] ease-linear"
-                    style={{ width: `${oracleWaitProgress}%` }}
+                    className="h-full bg-accent rounded-full transition-all duration-[60000ms] ease-[cubic-bezier(0.4,0,0.2,1)]"
+                    style={{ width: '95%' }}
+                    ref={(el) => {
+                      // Force reflow so the animation starts from 0
+                      if (el) {
+                        el.style.width = '0%';
+                        void el.offsetWidth;
+                        el.style.width = '95%';
+                      }
+                    }}
                   />
                 </div>
               )}
