@@ -78,7 +78,11 @@ export function TradePanel({ market, hasOpenPosition: hasOpenPositionProp }: Tra
     const slippagePct = market.baseReserve > 0
       ? Math.abs(tokenCount) / market.baseReserve
       : 0;
-    return { entryPrice, fee, liqPrice: Math.max(0, liqPrice), slippage: slippagePct };
+    // Effective leverage after vAMM price impact
+    const impactedEntry = entryPrice * (1 + (side === Side.Long ? slippagePct : -slippagePct));
+    const realNotional = tokenCount * impactedEntry;
+    const effectiveLeverage = margin > 0 ? Math.abs(realNotional) / margin : leverage;
+    return { entryPrice, fee, liqPrice: Math.max(0, liqPrice), slippage: slippagePct, effectiveLeverage };
   }, [sizeNum, positionSize, market, leverage, side, tab, triggerPrice]);
 
   const isLong = side === Side.Long;
@@ -381,6 +385,13 @@ export function TradePanel({ market, hasOpenPosition: hasOpenPositionProp }: Tra
               label="Slippage"
               value={`~${(estimates.slippage * 100).toFixed(2)}%`}
             />
+            {estimates.effectiveLeverage < leverage * 0.85 && (
+              <div className="mt-2 px-2 py-1.5 border border-yellow-500/30 rounded-[2px] bg-yellow-500/5">
+                <span className="font-mono text-[11px] text-yellow-400">
+                  ⚠ Effective leverage: {estimates.effectiveLeverage.toFixed(2)}x (requested {leverage.toFixed(1)}x). Low liquidity increases price impact.
+                </span>
+              </div>
+            )}
           </div>
         )}
 
