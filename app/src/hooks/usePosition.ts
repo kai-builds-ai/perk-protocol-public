@@ -155,7 +155,7 @@ function toFrontendTriggerOrder(
   };
 }
 
-const POLL_INTERVAL = 5_000; // 5 seconds
+const POLL_INTERVAL = 2_000; // 2 seconds — fast enough for PNL updates to feel responsive
 
 export function usePositions() {
   const { client, readonlyClient } = usePerk();

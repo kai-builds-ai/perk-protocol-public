@@ -104,7 +104,7 @@ export default function TradingView() {
           </div>
           {/* Positions + Orders — below chart on desktop, below everything on mobile */}
           <div className="hidden md:block border-t border-border overflow-auto max-h-[240px]">
-            <Positions positions={positions} market={displayMarket} />
+            <Positions positions={positions} market={displayMarket} livePrice={livePrice || undefined} />
             <TriggerOrders orders={triggerOrders} market={displayMarket} />
           </div>
         </div>
@@ -115,7 +115,7 @@ export default function TradingView() {
         </div>
         {/* Positions + Orders — mobile only, below trade panel */}
         <div className="md:hidden border-t border-border">
-          <Positions positions={positions} market={displayMarket} />
+          <Positions positions={positions} market={displayMarket} livePrice={livePrice || undefined} />
           <TriggerOrders orders={triggerOrders} market={displayMarket} />
         </div>
       </div>

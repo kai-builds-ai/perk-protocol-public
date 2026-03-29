@@ -19,9 +19,10 @@ import { sanitizeError } from "@/lib/error-utils";
 interface PositionsProps {
   positions: UserPosition[];
   market?: Market;
+  livePrice?: number; // streaming price for real-time PNL
 }
 
-export const Positions = memo(function Positions({ positions, market }: PositionsProps) {
+export const Positions = memo(function Positions({ positions, market, livePrice }: PositionsProps) {
   const { client } = usePerk();
   const { publicKey } = useWallet();
   const [closingIndex, setClosingIndex] = useState<number | null>(null);
@@ -182,7 +183,16 @@ export const Positions = memo(function Positions({ positions, market }: Position
         <tbody>
           {positions.map((p, i) => {
             const isLong = p.baseSize > 0;
-            const pnlPositive = p.pnl >= 0;
+            // Use live streaming price for real-time PNL if available
+            const currentPrice = livePrice && livePrice > 0 ? livePrice : (market?.markPrice || 0);
+            const livePnl = currentPrice > 0 && p.entryPrice > 0
+              ? (isLong
+                  ? Math.abs(p.baseSize) * (currentPrice - p.entryPrice)
+                  : Math.abs(p.baseSize) * (p.entryPrice - currentPrice))
+              : p.pnl;
+            const displayPnl = Math.abs(livePnl) > Math.abs(p.pnl) ? livePnl : p.pnl;
+            const displayPnlPct = p.depositedCollateral > 0 ? (displayPnl / p.depositedCollateral) * 100 : p.pnlPercent;
+            const pnlPositive = displayPnl >= 0;
             const isClosing = closingIndex === i;
             return (
               <tr key={`${p.authority}-${p.market}`} className="border-b border-border hover:bg-white/[0.02]">
@@ -200,9 +210,9 @@ export const Positions = memo(function Positions({ positions, market }: Position
                   {formatUsd(p.entryPrice)}
                 </td>
                 <td className={`px-3 py-2 text-right font-mono ${pnlPositive ? "text-profit" : "text-loss"}`}>
-                  {pnlPositive ? "+" : ""}{formatUsd(p.pnl)}
+                  {pnlPositive ? "+" : ""}{formatUsd(displayPnl)}
                   <span className="ml-1 text-[10px]">
-                    {formatPct(p.pnlPercent / 100)}
+                    {formatPct(displayPnlPct / 100)}
                   </span>
                 </td>
                 <td className="px-3 py-2 text-right font-mono text-text-secondary">
