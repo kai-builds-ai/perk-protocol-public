@@ -1,8 +1,7 @@
-# Perk — Full Architecture Plan v2
+# Perk — Architecture
 
 > **perk.fund** — Permissionless perpetual futures on Solana. Any token. Any leverage. No permission.
-> Fork of [aeyakovenko/percolator](https://github.com/aeyakovenko/percolator) risk engine.
-> 24-hour build. Mainnet launch.
+> Full port of [aeyakovenko/percolator](https://github.com/aeyakovenko/percolator) risk engine.
 
 ---
 
@@ -23,7 +22,6 @@
 13. [Cranker Bots](#13-cranker-bots)
 14. [Frontend](#14-frontend)
 15. [Deployment](#15-deployment)
-16. [24-Hour Timeline](#16-24-hour-timeline)
 
 ---
 
@@ -50,12 +48,12 @@ A **permissionless** perpetual futures protocol on Solana. Anyone can launch a l
 - **Stablecoin-margined** — all markets use stablecoin collateral (USDC, USDT, or PYUSD). Same model as Hyperliquid/dYdX.
 - **10% creator fee** — market creators earn forever
 
-### What We're NOT Building (Day 1)
+### Roadmap (Post-Launch)
 - Mobile optimization
 - Analytics/leaderboards
 - Referral system
-- Token ($PERC)
-- Cross-margin (isolated only)
+- $PERK token
+- Cross-margin (isolated only at launch)
 - Governance
 
 ---
@@ -329,7 +327,7 @@ pub enum Side {
 - Creates Protocol singleton PDA
 - Sets admin, fee config, minimum parameters
 - Called once
-- **Signer:** Admin (Roger)
+- **Signer:** Protocol admin
 
 #### `admin_pause(paused: bool)`
 - Global emergency pause
@@ -648,11 +646,11 @@ Assuming average 0.06% blended fee, 90% protocol share.
 
 ### PerkOracle System
 
-**PerkOracle** is a custom oracle built for permissionless markets. The cranker aggregates prices from Jupiter and Birdeye, computes a median with outlier rejection, and writes to on-chain PDA accounts.
+**PerkOracle** is a custom oracle built for permissionless markets. The cranker aggregates prices from multiple sources, validates consensus via divergence checks, and writes to on-chain PDA accounts.
 
 **Key properties:**
 - Fail-closed: if sources disagree beyond `MAX_DIVERGENCE_PCT` (5%), oracle freezes
-- Minimum 2 price sources required per update
+- Minimum 2 price sources required per update — averaged with divergence rejection
 - Anyone can initialize oracles for any SPL token (including Token-2022) by paying rent — no admin approval needed
 - One oracle per token mint, deterministic PDA: `[b"perk_oracle", token_mint]`
 - See `PERK-ORACLE-SPEC.md` for full specification
@@ -742,13 +740,7 @@ Since we use a vAMM (not an order book), traditional limit orders don't sit on a
 | Funding rate cap | ±0.1% per period, prevents runaway costs |
 | Oracle staleness | Rejects stale prices, halts trading if oracle dies |
 
-### Launch Day Specific
 
-| Safeguard | Detail |
-|---|---|
-| Known markets only | We create SOL-PERP first with Pyth oracle (safe) |
-| Low k initially | Start with conservative depth, increase as volume grows |
-| Monitor closely | Watch for anomalies in first 24h |
 
 ---
 
@@ -1012,72 +1004,13 @@ node src/index.js
 # Or PM2: pm2 start src/index.js --name Perk-cranker
 ```
 
-### Required From Roger
-1. **Deployer keypair** — fund with ~5 SOL for mainnet program deployment
-2. **Protocol admin wallet** — holds global pause authority
-3. **Cranker keypair** — separate, funded with ~0.5 SOL for tx fees
-4. **Domain** — optional for day 1, Vercel URL works
+### Infrastructure
+- **Deployer keypair** — funded with SOL for program deployment
+- **Protocol admin wallet** — holds global pause authority
+- **Cranker keypair** — separate, funded with SOL for tx fees
+- **Domain** — perk.fund (Cloudflare)
 
-### First Actions After Deploy
-1. `initialize_protocol()` — set fee config
-2. `create_market(SOL, Pyth, 20x, 10bps)` — launch SOL-PERP as the flagship market
-3. Start cranker bots
-4. Frontend live
 
----
-
-## 16. 24-Hour Timeline
-
-### Hour 0–6: On-Chain Program
-
-| Agent | Task |
-|---|---|
-| Agent 1 | Port Percolator risk engine (H, A/K, warmup) into Anchor `engine/` module |
-| Agent 2 | vAMM engine — `open_position`, `close_position`, price math, slippage |
-| Agent 3 | `create_market` (permissionless), `deposit`, `withdraw`, account layout |
-| Agent 4 | `liquidate`, `crank_funding`, `update_amm`, trigger orders, fee split |
-| **Merge** | Integrate all modules, compile, deploy to devnet |
-
-### Hour 6–10: SDK + Crankers
-
-| Agent | Task |
-|---|---|
-| Agent 5 | TypeScript SDK — full `PerkClient` class + helpers |
-| Agent 6 | Cranker bots — 4 loops (funding, liquidation, triggers, peg) |
-| **Test** | Create market → deposit → trade → close → withdraw on devnet |
-
-### Hour 10–16: Frontend
-
-| Agent | Task |
-|---|---|
-| Agent 7 | Trading UI — TradingView Advanced chart, trade panel, positions, trigger orders |
-| Agent 8 | Market explorer + create market page + wallet + token logos (Jupiter/Helius) |
-| **Test** | Full flow in browser on devnet |
-
-### Hour 16–20: Integration + Red Team
-
-All agents converge:
-- End-to-end devnet testing
-- Red team: try to break every instruction
-  - vAMM manipulation (large trades to move price, then exploit)
-  - Oracle staleness attacks
-  - Liquidation edge cases
-  - Trigger order gaming
-  - Dust deposits/withdrawals
-  - Overflow in position math
-  - Fee calculation rounding
-- Fix everything
-- **Deploy program to mainnet**
-
-### Hour 20–24: Launch
-
-- `initialize_protocol()`
-- `create_market()` — SOL-PERP flagship
-- Frontend → mainnet
-- Crankers → mainnet
-- First deposit, first trade
-- Verify everything works
-- Announce
 
 ---
 
@@ -1189,6 +1122,4 @@ pub const PEG_SCALE: u128 = 1_000_000;              // 6 decimals
 | Stablecoin collateral | ✅ USDC/USDT/PYUSD | ✅ USDC | ✅ | Coin-margined |
 | Mainnet | ✅ Live | ✅ Live | ✅ Live | ❌ Devnet |
 
-Our edge: **Anatoly's risk math** (the best in the game) + **permissionless markets** (the pump.fun model) + **stablecoin-margined** (no decimal mismatch issues) + **OtterSec verified** + **best UI in the game**.
-
-**Brand:** Perk (perk.fund) — Percolator's risk engine under the hood, our identity on top.
+Our edge: **Anatoly's risk math** (the best in the game) + **permissionless markets** (the pump.fun model) + **stablecoin-margined** (no decimal mismatch issues) + **OtterSec verified builds** + **117/117 Kani formal proofs** + **6 rounds of independent security review**.
