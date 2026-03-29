@@ -101,6 +101,20 @@ export default function Landing() {
                   Create a Market
                 </Link>
               </div>
+              {/* Token CA */}
+              <div className="flex items-center gap-2 pt-1">
+                <span className="text-xs font-mono text-text-tertiary">CA:</span>
+                <code className="text-xs font-mono text-text-secondary select-all">F8Pz2mx7V8exRkBNFzvpkZAwjNPxWPGqzYJL2ckrpump</code>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText("F8Pz2mx7V8exRkBNFzvpkZAwjNPxWPGqzYJL2ckrpump");
+                  }}
+                  className="text-xs text-text-tertiary hover:text-white transition-colors"
+                  title="Copy"
+                >
+                  📋
+                </button>
+              </div>
               {/* Stats inline */}
               <div className="flex flex-wrap items-center gap-x-8 gap-y-3 pt-2">
                 <Stat label="Volume" value={formatUsdCompact(stats.totalVolume)} />
