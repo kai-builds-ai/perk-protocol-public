@@ -255,6 +255,19 @@ export function DepositWithdraw({ market }: DepositWithdrawProps) {
   const displayVault = vaultBalance !== null ? vaultBalance.toFixed(4) : "—";
   const displayFree = freeCollateral !== null ? (Math.floor(freeCollateral * 10000) / 10000).toFixed(4) : "—";
 
+  if (!publicKey) {
+    return (
+      <div className="border-b border-border p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-sans font-medium text-text-secondary uppercase tracking-wider">Balance</span>
+        </div>
+        <p className="text-xs text-text-tertiary font-sans text-center py-4">
+          Connect wallet to deposit, trade, and view balances
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="border-b border-border p-4 space-y-3">
       <div className="flex items-center justify-between">
