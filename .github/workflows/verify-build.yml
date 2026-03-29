@@ -7,7 +7,7 @@ env:
   PROGRAM_ID: "3L72e4b8wKJ8ReMpLUeXxVNrRGpiK6m4VYxeSnecpNW2"
   PROGRAM_LIB_NAME: "perk_protocol"
   PUBLIC_REPO: "https://github.com/kai-builds-ai/perk-protocol-public"
-  PUBLIC_COMMIT: "db94167"
+  PUBLIC_COMMIT: "92e7b7d"
 
 jobs:
   verify-build-deploy:
