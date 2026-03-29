@@ -22,6 +22,14 @@ export const TriggerOrders = memo(function TriggerOrders({
   const { client } = usePerk();
   const { publicKey } = useWallet();
   const [cancellingId, setCancellingId] = useState<number | null>(null);
+  const [confirmId, setConfirmId] = useState<number | null>(null);
+  const confirmTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const startConfirm = useCallback((orderId: number) => {
+    setConfirmId(orderId);
+    if (confirmTimer.current) clearTimeout(confirmTimer.current);
+    confirmTimer.current = setTimeout(() => setConfirmId(null), 3000);
+  }, []);
 
   const handleCancel = useCallback(
     async (order: TriggerOrder) => {
@@ -35,10 +43,12 @@ export const TriggerOrders = memo(function TriggerOrders({
         return;
       }
 
-      const confirmed = window.confirm(
-        `Cancel ${order.orderType} order #${order.orderId}?`
-      );
-      if (!confirmed) return;
+      // First tap = confirm, second tap = execute
+      if (confirmId !== order.orderId) {
+        startConfirm(order.orderId);
+        return;
+      }
+      setConfirmId(null);
 
       setCancellingId(order.orderId);
       try {
@@ -52,7 +62,7 @@ export const TriggerOrders = memo(function TriggerOrders({
         setCancellingId(null);
       }
     },
-    [client, publicKey]
+    [client, publicKey, confirmId, startConfirm]
   );
 
   if (orders.length === 0) {
@@ -111,10 +121,12 @@ export const TriggerOrders = memo(function TriggerOrders({
                     className={`px-2 py-0.5 text-[10px] font-sans rounded-[4px] border transition-colors duration-100 ${
                       isCancelling
                         ? "text-zinc-600 border-zinc-800 cursor-not-allowed"
-                        : "text-loss/80 border-loss/30 hover:text-loss hover:border-loss/50"
+                        : confirmId === o.orderId
+                          ? "text-loss border-loss bg-loss/10"
+                          : "text-loss/80 border-loss/30 hover:text-loss hover:border-loss/50"
                     }`}
                   >
-                    {isCancelling ? "..." : "Cancel"}
+                    {isCancelling ? "..." : confirmId === o.orderId ? "Confirm?" : "Cancel"}
                   </button>
                 </td>
               </tr>
