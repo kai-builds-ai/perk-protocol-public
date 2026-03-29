@@ -107,28 +107,62 @@ export function TradePanel({ market }: TradePanelProps) {
       const tokenMint = new PublicKey(market.tokenMint);
       const oracle = new PublicKey(market.oracleAddress);
       const sdkSide = side === Side.Long ? SdkSide.Long : SdkSide.Short;
-
       const creator = new PublicKey(market.creator);
 
+      // Check wallet balance for auto-deposit (market orders)
       if (tab === "market") {
-        // Ensure position account exists
-        const marketAddr = client.getMarketAddress(tokenMint, creator);
-        let hasCollateral = false;
+        const collateralMint = new PublicKey(market.collateralMint);
+        const { getAssociatedTokenAddress } = await import("@solana/spl-token");
+        const tokenProgramId = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
+        const userAta = await getAssociatedTokenAddress(collateralMint, publicKey, false, tokenProgramId);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const conn = (client as any).program.provider.connection as import("@solana/web3.js").Connection;
         try {
-          const pos = await client.fetchPosition(marketAddr, publicKey);
-          hasCollateral = pos.depositedCollateral.toNumber() > 0;
+          const ataInfo = await conn.getTokenAccountBalance(userAta);
+          const walletBalance = parseFloat(ataInfo.value.uiAmountString ?? "0");
+          if (walletBalance < sizeNum) {
+            toast.error(`Insufficient wallet balance. You have ${walletBalance.toFixed(2)} ${getTokenSymbol(market.collateralMint)} but need ${sizeNum.toFixed(2)}.`);
+            submitLockRef.current = false;
+            setIsSubmitting(false);
+            return;
+          }
         } catch {
-          // Position doesn't exist — initialize it
-          await client.initializePosition(tokenMint, creator);
-        }
-
-        if (!hasCollateral) {
-          toast.error("Deposit collateral first — use the Deposit section above.");
+          // ATA doesn't exist — no balance
+          toast.error(`No ${getTokenSymbol(market.collateralMint)} in wallet. Deposit funds first.`);
           submitLockRef.current = false;
           setIsSubmitting(false);
           return;
         }
+      }
 
+      if (tab === "market") {
+        // Ensure position account exists
+        const marketAddr = client.getMarketAddress(tokenMint, creator);
+        try {
+          await client.fetchPosition(marketAddr, publicKey);
+        } catch {
+          // Position doesn't exist — initialize it
+          toast("Initializing position account...", { icon: "⏳" });
+          await client.initializePosition(tokenMint, creator);
+        }
+
+        // Auto-deposit: deposit the size amount (collateral) from wallet before opening
+        // This keeps leverage consistent when adding to existing positions
+        const colMint = new PublicKey(market.collateralMint);
+        const decimals = colMint.toBase58() === "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" ? 6
+          : colMint.toBase58() === "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB" ? 6
+          : 6; // USDC/USDT/PYUSD all 6 decimals
+        const depositAmount = new BN(Math.floor(sizeNum * 10 ** decimals));
+
+        toast("Depositing collateral...", { icon: "⏳" });
+        await client.deposit(
+          tokenMint,
+          creator,
+          oracle,
+          depositAmount,
+        );
+
+        // Now open position with the freshly deposited collateral
         // Size = collateral (USDC). Notional = size × leverage (USDC).
         // Convert USDC notional to token base units using mark price.
         const markPrice = market.markPrice || 1;
@@ -136,6 +170,7 @@ export function TradePanel({ market }: TradePanelProps) {
         const baseSize = new BN(Math.floor(tokenCount * POS_SCALE));
         const leverageScaled = Math.floor(leverage * LEVERAGE_SCALE);
 
+        toast("Opening position...", { icon: "⏳" });
         const sig = await client.openPosition(
           tokenMint,
           creator,
@@ -261,7 +296,7 @@ export function TradePanel({ market }: TradePanelProps) {
         {/* Size input */}
         <div>
           <label className="text-sm font-sans text-text-secondary block mb-1.5">
-            Size
+            Size (collateral)
           </label>
           <div className="flex items-center border border-zinc-700 rounded-[4px] focus-within:border-zinc-400 transition-colors duration-100">
             <input
@@ -337,8 +372,8 @@ export function TradePanel({ market }: TradePanelProps) {
           {isSubmitting
             ? "Submitting..."
             : isLong
-            ? "Open Long"
-            : "Open Short"}
+            ? `Deposit & Long`
+            : `Deposit & Short`}
         </button>
       </div>
     </div>
