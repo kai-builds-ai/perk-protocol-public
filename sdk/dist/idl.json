@@ -52,6 +52,87 @@
             "args": []
         },
         {
+            "name": "admin_fix_market_accrue",
+            "docs": [
+                "Fix a market whose accrue state was never initialized. Admin only."
+            ],
+            "discriminator": [
+                112,
+                100,
+                248,
+                49,
+                15,
+                235,
+                81,
+                5
+            ],
+            "accounts": [
+                {
+                    "name": "protocol",
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [
+                                    112,
+                                    114,
+                                    111,
+                                    116,
+                                    111,
+                                    99,
+                                    111,
+                                    108
+                                ]
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "market",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [
+                                    109,
+                                    97,
+                                    114,
+                                    107,
+                                    101,
+                                    116
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "market.token_mint",
+                                "account": "Market"
+                            },
+                            {
+                                "kind": "account",
+                                "path": "market.creator",
+                                "account": "Market"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "oracle_account"
+                },
+                {
+                    "name": "fallback_oracle"
+                },
+                {
+                    "name": "admin",
+                    "signer": true,
+                    "relations": [
+                        "protocol"
+                    ]
+                }
+            ],
+            "args": []
+        },
+        {
             "name": "admin_pause",
             "docs": [
                 "Emergency pause/unpause. Admin only."

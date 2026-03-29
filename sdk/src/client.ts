@@ -867,6 +867,28 @@ export class PerkClient {
       .preInstructions(this.preInstructions).rpc();
   }
 
+  /** Fix a market whose accrue state was never initialized.
+   *  Closes the phantom slot gap that causes catastrophic K-coefficient accumulation. */
+  async adminFixMarketAccrue(
+    tokenMint: PublicKey,
+    creator: PublicKey,
+    oracle: PublicKey,
+    fallbackOracle?: PublicKey,
+  ): Promise<TransactionSignature> {
+    const protocol = this.getProtocolAddress();
+    const market = this.getMarketAddress(tokenMint, creator);
+    return this.program.methods
+      .adminFixMarketAccrue()
+      .accounts({
+        protocol,
+        market,
+        oracleAccount: oracle,
+        fallbackOracle: fallbackOracle || oracle,
+        admin: this.wallet.publicKey,
+      })
+      .preInstructions(this.preInstructions).rpc();
+  }
+
   /** Initialize a PerkOracle price feed. Permissionless — anyone pays rent.
    *  Oracle authority is inherited from Protocol.oracle_authority. */
   async initializePerkOracle(

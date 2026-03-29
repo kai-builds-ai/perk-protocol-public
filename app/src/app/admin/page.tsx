@@ -1446,8 +1446,66 @@ function MarketEditPanel({
         <UpdateOracleConfigPanel client={client} market={market} onRefresh={onRefresh} />
         <FreezePerkOracle client={client} market={market} onRefresh={onRefresh} />
         <SetFallbackOraclePanel client={client} market={market} onRefresh={onRefresh} />
+        <FixMarketAccrue client={client} market={market} onRefresh={onRefresh} />
       </div>
     </section>
+  );
+}
+
+function FixMarketAccrue({
+  client,
+  market,
+  onRefresh,
+}: {
+  client: NonNullable<ReturnType<typeof usePerk>['client']>;
+  market: MarketWithAddress;
+  onRefresh: () => Promise<void>;
+}) {
+  const [submitting, setSubmitting] = useState(false);
+  const m = market.account;
+  const slotGap = m.currentSlot && m.lastMarketSlot
+    ? Number(m.currentSlot) - Number(m.lastMarketSlot)
+    : null;
+
+  const handleFix = async () => {
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      const sig = await client.adminFixMarketAccrue(
+        m.tokenMint,
+        m.creator,
+        m.oracleAddress,
+        m.fallbackOracleAddress || undefined,
+      );
+      toast.success(`Accrue state fixed: ${sig.slice(0, 12)}…`);
+      await onRefresh();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(`Fix failed: ${msg.slice(0, 120)}`);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="p-4 bg-surface">
+      <div className="flex items-center justify-between mb-2">
+        <span className="font-mono text-xs text-text-tertiary uppercase">Fix Accrue State</span>
+        {slotGap !== null && slotGap > 1_000_000 && (
+          <span className="font-mono text-[10px] text-red-400">⚠ Gap: {slotGap.toLocaleString()} slots</span>
+        )}
+      </div>
+      <p className="text-xs text-text-secondary mb-3">
+        Resets last_market_slot &amp; last_oracle_price to current values. Fixes phantom K accumulation from uninitialized accrue state.
+      </p>
+      <button
+        onClick={handleFix}
+        disabled={submitting}
+        className="w-full py-2 font-mono text-xs border border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10 rounded-[2px] disabled:opacity-40 transition-colors"
+      >
+        {submitting ? 'Fixing…' : 'Fix Market Accrue'}
+      </button>
+    </div>
   );
 }
 
