@@ -340,7 +340,8 @@ export function CreateMarketForm() {
       toast.error(sanitizeError(err, "create-market"));
     } finally {
       setIsSubmitting(false);
-      if (oracleWaitPhase !== "failed") setOracleWaitPhase(null);
+      // Use functional update to avoid stale closure — only clear if not failed
+      setOracleWaitPhase((prev) => (prev === "failed" ? prev : null));
     }
   }, [
     client,
