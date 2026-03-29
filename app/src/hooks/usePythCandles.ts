@@ -151,20 +151,24 @@ export function usePythCandles(
   useEffect(() => {
     if (!symbol) return;
     const interval = setInterval(async () => {
-      // Try Pyth first
-      if (PYTH_FEEDS[symbol]) {
-        const data = await fetchHistoricalCandles(symbol, resolution, count);
-        if (symbolRef.current === symbol && data.length > 0) {
-          setCandles(data);
-          return;
+      try {
+        // Try Pyth first
+        if (PYTH_FEEDS[symbol]) {
+          const data = await fetchHistoricalCandles(symbol, resolution, count);
+          if (symbolRef.current === symbol && data.length > 0) {
+            setCandles(data);
+            return;
+          }
         }
-      }
-      // Fallback to GeckoTerminal
-      if (mint) {
-        const data = await fetchGeckoTerminalCandles(mint, count, resolution);
-        if (symbolRef.current === symbol && data.length > 0) {
-          setCandles(data);
+        // Fallback to GeckoTerminal
+        if (mint) {
+          const data = await fetchGeckoTerminalCandles(mint, count, resolution);
+          if (symbolRef.current === symbol && data.length > 0) {
+            setCandles(data);
+          }
         }
+      } catch {
+        // Silently ignore refresh errors — keep existing candles
       }
     }, 15_000);
     return () => clearInterval(interval);
