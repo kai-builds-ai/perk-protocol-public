@@ -183,6 +183,12 @@ pub mod perk_protocol {
         instructions::admin_fix_market_accrue::handler(ctx)
     }
 
+    /// Reset K indices on a market with zero open interest. Admin only.
+    /// Use after closing all positions to clear phantom K accumulation.
+    pub fn admin_reset_k_indices(ctx: Context<AdminResetKIndices>) -> Result<()> {
+        instructions::admin_reset_k_indices::handler(ctx)
+    }
+
     /// Update PerkOracle config (price banding). Admin only.
     pub fn update_oracle_config(
         ctx: Context<UpdateOracleConfig>,
