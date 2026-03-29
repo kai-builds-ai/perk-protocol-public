@@ -31,39 +31,34 @@ async function getOrCacheLiquidatorAta(
 
 /**
  * Compute margin ratio for a position. Returns a fraction (e.g. 0.05 = 5%).
- * marginRatio = (collateral + unrealizedPnl) / notional
- * If notional is 0, returns Infinity (no position = safe).
+ *
+ * Mirrors on-chain logic in risk.rs:
+ *   equity = deposited_collateral + pnl  (settled K-coefficient PNL)
+ *   notional = |baseSize| * oraclePrice / POS_SCALE
+ *   marginRatio = equity / notional
+ *
+ * Previous version incorrectly used quoteEntryAmount to compute unrealized PNL,
+ * but quoteEntryAmount stores token-denominated entry value (not USD notional).
+ * The on-chain margin check uses position.pnl (settled via K-coefficient) instead.
  */
 export function computeMarginRatio(
   depositedCollateral: BN,
   baseSize: BN,        // i64: positive = long, negative = short
-  quoteEntryAmount: BN,
+  pnl: BN,            // i128: settled PNL from K-coefficient (position.pnl)
   oraclePrice: BN,     // in PRICE_SCALE
 ): number {
   if (baseSize.isZero()) return Infinity;
 
   const baseSizeAbs = baseSize.isNeg() ? baseSize.neg() : baseSize;
-  // notional = baseSize * oraclePrice / PRICE_SCALE
+  // notional = |baseSize| * oraclePrice / POS_SCALE
   const notional = baseSizeAbs.mul(oraclePrice).div(new BN(PRICE_SCALE));
   if (notional.isZero()) return Infinity;
 
-  // unrealizedPnl for long: (baseSize * oraclePrice / PRICE_SCALE) - quoteEntryAmount
-  // unrealizedPnl for short: quoteEntryAmount - (baseSize * oraclePrice / PRICE_SCALE)
-  const currentValue = baseSizeAbs.mul(oraclePrice).div(new BN(PRICE_SCALE));
-  const isLong = !baseSize.isNeg();
-  let pnl: BN;
-  if (isLong) {
-    pnl = currentValue.sub(quoteEntryAmount);
-  } else {
-    pnl = quoteEntryAmount.sub(currentValue);
-  }
-
-  // equity = collateral + pnl (as signed number)
+  // equity = collateral + settled pnl (mirroring on-chain account_equity_maint_raw)
   const equity = depositedCollateral.add(pnl);
   if (equity.isNeg()) return 0; // Underwater
 
   // marginRatio = equity / notional
-  // Use fixed-point: multiply by 10000, then divide by 10000 at the end
   const ratioScaled = equity.mul(new BN(BPS_DENOMINATOR)).div(notional);
   return ratioScaled.toNumber() / BPS_DENOMINATOR;
 }
@@ -115,10 +110,10 @@ export function startLiquidationLoop(
           // Score and sort: lowest margin ratio first (most urgent to liquidate)
           const scored = allPositions.map((pos) => {
             const pa = pos.account as unknown as {
-              depositedCollateral: BN; baseSize: BN; quoteEntryAmount: BN;
+              depositedCollateral: BN; baseSize: BN; pnl: BN;
             };
             const ratio = pa.baseSize.isZero() ? Infinity : computeMarginRatio(
-              pa.depositedCollateral, pa.baseSize, pa.quoteEntryAmount, oraclePrice,
+              pa.depositedCollateral, pa.baseSize, pa.pnl, oraclePrice,
             );
             return { pos, ratio };
           });
@@ -144,7 +139,7 @@ export function startLiquidationLoop(
             market: PublicKey;
             depositedCollateral: BN;
             baseSize: BN;
-            quoteEntryAmount: BN;
+            pnl: BN;
           };
 
           // Skip empty positions
@@ -153,7 +148,7 @@ export function startLiquidationLoop(
           const marginRatio = computeMarginRatio(
             posAccount.depositedCollateral,
             posAccount.baseSize,
-            posAccount.quoteEntryAmount,
+            posAccount.pnl,
             oraclePrice,
           );
 
