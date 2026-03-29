@@ -265,7 +265,7 @@ export function CreateMarketForm() {
         setOracleWaitProgress(0);
         await client.initializePerkOracle(tokenMint, {
           minSources: 2,
-          maxStalenessSeconds: 30,
+          maxStalenessSeconds: 120,
           maxPriceChangeBps: 0, // no banding — memecoins move freely
           circuitBreakerDeviationBps: 0, // disabled
         });

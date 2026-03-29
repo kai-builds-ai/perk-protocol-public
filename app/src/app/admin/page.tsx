@@ -423,6 +423,9 @@ function ProtocolActions({
         <div className="md:col-span-2">
           <SetOracleAuthority client={client} protocol={protocol} onRefresh={onRefresh} />
         </div>
+        <div className="md:col-span-2">
+          <UnfreezeOracle client={client} />
+        </div>
       </div>
     </section>
   );
@@ -489,6 +492,59 @@ function SetOracleAuthority({
           className="font-mono text-xs px-4 py-2 rounded-[2px] border border-accent/30 text-accent hover:bg-accent/10 transition-colors disabled:opacity-50"
         >
           {submitting ? 'Setting...' : 'Set Authority'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function UnfreezeOracle({
+  client,
+}: {
+  client: NonNullable<ReturnType<typeof usePerk>['client']>;
+}) {
+  const [mintAddress, setMintAddress] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleUnfreeze = async () => {
+    if (!mintAddress.trim()) { toast.error('Enter a token mint address'); return; }
+    let mint: PublicKey;
+    try { mint = new PublicKey(mintAddress.trim()); } catch { toast.error('Invalid pubkey'); return; }
+    if (!confirm(`Unfreeze oracle for ${mint.toBase58()}? This allows the cranker to resume price updates.`)) return;
+    setSubmitting(true);
+    try {
+      const sig = await client.freezePerkOracle(mint, false);
+      toast.success(`Oracle unfrozen — ${truncatePubkey(sig)}`);
+      setMintAddress('');
+    } catch (err) {
+      toast.error(sanitizeError(err, 'admin'));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="bg-surface px-5 py-5 space-y-3">
+      <div className="font-mono text-xs text-text-tertiary uppercase tracking-wider">
+        Unfreeze Oracle
+      </div>
+      <p className="text-xs text-text-secondary font-sans">
+        Unfreezes a stale oracle so the cranker can resume updates. Use when an oracle hits OracleGapTooLarge.
+      </p>
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={mintAddress}
+          onChange={(e) => setMintAddress(e.target.value)}
+          placeholder="Token mint address"
+          className="flex-1 bg-bg border border-border rounded-[2px] px-3 py-2 font-mono text-xs text-text-primary placeholder:text-text-tertiary focus:border-accent focus:outline-none"
+        />
+        <button
+          onClick={handleUnfreeze}
+          disabled={submitting || !mintAddress.trim()}
+          className="font-mono text-xs px-4 py-2 rounded-[2px] border border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10 transition-colors disabled:opacity-50"
+        >
+          {submitting ? 'Unfreezing...' : 'Unfreeze'}
         </button>
       </div>
     </div>
