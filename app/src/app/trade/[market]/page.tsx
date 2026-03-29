@@ -58,7 +58,7 @@ export default function TradingView() {
   };
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col min-h-screen md:h-screen">
       <TopBar solPrice={symbol === "SOL" ? displayMarket.markPrice : undefined} />
       <div className="flex items-center gap-2 px-4 overflow-x-auto flex-nowrap" style={{ WebkitOverflowScrolling: "touch" }}>
         <MarketStats market={displayMarket} />
@@ -73,11 +73,11 @@ export default function TradingView() {
           {displayMarket.oracleSource === OracleSource.PerkOracle ? "PERKORACLE" : displayMarket.oracleSource === OracleSource.DexPool ? "DEX" : "PYTH"}
         </span>
       </div>
-      {/* Desktop: side-by-side. Mobile: stacked single column */}
-      <div className="flex flex-col md:flex-row flex-1 min-h-0 overflow-auto no-scrollbar">
+      {/* Desktop: side-by-side with inner scroll. Mobile: stacked, natural page scroll */}
+      <div className="flex flex-col md:flex-row flex-1 min-h-0 md:overflow-auto no-scrollbar">
         {/* Left: Chart + Positions (desktop) */}
         <div className="flex flex-col md:flex-1 md:border-r border-border min-w-0">
-          <div className="h-[200px] md:h-auto md:flex-1 md:min-h-[300px]">
+          <div className="h-[250px] md:h-auto md:flex-1 md:min-h-[300px]">
             <Chart data={candles} symbol={symbol} />
           </div>
           {/* Positions + Orders — below chart on desktop, below everything on mobile */}
