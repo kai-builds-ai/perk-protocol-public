@@ -198,35 +198,9 @@ export function TradePanel({ market, hasOpenPosition: hasOpenPositionProp }: Tra
           throw openErr; // re-throw to hit the outer catch
         }
 
-        // Step 3: Withdraw excess collateral to match target leverage
-        // Vault may have leftover from previous closed positions
-        // Wait for RPC to reflect the new position state before reading
-        try {
-          await new Promise(r => setTimeout(r, 2500)); // wait for RPC to catch up
-          
-          const posAfter = await client.fetchPosition(marketAddr, publicKey);
-          const afterBaseSize = Math.abs(posAfter.baseSize.toNumber()) / POS_SCALE;
-          
-          // Sanity check: baseSize should have increased. If RPC returned stale data, skip withdrawal.
-          const expectedMinBase = tokenCount * 0.8; // allow 20% slippage margin
-          if (afterBaseSize < expectedMinBase) {
-            console.warn("[trade] Stale RPC — baseSize hasn't updated yet, skipping excess withdrawal");
-          } else {
-            const vaultAfter = posAfter.depositedCollateral.toNumber() / 10 ** decimals;
-            const totalNotional = afterBaseSize * markPrice;
-            // Target collateral + 2% buffer to stay above initial margin
-            const targetCollateral = (totalNotional / leverage) * 1.02;
-            const excess = vaultAfter - targetCollateral;
-            if (excess > 0.5) {
-              const withdrawAmt = new BN(Math.floor(excess * 10 ** decimals));
-              toast(`Returning ${excess.toFixed(2)} excess to wallet...`, { icon: "⏳" });
-              await client.withdraw(tokenMint, creator, oracle, withdrawAmt);
-            }
-          }
-        } catch (err) {
-          console.warn("[trade] Auto-withdraw excess failed:", err);
-          toast("Position opened but couldn't auto-adjust leverage.", { icon: "⚠️" });
-        }
+        // Excess auto-withdrawal REMOVED — caused 3 incidents where stale RPC data
+        // led to incorrect withdrawals that nearly liquidated positions.
+        // Users can manually withdraw excess via the Withdraw button.
 
         toast.success("Position opened!\nTX: " + sig.slice(0, 16) + "...");
         setSize("");

@@ -57,7 +57,9 @@ function toFrontendMarket(address: PublicKey, m: SDKMarketAccount): Market {
       : markPrice;
 
   const fundingRateRaw = m.fundingRateBpsPerSlotLast?.toNumber() ?? 0;
-  const fundingRate = (fundingRateRaw * 9000) / 1_000_000;
+  // Clamp funding rate to ±100% to prevent display overflow from edge cases
+  const fundingRateCalc = (fundingRateRaw * 9000) / 1_000_000;
+  const fundingRate = Math.max(-100, Math.min(100, fundingRateCalc));
 
   const totalLong = m.totalLongPosition.toNumber() / POS_SCALE;
   const totalShort = m.totalShortPosition.toNumber() / POS_SCALE;
