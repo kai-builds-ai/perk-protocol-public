@@ -1480,8 +1480,9 @@ function FixMarketAccrue({
       toast.success(`Accrue state fixed: ${sig.slice(0, 12)}…`);
       await onRefresh();
     } catch (err: unknown) {
+      console.error('adminFixMarketAccrue error:', err);
       const msg = err instanceof Error ? err.message : String(err);
-      toast.error(`Fix failed: ${msg.slice(0, 120)}`);
+      toast.error(`Fix failed: ${msg.slice(0, 200)}`);
     } finally {
       setSubmitting(false);
     }
