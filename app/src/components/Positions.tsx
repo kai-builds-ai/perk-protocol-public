@@ -200,9 +200,15 @@ export const Positions = memo(function Positions({ positions, market, livePrice,
             const isLong = p.baseSize > 0;
             // Real-time PNL: use current mark price (from poll or live stream)
             const currentPrice = livePrice && livePrice > 0 ? livePrice : (market?.markPrice || 0);
-            // On-chain PNL includes K-coefficient settlement + funding; price-based calc is just mark-to-market.
-            // Always use on-chain PNL as the base — it's the source of truth after settlement.
-            const displayPnl = p.pnl;
+            // Hybrid PNL: on-chain settled PNL + estimated unrealized from price movement
+            // On-chain PNL is the base (includes K-coefficient + funding settlement)
+            // Price delta estimates additional unrealized PNL since last on-chain update
+            const pricePnl = currentPrice > 0 && p.entryPrice > 0
+              ? (currentPrice - p.entryPrice) * Math.abs(p.baseSize) * (isLong ? 1 : -1)
+              : 0;
+            // Use the larger magnitude between on-chain and price-based as a floor
+            // On-chain PNL resets to settled value; price PNL tracks live movement
+            const displayPnl = Math.abs(pricePnl) > Math.abs(p.pnl) ? pricePnl : p.pnl;
             const displayPnlPct = p.depositedCollateral > 0 ? (displayPnl / p.depositedCollateral) * 100 : p.pnlPercent;
             const pnlPositive = displayPnl >= 0;
             const isClosing = closingIndex === i;

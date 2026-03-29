@@ -147,5 +147,28 @@ export function usePythCandles(
     return () => { cancelled = true; };
   }, [symbol, resolution, count, mint]);
 
+  // Auto-refresh candles every 60s
+  useEffect(() => {
+    if (!symbol) return;
+    const interval = setInterval(async () => {
+      // Try Pyth first
+      if (PYTH_FEEDS[symbol]) {
+        const data = await fetchHistoricalCandles(symbol, resolution, count);
+        if (symbolRef.current === symbol && data.length > 0) {
+          setCandles(data);
+          return;
+        }
+      }
+      // Fallback to GeckoTerminal
+      if (mint) {
+        const data = await fetchGeckoTerminalCandles(mint, count, resolution);
+        if (symbolRef.current === symbol && data.length > 0) {
+          setCandles(data);
+        }
+      }
+    }, 60_000);
+    return () => clearInterval(interval);
+  }, [symbol, resolution, count, mint]);
+
   return { candles, loading, isReal };
 }
