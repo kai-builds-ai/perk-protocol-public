@@ -1022,9 +1022,31 @@ pub fn enqueue_adl(
         return Ok(());
     }
 
-    // Step 6: require q_close_q <= OI
+    // Step 6: if liquidated position exceeds opposing OI, drain opposing side
+    // to zero and schedule reset. Deficit goes uninsured. This handles the edge
+    // case where one side's effective OI dwarfs the other after A/K adjustments.
     if q_close_q > oi {
-        return Err(PerkError::CorruptState.into());
+        // Apply any remaining deficit to K before draining
+        if d_rem != 0 {
+            let a_old_drain = get_a_side(market, opp);
+            let a_ps = a_old_drain.checked_mul(POS_SCALE).ok_or(PerkError::MathOverflow)?;
+            match wide_mul_div_ceil_u128_or_over_i128max(d_rem, a_ps, oi) {
+                Ok(delta_k_abs) => {
+                    let delta_k = -(delta_k_abs as i128);
+                    let k_opp = get_k_side(market, opp);
+                    if let Some(new_k) = k_opp.checked_add(delta_k) {
+                        set_k_side(market, opp, new_k);
+                    }
+                }
+                Err(OverI128Magnitude) => { /* overflow: uninsured */ }
+            }
+        }
+        set_oi_eff(market, opp, 0u128);
+        set_pending_reset_flag(market, opp);
+        if get_oi_eff(market, liq_side) == 0 {
+            set_pending_reset_flag(market, liq_side);
+        }
+        return Ok(());
     }
 
     let a_old = get_a_side(market, opp);
