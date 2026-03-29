@@ -1,7 +1,7 @@
 "use client";
 
 import React, { memo, useState, useCallback, useRef } from "react";
-import { UserPosition, Market, Side } from "@/types";
+import { UserPosition, Market, Side, TriggerOrder } from "@/types";
 import { formatUsd, formatPct } from "@/lib/format";
 import { usePerk } from "@/providers/PerkProvider";
 import { useWallet } from "@solana/wallet-adapter-react";
@@ -20,9 +20,10 @@ interface PositionsProps {
   positions: UserPosition[];
   market?: Market;
   livePrice?: number; // streaming price for real-time PNL
+  triggerOrders?: TriggerOrder[];
 }
 
-export const Positions = memo(function Positions({ positions, market, livePrice }: PositionsProps) {
+export const Positions = memo(function Positions({ positions, market, livePrice, triggerOrders }: PositionsProps) {
   const { client } = usePerk();
   const { publicKey } = useWallet();
   const [closingIndex, setClosingIndex] = useState<number | null>(null);
@@ -142,6 +143,20 @@ export const Positions = memo(function Positions({ positions, market, livePrice 
         const tokenMint = new PublicKey(pos.tokenMint);
         const creator = new PublicKey(pos.creator);
         const oracle = new PublicKey(pos.oracleAddress);
+
+        // Auto-cancel trigger orders for this market before closing
+        const marketOrders = (triggerOrders ?? []).filter(o => o.market === pos.market);
+        if (marketOrders.length > 0) {
+          toast(`Cancelling ${marketOrders.length} trigger order${marketOrders.length > 1 ? "s" : ""}...`, { icon: "⏳" });
+          for (const order of marketOrders) {
+            try {
+              await client.cancelTriggerOrder(tokenMint, creator, order.orderId);
+            } catch (cancelErr) {
+              console.warn("[close] Failed to cancel trigger order", order.orderId, cancelErr);
+            }
+          }
+        }
+
         const sig = await client.closePosition(tokenMint, creator, oracle);
         toast.success("Position closed!\nTX: " + sig.slice(0, 16) + "...");
       } catch (err: unknown) {
@@ -150,7 +165,7 @@ export const Positions = memo(function Positions({ positions, market, livePrice 
         setClosingIndex(null);
       }
     },
-    [client, publicKey, positions, confirmIndex, startConfirmTimer]
+    [client, publicKey, positions, confirmIndex, startConfirmTimer, triggerOrders]
   );
 
   if (positions.length === 0) {
