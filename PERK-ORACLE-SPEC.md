@@ -7,18 +7,19 @@ Custom oracle system for Perk Protocol. Provides price feeds for any SPL token w
 
 ```
 Jupiter Price API ──┐
-Birdeye API ────────┤──▶ Cranker (off-chain) ──▶ update_perk_oracle IX ──▶ PerkOraclePrice (on-chain account)
-On-chain DEX pools ─┘         │                         ▲
+                    ├──▶ Cranker (off-chain) ──▶ update_perk_oracle IX ──▶ PerkOraclePrice (on-chain account)
+Birdeye API ────────┘         │                         ▲
                               │                         │
-                              └── Multi-source median ──┘
+                              └── Divergence-checked ───┘
+                                  average (2 sources)
 ```
 
 ## Oracle Tiers (per market)
 
 | Tier | Primary Oracle | Fallback Oracle | Coverage |
 |------|---------------|-----------------|----------|
-| 1    | Pyth          | PerkOracle      | SOL, BTC, ETH, majors |
-| 2    | PerkOracle    | None            | Any token with DEX liquidity |
+| 1    | PerkOracle    | Pyth (if available) | All markets (current) |
+| 2    | Pyth          | PerkOracle      | Major tokens (future, deferred) |
 
 ## On-Chain Components
 
@@ -64,7 +65,7 @@ pub fallback_oracle_source: OracleSource,
 pub fallback_oracle_address: Pubkey,
 ```
 
-**Note:** Adds 33 bytes. Use `_reserved` bytes or realloc. Since pre-mainnet, just increase Market::SIZE.
+**Note:** Adds 33 bytes. Uses `_reserved` bytes from Market account — no realloc needed.
 
 ### 4. Instructions
 
@@ -148,23 +149,22 @@ fn read_oracle_price_with_fallback(
 ### Price Aggregation Pipeline
 
 ```
-1. Fetch prices from 3 independent sources:
+1. Fetch prices from 2 independent sources:
    - Jupiter Price API v2 (https://api.jup.ag/price/v2)
    - Birdeye Token Price API
-   - Direct on-chain DEX pool reads (Raydium AMM math)
 
 2. Validate:
-   - All 3 sources returned a price
-   - No source deviates >10% from the median (outlier rejection)
-   - Jupiter shows >$1000 liquidity (dust filter)
+   - Both sources returned a price
+   - Sources do not diverge beyond MAX_DIVERGENCE_PCT (5%)
+   - If divergence exceeded → skip update (fail-closed)
 
 3. Aggregate:
-   - Take median of valid sources (not mean — resistant to one bad source)
-   - Confidence = max_price - min_price across sources
+   - Average of both sources (with divergence check as guard)
+   - Confidence = |price_a - price_b| (spread between sources)
 
 4. Post on-chain:
-   - Call update_perk_oracle with: median price, confidence, source count
-   - Update every 2-5 seconds per market (configurable)
+   - Call update_perk_oracle with: averaged price, confidence, source count
+   - Update cycle: ~10s per oracle, 1.5s between oracles (configurable)
 ```
 
 ### Cranker Security
@@ -172,9 +172,9 @@ fn read_oracle_price_with_fallback(
 | Threat | Defense |
 |--------|---------|
 | Cranker key compromise | Rotate via transfer_oracle_authority. Freeze affected oracles immediately. |
-| API source manipulation | 3 independent sources + median + outlier rejection. Attacker must compromise 2/3 simultaneously. |
+| API source manipulation | 2 independent sources + divergence check. Attacker must compromise both simultaneously. |
 | Cranker goes offline | On-chain staleness check freezes trading automatically. No stale price exploitation. |
-| Flash loan DEX manipulation | Jupiter aggregates across all DEXes. Manipulating one pool doesn't move the median significantly. On-chain pool reads use TWAP not spot. |
+| Flash loan DEX manipulation | Jupiter aggregates across all DEXes. Manipulating one pool doesn't move the aggregate significantly. Birdeye cross-validates independently. |
 | Denial of service | Multiple cranker instances can run. Any authorized cranker can post. |
 | Sandwich attack on oracle tx | Oracle updates don't move money. Nothing to sandwich. |
 
@@ -205,7 +205,7 @@ fn read_oracle_price_with_fallback(
 
 ## What We Explicitly Do NOT Do
 
-- **No price banding** — memecoins move freely. 1000% pump in an hour is valid.
+- **No price banding by default** — memecoins move freely. 1000% pump in an hour is valid. Optional per-oracle banding available for stablecoins/majors.
 - **No liquidity-based leverage caps** — fully permissionless. Market creator sets leverage.
 - **No whitelist of supported tokens** — any SPL token with any DEX liquidity.
 - **No governance over market parameters** — creator decides, protocol enforces.
@@ -246,11 +246,11 @@ Minimum band: 100 bps (1%) when enabled. 0 = disabled.
 
 | Wallet | Purpose | Holds | Security | Who Controls |
 |--------|---------|-------|----------|-------------|
-| **Admin** | Protocol governance (pause, freeze, update markets) | Minimal SOL for tx fees | Hardware wallet (Ledger) | Roger |
+| **Admin** | Protocol governance (pause, freeze, update markets) | Minimal SOL for tx fees | Hardware wallet (Ledger) | Protocol team |
 | **Oracle Authority** | Posts PerkOracle price updates | ~0.5 SOL (auto-topped up) | Dedicated server, env var, never on disk | Cranker infra |
 | **Liquidation Cranker** | Executes liquidations, funding cranks, trigger orders | ~1 SOL (auto-topped up) | Separate server, env var | Cranker infra |
-| **Fee Collection** | Receives protocol fees | Accumulates fees | Hardware wallet (Ledger) | Roger |
-| **Funding Wallet** | Tops up cranker wallets when SOL runs low | ~5 SOL reserve | Hot wallet, monitored | Roger |
+| **Fee Collection** | Receives protocol fees | Accumulates fees | Hardware wallet (Ledger) | Protocol team |
+| **Funding Wallet** | Tops up cranker wallets when SOL runs low | ~5 SOL reserve | Hot wallet, monitored | Protocol team |
 
 ### Key Isolation Rules
 
@@ -286,35 +286,23 @@ Minimum band: 100 bps (1%) when enabled. 0 = disabled.
 | Fee wallet | File on disk | Ledger hardware wallet |
 | Key rotation | Never | Monthly (oracle), quarterly (cranker) |
 
-## Build Status (March 24, 2026)
+## Build Status
+
+All PerkOracle components are **built, audited, and deployed to mainnet.**
 
 | Component | Status |
 |-----------|--------|
-| PerkOraclePrice account state | ✅ Built + audited |
-| OracleSource::PerkOracle enum | ✅ |
-| initialize_perk_oracle IX | ✅ Built + audited |
-| update_perk_oracle IX | ✅ Built + audited (6 security checks) |
-| freeze/unfreeze IX | ✅ Built + audited (H-01 fixed) |
-| transfer_oracle_authority IX | ✅ Built + audited (admin override added) |
-| Oracle reader + fallback logic | ✅ Built + audited |
-| Market fallback fields | ✅ Added |
-| SDK methods (4 instructions) | ✅ Built + audited |
-| IDL regenerated | ✅ |
-| Oracle cranker (Jupiter+Birdeye) | ✅ Built, audit in progress |
-| Wire fallback into existing IXs | ⬜ TODO |
-| E2E tests with PerkOracle | ⬜ TODO |
-
-## Implementation Order
-
-1. `PerkOraclePrice` account + `OracleSource::PerkOracle` enum variant
-2. `initialize_perk_oracle` instruction (permissionless)
-3. `update_perk_oracle` instruction (cranker, with all security checks)
-4. `freeze/unfreeze_perk_oracle` instructions
-5. `transfer_oracle_authority` instruction
-6. Oracle reader in `oracle.rs` + fallback logic
-7. Add fallback fields to Market state
-8. Update all instructions to pass fallback oracle account
-9. SDK updates (PerkClient + cranker)
-10. Jupiter/Birdeye/on-chain aggregation in cranker
-11. Tests — unit, integration, E2E
-12. Review round 1 + Review round 2 + Red team
+| PerkOraclePrice account state | ✅ Deployed |
+| OracleSource::PerkOracle enum | ✅ Deployed |
+| initialize_perk_oracle IX (permissionless) | ✅ Deployed |
+| update_perk_oracle IX (6 security checks) | ✅ Deployed |
+| freeze/unfreeze IX | ✅ Deployed |
+| transfer_oracle_authority IX | ✅ Deployed |
+| admin_set_oracle_authority IX | ✅ Deployed |
+| update_oracle_config IX | ✅ Deployed |
+| Oracle reader + fallback logic | ✅ Deployed |
+| Market fallback fields | ✅ Deployed |
+| SDK methods | ✅ Deployed |
+| Oracle cranker (Jupiter+Birdeye) | ✅ Live on Railway |
+| OtterSec verified build | ✅ Verified |
+| 6 independent audit rounds | ✅ Complete |
