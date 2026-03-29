@@ -123,107 +123,48 @@ export function TradePanel({ market }: TradePanelProps) {
         }
 
         // Auto-deposit: only deposit what's needed beyond free collateral
+        const decimals = 6; // USDC/USDT/PYUSD all 6 decimals
+        const markPrice = market.markPrice || 1;
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const conn = (client as any).program.provider.connection as import("@solana/web3.js").Connection;
+        const { getAssociatedTokenAddress } = await import("@solana/spl-token");
         const colMint = new PublicKey(market.collateralMint);
-        const decimals = colMint.toBase58() === "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" ? 6
-          : colMint.toBase58() === "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB" ? 6
-          : 6; // USDC/USDT/PYUSD all 6 decimals
+        const tokenProgramId = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
+        const userAta = await getAssociatedTokenAddress(colMint, publicKey, false, tokenProgramId);
 
-        // Check how much free collateral is available
-        let freeCollateral = 0;
+        // Step 1: Always deposit the size (collateral) from wallet
+        // This is the simplest model: "I want to put $X at Nx leverage"
+        // means $X leaves your wallet and backs a $X*N position.
         try {
-          const pos = await client.fetchPosition(marketAddr, publicKey);
-          const equity = pos.depositedCollateral.toNumber() / 10 ** decimals;
-          // If position has base size, some collateral is locked as margin
-          if (pos.baseSize.toNumber() !== 0) {
-            const posMarkPrice = market.markPrice || 1;
-            const posBaseSize = Math.abs(pos.baseSize.toNumber()) / POS_SCALE;
-            const posNotional = posBaseSize * posMarkPrice;
-            const maxLev = market.maxLeverage || 10;
-            const imRequired = posNotional / maxLev;
-            freeCollateral = Math.max(0, equity - imRequired);
-          } else {
-            freeCollateral = equity;
-          }
-        } catch {
-          // No position yet — freeCollateral stays 0
-        }
-
-        const needed = Math.max(0, sizeNum - freeCollateral);
-        if (needed > 0) {
-          // Check wallet balance before attempting deposit
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const conn = (client as any).program.provider.connection as import("@solana/web3.js").Connection;
-          const { getAssociatedTokenAddress } = await import("@solana/spl-token");
-          const tokenProgramId = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
-          const userAta = await getAssociatedTokenAddress(colMint, publicKey, false, tokenProgramId);
-          try {
-            const ataInfo = await conn.getTokenAccountBalance(userAta);
-            const walletBalance = parseFloat(ataInfo.value.uiAmountString ?? "0");
-            if (walletBalance < needed) {
-              toast.error(`Need ${needed.toFixed(2)} more ${getTokenSymbol(market.collateralMint)} in wallet (have ${walletBalance.toFixed(2)}, free in vault: ${freeCollateral.toFixed(2)}).`);
-              submitLockRef.current = false;
-              setIsSubmitting(false);
-              return;
-            }
-          } catch {
-            toast.error(`No ${getTokenSymbol(market.collateralMint)} in wallet.`);
+          const ataInfo = await conn.getTokenAccountBalance(userAta);
+          const walletBalance = parseFloat(ataInfo.value.uiAmountString ?? "0");
+          if (walletBalance < sizeNum) {
+            toast.error(`Insufficient balance. Have ${walletBalance.toFixed(2)} ${getTokenSymbol(market.collateralMint)}, need ${sizeNum.toFixed(2)}.`);
             submitLockRef.current = false;
             setIsSubmitting(false);
             return;
           }
-
-          const depositAmount = new BN(Math.floor(needed * 10 ** decimals));
-          toast(`Depositing ${needed.toFixed(2)} ${getTokenSymbol(market.collateralMint)} from wallet...`, { icon: "⏳" });
-          await client.deposit(
-            tokenMint,
-            creator,
-            oracle,
-            depositAmount,
-          );
-        } else {
-          toast("Using free collateral in vault", { icon: "✓" });
+        } catch {
+          toast.error(`No ${getTokenSymbol(market.collateralMint)} in wallet.`);
+          submitLockRef.current = false;
+          setIsSubmitting(false);
+          return;
         }
 
-        // Now open position with the freshly deposited collateral
-        // Size = collateral (USDC). Notional = size × leverage (USDC).
-        // Convert USDC notional to token base units using mark price.
-        const markPrice = market.markPrice || 1;
-        const tokenCount = positionSize / markPrice; // USDC notional → token units
+        const depositAmount = new BN(Math.floor(sizeNum * 10 ** decimals));
+        toast(`Depositing ${sizeNum.toFixed(2)} ${getTokenSymbol(market.collateralMint)}...`, { icon: "⏳" });
+        await client.deposit(tokenMint, creator, oracle, depositAmount);
+
+        // Step 2: Open position
+        const tokenCount = positionSize / markPrice;
         const baseSize = new BN(Math.floor(tokenCount * POS_SCALE));
         const leverageScaled = Math.floor(leverage * LEVERAGE_SCALE);
 
         toast("Opening position...", { icon: "⏳" });
         const sig = await client.openPosition(
-          tokenMint,
-          creator,
-          oracle,
-          sdkSide,
-          baseSize,
-          leverageScaled,
-          MAX_SLIPPAGE_BPS,
+          tokenMint, creator, oracle, sdkSide, baseSize, leverageScaled, MAX_SLIPPAGE_BPS,
         );
-
-        // Auto-withdraw excess collateral to match target leverage
-        // Target = total notional / desired leverage
-        try {
-          const posAfter = await client.fetchPosition(marketAddr, publicKey);
-          const vaultAfter = posAfter.depositedCollateral.toNumber() / 10 ** decimals;
-          const totalBaseSize = Math.abs(posAfter.baseSize.toNumber()) / POS_SCALE;
-          const totalNotional = totalBaseSize * markPrice;
-          // Add 2% buffer above target so we stay above initial margin check
-          const targetCollateral = (totalNotional / leverage) * 1.02;
-          const excess = vaultAfter - targetCollateral;
-          // Only withdraw if excess is meaningful (> $0.50 to avoid dust txs)
-          if (excess > 0.5) {
-            const withdrawAmount = new BN(Math.floor(excess * 10 ** decimals));
-            toast(`Withdrawing ${excess.toFixed(2)} excess collateral to wallet...`, { icon: "⏳" });
-            await client.withdraw(tokenMint, creator, oracle, withdrawAmount);
-          }
-        } catch (withdrawErr) {
-          // Non-fatal: position opened successfully, just couldn't auto-withdraw
-          console.warn("[trade] Auto-withdraw excess failed:", withdrawErr);
-          toast("Position opened but couldn't auto-adjust leverage. Use manual withdraw.", { icon: "⚠️" });
-        }
 
         toast.success("Position opened!\nTX: " + sig.slice(0, 16) + "...");
         setSize("");
