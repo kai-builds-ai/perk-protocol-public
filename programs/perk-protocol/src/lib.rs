@@ -1,5 +1,8 @@
 use anchor_lang::prelude::*;
 
+#[cfg(not(feature = "no-entrypoint"))]
+use solana_security_txt::security_txt;
+
 pub mod constants;
 pub mod errors;
 pub mod state;
@@ -8,6 +11,16 @@ pub mod instructions;
 
 use instructions::*;
 use state::Side;
+
+#[cfg(not(feature = "no-entrypoint"))]
+security_txt! {
+    name: "Perk Protocol",
+    project_url: "https://perk.fund",
+    contacts: "email:nebula7458@proton.me",
+    policy: "https://github.com/kai-builds-ai/perk-protocol-public/blob/main/SECURITY.md",
+    source_code: "https://github.com/kai-builds-ai/perk-protocol-public",
+    auditors: "OtterSec (on-chain verified)"
+}
 
 declare_id!("3L72e4b8wKJ8ReMpLUeXxVNrRGpiK6m4VYxeSnecpNW2");
 

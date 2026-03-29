@@ -25,6 +25,7 @@ anchor-lang = "0.32.1"
 anchor-spl = "0.32.1"
 blake3 = "=1.5.5"
 pyth-solana-receiver-sdk = "1.1.0"
+solana-security-txt = "1.1.1"
 
 
 [dev-dependencies]
