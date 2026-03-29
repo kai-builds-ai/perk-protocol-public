@@ -204,10 +204,10 @@ export function DepositWithdraw({ market }: DepositWithdrawProps) {
             preInstructions: preIxs,
           });
           const sig = await wrapClient.deposit(tokenMint, creator, oracle, amountBN);
-          toast.success("Deposited " + amountNum.toFixed(4) + " " + collateralSymbol + "\nTX: " + sig.slice(0, 16) + "...");
+          toast.success("Margin added: " + amountNum.toFixed(4) + " " + collateralSymbol + "\nTX: " + sig.slice(0, 16) + "...");
         } else {
           const sig = await client.deposit(tokenMint, creator, oracle, amountBN);
-          toast.success("Deposited " + amountNum.toFixed(4) + " " + collateralSymbol + "\nTX: " + sig.slice(0, 16) + "...");
+          toast.success("Margin added: " + amountNum.toFixed(4) + " " + collateralSymbol + "\nTX: " + sig.slice(0, 16) + "...");
         }
       } else {
         // H-01 fix: for SOL withdrawals, create WSOL ATA if needed, withdraw, then close to unwrap
@@ -330,7 +330,7 @@ export function DepositWithdraw({ market }: DepositWithdrawProps) {
               : "border-zinc-700 text-text-secondary hover:text-white hover:border-zinc-500"
           }`}
         >
-          {isSubmitting && mode === "deposit" ? "..." : "Deposit"}
+          {isSubmitting && mode === "deposit" ? "..." : "Add Margin"}
         </button>
         <button
           onClick={() => {
