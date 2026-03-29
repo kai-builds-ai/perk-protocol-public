@@ -140,7 +140,7 @@ export const Chart = memo(function Chart({ data, symbol }: ChartProps) {
   return (
     <div
       ref={containerRef}
-      className="w-full h-full min-h-[400px]"
+      className="w-full h-full md:min-h-[400px]"
       style={{ touchAction: 'pan-y' }}
       aria-label={`${symbol} price chart`}
     />
