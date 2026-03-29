@@ -1,7 +1,7 @@
 const { Connection, PublicKey } = require("@solana/web3.js");
 
 (async () => {
-  const conn = new Connection("https://mainnet.helius-rpc.com/?api-key=01c862fa-ae04-4c0d-92bf-4d547db44c88");
+  const conn = new Connection(process.env.PERK_RPC_URL || (() => { throw new Error("PERK_RPC_URL not set") })());
   const SOL_MINT = new PublicKey("So11111111111111111111111111111111111111112");
   const CRANKER = "99mUUwVBvCD1pLP7fk5z7xPuBoGpyuUGpyTBhW53yw99";
   

@@ -15,4 +15,4 @@ export const COLORS = {
 
 export const LEVERAGE_STEPS = [1, 2, 3, 5, 10, 15, 20] as const;
 
-export const SOLANA_RPC = process.env.NEXT_PUBLIC_RPC_URL || "https://mainnet.helius-rpc.com/?api-key=01c862fa-ae04-4c0d-92bf-4d547db44c88";
+export const SOLANA_RPC = process.env.NEXT_PUBLIC_RPC_URL || "";

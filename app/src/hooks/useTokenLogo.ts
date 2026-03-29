@@ -5,7 +5,7 @@ import { Connection } from "@solana/web3.js";
 import { getTokenLogo } from "@/lib/token-metadata";
 
 // Metaplex metadata lives on mainnet — use Helius RPC (public mainnet returns 403 from Vercel)
-const RPC_URL = process.env.NEXT_PUBLIC_HELIUS_RPC_URL || "https://mainnet.helius-rpc.com/?api-key=01c862fa-ae04-4c0d-92bf-4d547db44c88";
+const RPC_URL = process.env.NEXT_PUBLIC_HELIUS_RPC_URL || "";
 
 // Shared connection instance (avoid creating per-hook)
 let sharedConnection: Connection | null = null;
