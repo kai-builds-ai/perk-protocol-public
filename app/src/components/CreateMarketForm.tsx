@@ -19,7 +19,7 @@ import { sanitizeError } from "@/lib/error-utils";
 
 // NOTE: Pyth Pull Oracle integration deferred to v2 (requires program upgrade
 // to accept oracle accounts as instruction parameters per-transaction).
-// All tokens use PerkOracle for now — cranker maintains prices from Jupiter+Birdeye.
+// All tokens use PerkOracle for now - cranker maintains prices from Jupiter+Birdeye.
 
 /** Supported collateral stablecoins (all 6 decimals) */
 const COLLATERAL_OPTIONS = [
@@ -264,7 +264,7 @@ export function CreateMarketForm() {
         await client.initializePerkOracle(tokenMint, {
           minSources: 2,
           maxStalenessSeconds: 120,
-          maxPriceChangeBps: 0, // no banding — memecoins move freely
+          maxPriceChangeBps: 0, // no banding - memecoins move freely
           circuitBreakerDeviationBps: 0, // disabled
         });
         setOracleWaitPhase("waiting");
@@ -296,18 +296,30 @@ export function CreateMarketForm() {
       const maxLeverageScaled = maxLeverage * LEVERAGE_SCALE;
 
       // Compute K based on oracle price so low-priced tokens get usable position limits
-      // Base: 1e23 (~$63K max position for ~$1 tokens)
-      // For micro-priced tokens, scale up so max position ≈ $50K+ in USD
+      // Target: maxPositionSize (= sqrt(K)/5) should be worth ~$50K+ in USD
+      // For a $1 token: K=1e23 → sqrt=316M → /5 = 63M tokens → $63K ✓
+      // For a $0.00004 token: need sqrt(K)/5 * price ≈ $50K
+      //   → sqrt(K)/5 ≈ 50000/0.00004 = 1.25B tokens
+      //   → sqrt(K) ≈ 6.25B → K ≈ 3.9e19... but we need more because K also sets depth
+      // Formula: K = (targetUsd / price * 5)^2 , then take max with base K
       const baseK = MIN_INITIAL_K.mul(new BN(100_000)); // 1e23
       let initialK = baseK;
       try {
         const oracleData = await readonlyClient.fetchPerkOracleNullable(tokenMint);
         if (oracleData && !oracleData.price.isZero()) {
           const priceUsd = oracleData.price.toNumber() / 1e6;
-          if (priceUsd > 0 && priceUsd < 0.01) {
-            const multiplier = Math.min(Math.ceil(0.01 / priceUsd), 10_000_000);
-            initialK = baseK.mul(new BN(multiplier));
-            console.log(`[CreateMarket] Low price ($${priceUsd}) — K scaled ${multiplier}x to ${initialK.toString()}`);
+          if (priceUsd > 0 && priceUsd < 1) {
+            // Target $50K max position size in USD
+            const targetMaxPosTokens = 50_000 / priceUsd; // tokens needed for $50K
+            const sqrtKNeeded = targetMaxPosTokens * 5 * 1e6; // in raw units (6 decimals)
+            const kNeeded = sqrtKNeeded * sqrtKNeeded;
+            // Convert to BN — use string to avoid float precision issues
+            const kStr = kNeeded.toExponential(0).replace('+', '');
+            const candidateK = new BN(kStr);
+            if (candidateK.gt(baseK)) {
+              initialK = candidateK;
+            }
+            console.log(`[CreateMarket] price=$${priceUsd} → K=${initialK.toString()} (maxPos ~$50K)`);
           }
         }
       } catch { /* use base K if oracle read fails */ }
@@ -355,7 +367,7 @@ export function CreateMarketForm() {
       toast.error(sanitizeError(err, "create-market"));
     } finally {
       setIsSubmitting(false);
-      // Use functional update to avoid stale closure — only clear if not failed
+      // Use functional update to avoid stale closure - only clear if not failed
       setOracleWaitPhase((prev) => (prev === "failed" ? prev : null));
     }
   }, [
@@ -406,7 +418,7 @@ export function CreateMarketForm() {
                     Failed to load token list. Paste a mint address instead.
                   </div>
                 )}
-                {/* Custom mint address result — hide if Jupiter already found it */}
+                {/* Custom mint address result - hide if Jupiter already found it */}
                 {customMint && !filtered.some(t => t.mint === customMint.mint) && (
                   <button
                     className="w-full flex items-center gap-2 px-3 py-2 hover:bg-white/[0.02] text-left transition-colors duration-75 border-b border-border"
@@ -490,9 +502,9 @@ export function CreateMarketForm() {
             )}
           </div>
 
-          {/* Oracle — always PerkOracle, cranker handles feed selection */}
+          {/* Oracle - always PerkOracle, cranker handles feed selection */}
 
-          {/* Parameters + Revenue — shown when token is selected */}
+          {/* Parameters + Revenue - shown when token is selected */}
           {selectedMint && (<>
           <div className="border-t border-border pt-4 space-y-5">
             <div className="text-xs font-sans text-text-secondary uppercase tracking-wider mb-3">
@@ -650,7 +662,7 @@ export function CreateMarketForm() {
               </div>
               <p className="text-xs text-text-secondary font-sans mb-3">
                 {oracleWaitPhase === "initializing" && "Creating the oracle account on-chain. Please approve the transaction in your wallet."}
-                {oracleWaitPhase === "waiting" && "The cranker is picking up your new oracle and feeding the first price. This usually takes 30–60 seconds."}
+                {oracleWaitPhase === "waiting" && "The cranker is picking up your new oracle and feeding the first price. This usually takes 30-60 seconds."}
                 {oracleWaitPhase === "ready" && "Creating your market now..."}
               </p>
               {oracleWaitPhase === "waiting" && (
@@ -681,7 +693,7 @@ export function CreateMarketForm() {
                 <span className="text-loss font-mono text-sm">Price feed timed out</span>
               </div>
               <p className="text-xs text-text-secondary font-sans mb-3">
-                The cranker hasn&apos;t fed a price yet. The oracle was created — try again in a minute and it should go through.
+                The cranker hasn&apos;t fed a price yet. The oracle was created - try again in a minute and it should go through.
               </p>
               <button
                 onClick={() => { setOracleWaitPhase(null); setIsSubmitting(false); }}
@@ -694,7 +706,7 @@ export function CreateMarketForm() {
 
           {/* Cost + Create button */}
           <div className="pt-2">
-            {/* Unified Create Market flow — oracle auto-initialized if needed */}
+            {/* Unified Create Market flow - oracle auto-initialized if needed */}
             {selectedMint && !checkingOracle && !oracleWaitPhase && (
               <>
                 <div className="flex items-center justify-between text-xs mb-3">
@@ -706,7 +718,7 @@ export function CreateMarketForm() {
                 {oracleExists === false && (
                   <div className="border border-blue-500/20 rounded-[4px] bg-blue-500/[0.04] px-3 py-2.5 mb-3">
                     <p className="text-xs text-blue-400/90 font-sans">
-                      No oracle exists for this token yet. One will be created automatically — the cranker starts feeding prices within ~60 seconds.
+                      No oracle exists for this token yet. One will be created automatically - the cranker starts feeding prices within ~60 seconds.
                     </p>
                   </div>
                 )}
