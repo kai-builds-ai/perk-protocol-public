@@ -328,9 +328,10 @@ export function TradePanel({ market, hasOpenPosition: hasOpenPositionProp }: Tra
               type="number"
               value={size}
               onChange={(e) => setSize(e.target.value)}
+              onWheel={(e) => (e.target as HTMLInputElement).blur()}
               placeholder="0.00"
               disabled={isSubmitting}
-              className="flex-1 bg-transparent px-3 py-2 text-sm font-mono text-white outline-none placeholder:text-text-tertiary disabled:opacity-50"
+              className="flex-1 bg-transparent px-3 py-2 text-sm font-mono text-white outline-none placeholder:text-text-tertiary disabled:opacity-50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
             <span className="pr-3 text-sm font-sans text-text-secondary">
               {getTokenSymbol(market.collateralMint)}
@@ -349,9 +350,10 @@ export function TradePanel({ market, hasOpenPosition: hasOpenPositionProp }: Tra
                 type="number"
                 value={triggerPrice}
                 onChange={(e) => setTriggerPrice(e.target.value)}
+                onWheel={(e) => (e.target as HTMLInputElement).blur()}
                 placeholder={market.markPrice.toString()}
                 disabled={isSubmitting}
-                className="flex-1 bg-transparent px-3 py-2 text-sm font-mono text-white outline-none placeholder:text-text-tertiary disabled:opacity-50"
+                className="flex-1 bg-transparent px-3 py-2 text-sm font-mono text-white outline-none placeholder:text-text-tertiary disabled:opacity-50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               />
               <span className="pr-3 text-sm font-sans text-text-secondary">
                 USD
