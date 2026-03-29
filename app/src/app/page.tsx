@@ -260,19 +260,19 @@ export default function Landing() {
               <div className="px-5 py-4 space-y-3">
                 <div className="flex justify-between items-center py-1.5">
                   <span className="text-sm font-sans text-text-secondary">Daily volume on your market</span>
-                  <span className="text-sm font-mono text-white">$100,000</span>
+                  <span className="text-sm font-mono text-white">$1,000,000</span>
                 </div>
                 <div className="flex justify-between items-center py-1.5">
                   <span className="text-sm font-sans text-text-secondary">Trading fee (0.1%)</span>
-                  <span className="text-sm font-mono text-white">$100</span>
+                  <span className="text-sm font-mono text-white">$1,000</span>
                 </div>
                 <div className="flex justify-between items-center py-1.5">
                   <span className="text-sm font-sans text-text-secondary">Your cut (10%)</span>
-                  <span className="text-sm font-mono text-profit">$10 / day</span>
+                  <span className="text-sm font-mono text-profit">$100 / day</span>
                 </div>
                 <div className="border-t border-border pt-3 flex justify-between items-center">
                   <span className="text-sm font-sans text-text-secondary">Annual passive income</span>
-                  <span className="text-sm font-mono text-profit font-medium">$3,650</span>
+                  <span className="text-sm font-mono text-profit font-medium">$36,500</span>
                 </div>
                 <p className="text-xs text-text-tertiary font-sans pt-1">
                   Per market. No cap on how many markets you create.
