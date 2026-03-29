@@ -72,11 +72,12 @@ const oracleOrNull = await client.fetchPerkOracleNullable(tokenMint);
 import BN from "bn.js";
 
 // First interaction: initialize position account
-await client.initializePosition(tokenMint);
+await client.initializePosition(tokenMint, creatorPubkey);
 
 // Deposit 10 SOL (in lamports)
 await client.deposit(
   tokenMint,
+  creatorPubkey,
   oracleAddress,
   new BN(10_000_000_000),      // 10 SOL
   fallbackOracleAddress,        // optional
@@ -91,6 +92,7 @@ import { Side } from "perk-protocol";
 // Open a 5x long position, 1 SOL size
 await client.openPosition(
   tokenMint,
+  creatorPubkey,
   oracleAddress,
   Side.Long,
   new BN(1_000_000_000),       // 1 SOL base size
@@ -106,11 +108,12 @@ Leverage is scaled by 100: `200` = 2x, `500` = 5x, `1000` = 10x, `2000` = 20x.
 
 ```typescript
 // Close entire position
-await client.closePosition(tokenMint, oracleAddress);
+await client.closePosition(tokenMint, creatorPubkey, oracleAddress);
 
 // Close partial (0.5 SOL)
 await client.closePosition(
   tokenMint,
+  creatorPubkey,
   oracleAddress,
   new BN(500_000_000),          // 0.5 SOL
 );
@@ -121,6 +124,7 @@ await client.closePosition(
 ```typescript
 await client.withdraw(
   tokenMint,
+  creatorPubkey,
   oracleAddress,
   new BN(5_000_000_000),        // 5 SOL
 );
@@ -135,7 +139,7 @@ await client.withdraw(
 ```typescript
 import { TriggerOrderType, Side } from "perk-protocol";
 
-await client.placeTriggerOrder(tokenMint, {
+await client.placeTriggerOrder(tokenMint, creatorPubkey, {
   orderType: TriggerOrderType.Limit,
   side: Side.Long,
   size: new BN(1_000_000_000),       // 1 SOL
@@ -149,7 +153,7 @@ await client.placeTriggerOrder(tokenMint, {
 ### Place a Stop Loss
 
 ```typescript
-await client.placeTriggerOrder(tokenMint, {
+await client.placeTriggerOrder(tokenMint, creatorPubkey, {
   orderType: TriggerOrderType.StopLoss,
   side: Side.Long,                     // Side of position to close
   size: new BN(0),                     // 0 = close entire position
@@ -163,7 +167,7 @@ await client.placeTriggerOrder(tokenMint, {
 ### Place a Take Profit
 
 ```typescript
-await client.placeTriggerOrder(tokenMint, {
+await client.placeTriggerOrder(tokenMint, creatorPubkey, {
   orderType: TriggerOrderType.TakeProfit,
   side: Side.Long,
   size: new BN(0),
@@ -177,7 +181,7 @@ await client.placeTriggerOrder(tokenMint, {
 ### Cancel a Trigger Order
 
 ```typescript
-await client.cancelTriggerOrder(tokenMint, orderId);
+await client.cancelTriggerOrder(tokenMint, creatorPubkey, orderId);
 ```
 
 ---
@@ -301,7 +305,7 @@ await client.reclaimEmptyAccount(
 
 ```typescript
 // Creator or protocol admin claims accumulated fees
-await client.claimFees(tokenMint, recipientTokenAccount);
+await client.claimFees(tokenMint, creatorPubkey, recipientTokenAccount);
 ```
 
 ---

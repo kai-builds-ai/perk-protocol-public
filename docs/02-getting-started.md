@@ -21,28 +21,24 @@ Click **Connect Wallet** in the top bar. Select your wallet, approve the connect
 
 ## Make Your First Trade
 
-### 1. Deposit Collateral
+### 1. Open the Trade Panel
 
-Navigate to a market (e.g., SOL-PERP). In the deposit panel:
+Navigate to a market (e.g., SOL-PERP). The trade panel shows your balances (Wallet, Vault, Margin, Buffer) at the top, followed by a **Size** input for your collateral, a **Leverage** slider, and the **Open Long / Open Short** buttons.
 
-1. Enter the amount of collateral to deposit
-2. Click **Deposit**
-3. Approve the transaction in your wallet
+To trade, simply enter your collateral size, set your leverage, and click **Open Long** or **Open Short**. The protocol handles depositing collateral into the vault automatically — no separate deposit step is needed.
 
-Collateral goes into the market's vault. Your deposited amount appears as available margin.
+Below the trade button you'll find the **Add Margin / Withdraw** section for managing margin on existing positions.
 
 > Your first trade on a market requires a small rent deposit (~0.01 SOL) to create your position account on-chain. This is refundable when the account is closed. Position initialization is handled automatically.
 
-> Perk uses coin-margined positions. For SOL-PERP, you deposit SOL. For BONK-PERP, you deposit BONK.
->
-> **⚠️ Compounding risk:** Coin-margined positions carry compounding risk. If the token price drops, both your position and your collateral lose value simultaneously. This means liquidation can happen faster than on stablecoin-margined platforms.
+> Perk uses stablecoin-margined positions. All markets accept stablecoin collateral (USDC, USDT, or PYUSD) — the specific stablecoin is chosen by the market creator. Your collateral value is stable regardless of the base token's price movement.
 
 ### 2. Open a Position
 
 In the trade panel:
 
 1. Select **Long** or **Short**
-2. Enter your position size (in the market's base token)
+2. Enter your collateral size (in the market's stablecoin, e.g. USDC)
 3. Set leverage using the slider (2x–20x, depending on market)
 4. Review the estimate: entry price, liquidation price, fee, slippage
 5. Click **Open Long** or **Open Short**
@@ -66,7 +62,7 @@ Profit (after the warmup period) is added to your available collateral. You can 
 
 ### 5. Withdraw
 
-In the deposit panel, click **Withdraw**, enter the amount, and confirm. Tokens transfer from the vault back to your wallet.
+In the panel below the trade button, click **Withdraw**, enter the amount, and confirm. Tokens transfer from the vault back to your wallet.
 
 > You can only withdraw available margin — collateral not currently backing an open position.
 
@@ -86,9 +82,7 @@ Anyone can create a perpetual futures market for any SPL token.
 
 1. Navigate to `/launch` (or click **Create Market**)
 2. Enter the token mint address or search by name
-3. Select the oracle source:
-   - **Pyth** — for tokens with Pyth price feeds (SOL, BTC, ETH, etc.)
-   - **PerkOracle** — for everything else (requires DEX liquidity on Jupiter/Birdeye)
+3. Choose the **collateral stablecoin** (USDC, USDT, or PYUSD). All traders on your market will use this stablecoin.
 4. Configure parameters:
    - **Max leverage** — 2x to 20x
    - **Trading fee** — 0.03% to 1% (you choose, immutable after creation)
@@ -98,7 +92,7 @@ Anyone can create a perpetual futures market for any SPL token.
 
 The market is live immediately. You earn 10% of every trading fee collected on it for the lifetime of the market.
 
-> One market per token mint. The first creator for a given token gets the market.
+> One market per token mint per creator. Multiple creators can create markets for the same token with different parameters.
 
 ---
 

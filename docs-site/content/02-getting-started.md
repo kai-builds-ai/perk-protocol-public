@@ -21,15 +21,13 @@ Click **Connect Wallet** in the top bar. Select your wallet, approve the connect
 
 ## Make Your First Trade
 
-### 1. Deposit Collateral
+### 1. Open the Trade Panel
 
-Navigate to a market (e.g., SOL-PERP). In the deposit panel:
+Navigate to a market (e.g., SOL-PERP). The trade panel shows your balances (Wallet, Vault, Margin, Buffer) at the top, followed by a **Size** input for your collateral, a **Leverage** slider, and the **Open Long / Open Short** buttons.
 
-1. Enter the amount of collateral to deposit
-2. Click **Deposit**
-3. Approve the transaction in your wallet
+To trade, simply enter your collateral size, set your leverage, and click **Open Long** or **Open Short**. The protocol handles depositing collateral into the vault automatically — no separate deposit step is needed.
 
-Collateral goes into the market's vault. Your deposited amount appears as available margin.
+Below the trade button you'll find the **Add Margin / Withdraw** section for managing margin on existing positions.
 
 > Your first trade on a market requires a small rent deposit (~0.01 SOL) to create your position account on-chain. This is refundable when the account is closed. Position initialization is handled automatically.
 
@@ -40,7 +38,7 @@ Collateral goes into the market's vault. Your deposited amount appears as availa
 In the trade panel:
 
 1. Select **Long** or **Short**
-2. Enter your position size (in the market's base token)
+2. Enter your collateral size (in the market's stablecoin, e.g. USDC)
 3. Set leverage using the slider (2x–20x, depending on market)
 4. Review the estimate: entry price, liquidation price, fee, slippage
 5. Click **Open Long** or **Open Short**
@@ -64,7 +62,7 @@ Profit (after the warmup period) is added to your available collateral. You can 
 
 ### 5. Withdraw
 
-In the deposit panel, click **Withdraw**, enter the amount, and confirm. Tokens transfer from the vault back to your wallet.
+In the panel below the trade button, click **Withdraw**, enter the amount, and confirm. Tokens transfer from the vault back to your wallet.
 
 > You can only withdraw available margin — collateral not currently backing an open position.
 

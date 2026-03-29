@@ -15,6 +15,7 @@ Market creation is a single transaction that calls `createMarket`. The creator s
 | `oracleAddress` | Valid feed address | The specific oracle account |
 | `maxLeverage` | 200–2000 (2x–20x) | Maximum leverage traders can use |
 | `tradingFeeBps` | 3–100 (0.03%–1%) | Fee charged on every trade |
+| `collateralMint` | USDC, USDT, or PYUSD | Stablecoin used for collateral by all traders |
 | `initialK` | ≥ 1e18 | Initial vAMM depth (liquidity) |
 
 These parameters are **immutable after creation**. The creator cannot modify them. The protocol admin can update the oracle address, trading fee, max leverage, and active status in exceptional circumstances (e.g., oracle migration, safety issues) — this is not standard operation. Choose carefully.
@@ -138,6 +139,7 @@ const tx = await perkClient.createMarket(
   oracleAddress,       // Pyth feed or PerkOracle account
   {
     oracleSource: OracleSource.PerkOracle,
+    collateralMint: collateralMintAddress, // USDC, USDT, or PYUSD mint
     maxLeverage: 1000,       // 10x
     tradingFeeBps: 30,       // 0.3%
     initialK: new BN("1000000000000000000"), // 1e18
