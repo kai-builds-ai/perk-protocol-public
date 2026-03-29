@@ -210,7 +210,8 @@ export function TradePanel({ market }: TradePanelProps) {
           const vaultAfter = posAfter.depositedCollateral.toNumber() / 10 ** decimals;
           const totalBaseSize = Math.abs(posAfter.baseSize.toNumber()) / POS_SCALE;
           const totalNotional = totalBaseSize * markPrice;
-          const targetCollateral = totalNotional / leverage;
+          // Add 2% buffer above target so we stay above initial margin check
+          const targetCollateral = (totalNotional / leverage) * 1.02;
           const excess = vaultAfter - targetCollateral;
           // Only withdraw if excess is meaningful (> $0.50 to avoid dust txs)
           if (excess > 0.5) {
@@ -221,6 +222,7 @@ export function TradePanel({ market }: TradePanelProps) {
         } catch (withdrawErr) {
           // Non-fatal: position opened successfully, just couldn't auto-withdraw
           console.warn("[trade] Auto-withdraw excess failed:", withdrawErr);
+          toast("Position opened but couldn't auto-adjust leverage. Use manual withdraw.", { icon: "⚠️" });
         }
 
         toast.success("Position opened!\nTX: " + sig.slice(0, 16) + "...");
