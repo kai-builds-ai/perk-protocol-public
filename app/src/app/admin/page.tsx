@@ -604,8 +604,78 @@ function ProtocolActions({
         <div className="md:col-span-2">
           <TransferAdmin client={client} onRefresh={onRefresh} />
         </div>
+        <div className="md:col-span-2">
+          <SetOracleAuthority client={client} protocol={protocol} onRefresh={onRefresh} />
+        </div>
       </div>
     </section>
+  );
+}
+
+function SetOracleAuthority({
+  client,
+  protocol,
+  onRefresh,
+}: {
+  client: NonNullable<ReturnType<typeof usePerk>['client']>;
+  protocol: ProtocolAccount;
+  onRefresh: () => Promise<void>;
+}) {
+  const [authority, setAuthority] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
+
+  const currentAuthority = (protocol as any).oracleAuthority?.toBase58?.() || 'Not set';
+
+  const handleSubmit = async () => {
+    if (submittingRef.current) return;
+    if (!authority.trim()) { toast.error('Enter a pubkey'); return; }
+    let pubkey: PublicKey;
+    try { pubkey = new PublicKey(authority.trim()); } catch { toast.error('Invalid pubkey'); return; }
+    if (!confirm(`Set oracle authority to ${pubkey.toBase58()}? All new permissionless oracles will use this cranker.`)) return;
+    submittingRef.current = true;
+    setSubmitting(true);
+    try {
+      const sig = await client.adminSetOracleAuthority(pubkey);
+      toast.success(`Oracle authority set — ${truncatePubkey(sig)}`);
+      setAuthority('');
+      await onRefresh();
+    } catch (err) {
+      toast.error(sanitizeError(err, 'admin'));
+    } finally {
+      setSubmitting(false);
+      submittingRef.current = false;
+    }
+  };
+
+  return (
+    <div className="bg-surface px-5 py-5 space-y-3">
+      <div className="font-mono text-xs text-text-tertiary uppercase tracking-wider">
+        Set Oracle Authority (Cranker)
+      </div>
+      <p className="text-xs text-text-secondary font-sans">
+        Current: <span className="text-text-primary font-mono">{truncatePubkey(currentAuthority)}</span>
+      </p>
+      <p className="text-xs text-text-secondary font-sans">
+        Sets the cranker pubkey that will be assigned as authority on all new permissionless oracles.
+      </p>
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={authority}
+          onChange={(e) => setAuthority(e.target.value)}
+          placeholder="Cranker pubkey (e.g. 99mUUw...)"
+          className="flex-1 bg-bg border border-border rounded-[2px] px-3 py-2 font-mono text-xs text-text-primary placeholder:text-text-tertiary focus:border-accent focus:outline-none"
+        />
+        <button
+          onClick={handleSubmit}
+          disabled={submitting || !authority.trim()}
+          className="font-mono text-xs px-4 py-2 rounded-[2px] border border-accent/30 text-accent hover:bg-accent/10 transition-colors disabled:opacity-50"
+        >
+          {submitting ? 'Setting...' : 'Set Authority'}
+        </button>
+      </div>
+    </div>
   );
 }
 
