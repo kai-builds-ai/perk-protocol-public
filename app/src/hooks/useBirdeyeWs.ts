@@ -72,6 +72,7 @@ export function useBirdeyeWs(
         ws.send(JSON.stringify({
           type: "SUBSCRIBE_PRICE",
           data: {
+            queryType: "simple",
             chartType: chartType(resolution),
             address: mint,
             currency: "usd",
