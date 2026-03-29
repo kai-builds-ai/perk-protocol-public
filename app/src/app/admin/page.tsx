@@ -1132,13 +1132,27 @@ function UnfreezeAllOracles({
 
   const unfreezeAll = async () => {
     if (submittingRef.current || frozenMints.length === 0) return;
-    if (!confirm(`Unfreeze ${frozenMints.length} oracles? You'll approve ${frozenMints.length} transactions.`)) return;
+    if (!confirm(`Unfreeze + fix ${frozenMints.length} oracles? This will:\n1. Bump maxStaleness to 120s\n2. Unfreeze each oracle\n\nYou'll approve up to ${frozenMints.length * 2} transactions.`)) return;
     submittingRef.current = true;
     setSubmitting(true);
     let success = 0;
     let failed = 0;
     for (const { mint, label } of frozenMints) {
-      setProgress(`${label} (${success + failed + 1}/${frozenMints.length})`);
+      // Step 1: Bump maxStalenessSeconds to 120 so it doesn't lock out again
+      setProgress(`${label}: updating config (${success + failed + 1}/${frozenMints.length})`);
+      try {
+        await client.updateOracleConfig(mint, {
+          maxStalenessSeconds: 120,
+          maxPriceChangeBps: null,
+          minSources: null,
+          circuitBreakerDeviationBps: null,
+        });
+      } catch (err) {
+        // May fail if already at 120 or other reason — continue to unfreeze
+        toast.error(`${label} config: ${sanitizeError(err, 'admin')}`);
+      }
+      // Step 2: Unfreeze
+      setProgress(`${label}: unfreezing (${success + failed + 1}/${frozenMints.length})`);
       try {
         await client.freezePerkOracle(mint, false);
         success++;
@@ -1148,7 +1162,7 @@ function UnfreezeAllOracles({
       }
     }
     setProgress('');
-    toast.success(`Unfrozen: ${success} oracles, ${failed} failed`);
+    toast.success(`Fixed: ${success} oracles, ${failed} failed`);
     setSubmitting(false);
     submittingRef.current = false;
     setFrozenCount(0);
@@ -1170,7 +1184,7 @@ function UnfreezeAllOracles({
           disabled={submitting || frozenCount === 0 || frozenCount === null}
           className="font-mono text-xs px-3 py-1.5 rounded-[2px] border border-loss/30 text-loss hover:bg-loss/10 transition-colors disabled:opacity-50"
         >
-          {submitting && progress ? progress : frozenCount === 0 ? 'All Fresh ✓' : `Unfreeze All (${frozenCount})`}
+          {submitting && progress ? progress : frozenCount === 0 ? 'All Fresh ✓' : `Fix All (${frozenCount})`}
         </button>
       </div>
       {frozenMints.length > 0 && (
