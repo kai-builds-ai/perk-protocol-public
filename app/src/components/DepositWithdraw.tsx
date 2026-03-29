@@ -290,8 +290,8 @@ export function DepositWithdraw({ market }: DepositWithdrawProps) {
         />
       )}
       <BalanceRow
-        label="Free"
-        tooltip="Vault minus margin — available to withdraw or use for new trades"
+        label="Buffer"
+        tooltip="Vault minus margin — your liquidation cushion"
         value={`${displayFree} ${collateralSymbol}`}
         color="text-profit"
       />
