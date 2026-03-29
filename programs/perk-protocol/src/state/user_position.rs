@@ -42,7 +42,7 @@ pub struct UserPosition {
 
     // v1.4.0: Peg multiplier snapshot at position open time.
     // 0 = legacy position (opened before v1.4.0) — frontend falls back to historical lookup.
-    pub peg_at_entry: u64,
+    pub peg_at_entry: u128,
 }
 
 impl UserPosition {
