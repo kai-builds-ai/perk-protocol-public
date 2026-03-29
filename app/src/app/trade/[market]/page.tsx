@@ -77,7 +77,7 @@ export default function TradingView() {
       <div className="flex flex-col md:flex-row flex-1 min-h-0 md:overflow-auto no-scrollbar">
         {/* Left: Chart + Positions (desktop) */}
         <div className="flex flex-col md:flex-1 md:border-r border-border min-w-0">
-          <div className="h-[180px] md:h-auto md:flex-1 md:min-h-[300px]">
+          <div className="h-[260px] md:h-auto md:flex-1 md:min-h-[300px]">
             <Chart data={candles} symbol={symbol} />
           </div>
           {/* Positions + Orders — below chart on desktop, below everything on mobile */}
