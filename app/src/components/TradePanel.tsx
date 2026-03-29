@@ -24,7 +24,7 @@ interface TradePanelProps {
   hasOpenPosition?: boolean;
 }
 
-const MAX_SLIPPAGE_BPS = 100; // 1%
+const MAX_SLIPPAGE_BPS = 300; // 3% — vAMM with low liquidity needs higher tolerance
 
 export function TradePanel({ market, hasOpenPosition: hasOpenPositionProp }: TradePanelProps) {
   const [tab, setTab] = useState<OrderTab>("market");
@@ -186,9 +186,17 @@ export function TradePanel({ market, hasOpenPosition: hasOpenPositionProp }: Tra
         const leverageScaled = Math.floor(leverage * LEVERAGE_SCALE);
 
         toast("Opening position...", { icon: "⏳" });
-        const sig = await client.openPosition(
-          tokenMint, creator, oracle, sdkSide, baseSize, leverageScaled, MAX_SLIPPAGE_BPS,
-        );
+        let sig: string;
+        try {
+          sig = await client.openPosition(
+            tokenMint, creator, oracle, sdkSide, baseSize, leverageScaled, MAX_SLIPPAGE_BPS,
+          );
+        } catch (openErr: unknown) {
+          // Open failed but deposit already went through — warn user
+          console.error("[trade] openPosition failed after deposit:", openErr);
+          toast.error(`Position failed to open. Your ${needed > 0 ? needed.toFixed(2) : sizeNum.toFixed(2)} ${getTokenSymbol(market.collateralMint)} deposit is in your vault — withdraw it or try again.`);
+          throw openErr; // re-throw to hit the outer catch
+        }
 
         // Step 3: Withdraw excess collateral to match target leverage
         // Vault may have leftover from previous closed positions
