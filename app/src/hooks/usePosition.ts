@@ -62,10 +62,21 @@ function toFrontendPosition(
     ? (quoteEntry * pegMultiplier) / (absBasis * PRICE_SCALE)
     : 0;
 
-  // PnL: use SDK's accountEquity which handles ADL, funding, fee credits (F-04 fix)
+  // PnL: compute unrealized PnL from current mark price (real-time)
+  // On-chain position.pnl only updates on trades/cranks, so we derive it client-side
+  // baseSize is already scaled to human-readable (divided by POS_SCALE above)
+  const unrealizedPnl = baseSize > 0
+    ? baseSize * (markPrice - entryPrice)    // long: profit when price goes up
+    : Math.abs(baseSize) * (entryPrice - markPrice);   // short: profit when price goes down
+  
+  // Also include fee credits/debts from the on-chain equity calc
   const equity = accountEquity(pos);
   const equityHuman = amountToNumber(equity, decimals);
-  const pnl = equityHuman - collateralHuman; // equity - deposited = realized + unrealized PnL
+  
+  // Use the larger signal: client-side unrealized PnL (real-time) vs on-chain equity delta
+  // On-chain equity includes funding + fee credits that client-side doesn't capture
+  const onChainPnl = equityHuman - collateralHuman;
+  const pnl = Math.abs(unrealizedPnl) > Math.abs(onChainPnl) ? unrealizedPnl : onChainPnl;
   const pnlPercent = collateralHuman > 0 ? (pnl / collateralHuman) * 100 : 0;
 
   // Leverage: notional (USD) / equity (USD)
