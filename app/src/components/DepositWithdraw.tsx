@@ -35,6 +35,7 @@ export function DepositWithdraw({ market }: DepositWithdrawProps) {
   const [vaultBalance, setVaultBalance] = useState<number | null>(null);
   const [vaultBalanceRaw, setVaultBalanceRaw] = useState<number>(0); // lamports
   const [freeCollateral, setFreeCollateral] = useState<number | null>(null);
+  const [marginUsed, setMarginUsed] = useState<number | null>(null);
   const [hasOpenPosition, setHasOpenPosition] = useState(false);
 
   const { client, readonlyClient } = usePerk();
@@ -106,9 +107,12 @@ export function DepositWithdraw({ market }: DepositWithdrawProps) {
         const mPrice = calculateMarkPrice(marketAccount);
         const notional = Math.abs(baseSize) * mPrice;
         const imRequired = notional * imBps / 10000;
-        if (!cancelled) setFreeCollateral(Math.max(0, equityHuman - imRequired));
+        if (!cancelled) {
+          setFreeCollateral(Math.max(0, equityHuman - imRequired));
+          setMarginUsed(pos.baseSize.toNumber() !== 0 ? imRequired : 0);
+        }
       } catch {
-        if (!cancelled) { setVaultBalance(0); setFreeCollateral(0); }
+        if (!cancelled) { setVaultBalance(0); setFreeCollateral(0); setMarginUsed(0); }
       }
     };
 
@@ -282,13 +286,21 @@ export function DepositWithdraw({ market }: DepositWithdrawProps) {
         </span>
       </div>
       <div className="flex items-center justify-between text-sm">
-        <span className="text-text-secondary font-sans">Vault</span>
+        <span className="text-text-secondary font-sans" title="Total collateral deposited in this market's vault">Vault</span>
         <span className="font-mono text-white">
           {displayVault} {collateralSymbol}
         </span>
       </div>
+      {marginUsed !== null && marginUsed > 0 && (
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-text-secondary font-sans" title="Collateral locked as margin for your open position (10% of notional at max 10x leverage)">Margin</span>
+          <span className="font-mono text-yellow-400">
+            {(Math.floor(marginUsed * 10000) / 10000).toFixed(4)} {collateralSymbol}
+          </span>
+        </div>
+      )}
       <div className="flex items-center justify-between text-sm">
-        <span className="text-text-secondary font-sans">Free</span>
+        <span className="text-text-secondary font-sans" title="Vault balance minus margin — available to withdraw or use for new trades">Free</span>
         <span className="font-mono text-profit">
           {displayFree} {collateralSymbol}
         </span>
