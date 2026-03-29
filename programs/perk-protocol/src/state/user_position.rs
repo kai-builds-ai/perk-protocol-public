@@ -39,6 +39,10 @@ pub struct UserPosition {
     pub last_activity_slot: u64,
 
     pub bump: u8,
+
+    // v1.4.0: Peg multiplier snapshot at position open time.
+    // 0 = legacy position (opened before v1.4.0) — frontend falls back to historical lookup.
+    pub peg_at_entry: u64,
 }
 
 impl UserPosition {

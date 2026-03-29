@@ -243,6 +243,12 @@ pub fn handler(
     protocol_mut.total_volume = protocol_mut.total_volume.saturating_add(notional);
     protocol_mut.total_fees_collected = protocol_mut.total_fees_collected.saturating_add(total_fee);
 
+    // v1.4.0: Snapshot peg at entry for accurate entry price reconstruction.
+    // Only set on NEW positions (old_base_size == 0), not add-to-position.
+    if old_base_size == 0 {
+        position.peg_at_entry = market.peg_multiplier;
+    }
+
     // C5: Update last activity slot
     position.last_activity_slot = clock.slot;
 

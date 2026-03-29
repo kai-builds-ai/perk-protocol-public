@@ -13,6 +13,9 @@ pub struct UpdateOracleConfigParams {
     pub max_staleness_seconds: Option<u32>,
     /// Circuit breaker: max deviation from EMA in bps. 0 = disabled.
     pub circuit_breaker_deviation_bps: Option<u16>,
+    /// v1.4.0: Per-oracle max confidence band in bps. 0 = use global default (200 bps).
+    /// Range: 50-2000 bps (0.5%-20%). Wider for memecoins, tighter for majors.
+    pub max_confidence_bps: Option<u16>,
 }
 
 #[derive(Accounts)]
@@ -82,6 +85,20 @@ pub fn handler(ctx: Context<UpdateOracleConfig>, params: UpdateOracleConfigParam
         oracle._reserved[RESERVED_OFFSET_CIRCUIT_BREAKER_BPS] = cb_bytes[0];
         oracle._reserved[RESERVED_OFFSET_CIRCUIT_BREAKER_BPS + 1] = cb_bytes[1];
         msg!("  circuit_breaker_deviation_bps={}", circuit_breaker_deviation_bps);
+    }
+
+    // v1.4.0: Per-oracle confidence threshold
+    if let Some(max_confidence_bps) = params.max_confidence_bps {
+        // 0 = reset to global default; otherwise must be in [50, 2000] bps
+        require!(
+            max_confidence_bps == 0
+                || (max_confidence_bps >= 50 && max_confidence_bps <= 2000),
+            PerkError::InvalidAmount
+        );
+        let conf_bytes = max_confidence_bps.to_le_bytes();
+        oracle._reserved[RESERVED_OFFSET_MAX_CONFIDENCE_BPS] = conf_bytes[0];
+        oracle._reserved[RESERVED_OFFSET_MAX_CONFIDENCE_BPS + 1] = conf_bytes[1];
+        msg!("  max_confidence_bps={}", max_confidence_bps);
     }
 
     msg!("Oracle config updated for mint {}", oracle.token_mint);

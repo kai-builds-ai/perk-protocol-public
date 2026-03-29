@@ -72,9 +72,15 @@ fn read_perk_oracle_price(
     // Normative bound: reject absurd prices that would overflow risk math
     require!(oracle.price <= MAX_ORACLE_PRICE, PerkError::OraclePriceInvalid);
 
-    // M-02 fix: Confidence band validation (same as Pyth — max 2% of price)
+    // M-02 fix: Confidence band validation.
+    // v1.4.0: Read per-oracle threshold from reserved bytes; fall back to global default.
+    let per_oracle_conf_bps = {
+        let bytes = &oracle._reserved[RESERVED_OFFSET_MAX_CONFIDENCE_BPS..RESERVED_OFFSET_MAX_CONFIDENCE_BPS + 2];
+        u16::from_le_bytes([bytes[0], bytes[1]])
+    };
+    let conf_bps = if per_oracle_conf_bps > 0 { per_oracle_conf_bps } else { ORACLE_CONFIDENCE_BPS };
     let max_conf = oracle.price
-        .checked_mul(ORACLE_CONFIDENCE_BPS as u64)
+        .checked_mul(conf_bps as u64)
         .ok_or(PerkError::MathOverflow)?
         .checked_div(BPS_DENOMINATOR)
         .ok_or(PerkError::MathOverflow)?;

@@ -125,7 +125,8 @@ pub const RESERVED_OFFSET_PRE_FREEZE_PRICE: usize = 3;       // [3..11]: u64 LE
 pub const RESERVED_OFFSET_WINDOW_REF_PRICE: usize = 11;      // [11..19]: u64 LE
 pub const RESERVED_OFFSET_WINDOW_REF_SLOT: usize = 19;       // [19..27]: u64 LE
 pub const RESERVED_OFFSET_CIRCUIT_BREAKER_BPS: usize = 27;   // [27..29]: u16 LE
-// [29..64]: unused (35 bytes)
+pub const RESERVED_OFFSET_MAX_CONFIDENCE_BPS: usize = 29;   // [29..31]: u16 LE (v1.4.0)
+// [31..64]: unused (33 bytes)
 
 // Circuit breaker bounds (ATK-05 R2 fix)
 pub const MIN_CIRCUIT_BREAKER_BPS: u16 = 500;   // 5% minimum when enabled
