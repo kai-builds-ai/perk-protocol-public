@@ -93,6 +93,12 @@ export function CreateMarketForm() {
   const [oracleExists, setOracleExists] = useState<boolean | null>(null);
   const [checkingOracle, setCheckingOracle] = useState(false);
 
+  // Oracle wait state for new markets
+  const [oracleWaitPhase, setOracleWaitPhase] = useState<
+    null | "initializing" | "waiting" | "ready" | "failed"
+  >(null);
+  const [oracleWaitProgress, setOracleWaitProgress] = useState(0);
+
   const { client, readonlyClient } = usePerk();
   const { publicKey, sendTransaction } = useWallet();
   const { connection } = useConnection();
@@ -255,17 +261,20 @@ export function CreateMarketForm() {
       // Auto-initialize oracle if it doesn't exist (permissionless)
       const existingOracle = await readonlyClient.fetchPerkOracleNullable(tokenMint);
       if (!existingOracle) {
-        toast("Initializing oracle for this token...");
+        setOracleWaitPhase("initializing");
+        setOracleWaitProgress(0);
         await client.initializePerkOracle(tokenMint, {
           minSources: 2,
           maxStalenessSeconds: 30,
           maxPriceChangeBps: 0, // no banding — memecoins move freely
           circuitBreakerDeviationBps: 0, // disabled
         });
-        toast.success("Oracle initialized! Waiting for cranker to feed first price...");
+        setOracleWaitPhase("waiting");
         // Wait for cranker to feed at least one price (polls every 5s, up to 90s)
         let priceFed = false;
-        for (let i = 0; i < 18; i++) {
+        const maxPolls = 18;
+        for (let i = 0; i < maxPolls; i++) {
+          setOracleWaitProgress(Math.round(((i + 1) / maxPolls) * 100));
           await new Promise((r) => setTimeout(r, 5000));
           const oracleData = await readonlyClient.fetchPerkOracleNullable(tokenMint);
           if (oracleData && !oracleData.price.isZero()) {
@@ -274,11 +283,13 @@ export function CreateMarketForm() {
           }
         }
         if (!priceFed) {
-          toast.error("Cranker hasn't fed a price yet. Please try creating the market again in a minute.");
+          setOracleWaitPhase("failed");
           setIsSubmitting(false);
           return;
         }
-        toast.success("Price feed active! Creating market...");
+        setOracleWaitPhase("ready");
+        // Brief pause so user sees the "ready" state
+        await new Promise((r) => setTimeout(r, 1000));
       }
 
       const oracleSource = SdkOracleSource.PerkOracle;
@@ -298,6 +309,7 @@ export function CreateMarketForm() {
         new PublicKey(collateralMint),
       );
 
+      setOracleWaitPhase(null);
       toast.success("Market created!\nTX: " + sig.slice(0, 16) + "...");
 
       // Brief delay to let the account finalize before redirecting
@@ -328,6 +340,7 @@ export function CreateMarketForm() {
       toast.error(sanitizeError(err, "create-market"));
     } finally {
       setIsSubmitting(false);
+      if (oracleWaitPhase !== "failed") setOracleWaitPhase(null);
     }
   }, [
     client,
@@ -601,10 +614,62 @@ export function CreateMarketForm() {
           </div>
           </>)}
 
-          {/* Cost + Create/Request button */}
+          {/* Oracle initialization waiting state */}
+          {oracleWaitPhase && oracleWaitPhase !== "failed" && (
+            <div className="border border-accent/20 rounded-[4px] bg-accent/[0.03] px-4 py-5">
+              <div className="flex items-center gap-3 mb-3">
+                {oracleWaitPhase === "ready" ? (
+                  <div className="w-5 h-5 rounded-full bg-profit/20 flex items-center justify-center">
+                    <svg className="w-3 h-3 text-profit" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                ) : (
+                  <div className="w-5 h-5 border-2 border-accent/50 border-t-accent rounded-full animate-spin" />
+                )}
+                <span className="font-mono text-sm text-white">
+                  {oracleWaitPhase === "initializing" && "Initializing oracle..."}
+                  {oracleWaitPhase === "waiting" && "Waiting for price feed..."}
+                  {oracleWaitPhase === "ready" && "Price feed active!"}
+                </span>
+              </div>
+              <p className="text-xs text-text-secondary font-sans mb-3">
+                {oracleWaitPhase === "initializing" && "Creating the oracle account on-chain. Please approve the transaction in your wallet."}
+                {oracleWaitPhase === "waiting" && "The cranker is picking up your new oracle and feeding the first price. This usually takes 30–60 seconds."}
+                {oracleWaitPhase === "ready" && "Creating your market now..."}
+              </p>
+              {oracleWaitPhase === "waiting" && (
+                <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-accent/60 rounded-full transition-all duration-[4500ms] ease-linear"
+                    style={{ width: `${oracleWaitProgress}%` }}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          {oracleWaitPhase === "failed" && (
+            <div className="border border-loss/20 rounded-[4px] bg-loss/[0.03] px-4 py-4">
+              <div className="flex items-center gap-3 mb-2">
+                <span className="text-loss font-mono text-sm">Price feed timed out</span>
+              </div>
+              <p className="text-xs text-text-secondary font-sans mb-3">
+                The cranker hasn&apos;t fed a price yet. The oracle was created — try again in a minute and it should go through.
+              </p>
+              <button
+                onClick={() => { setOracleWaitPhase(null); setIsSubmitting(false); }}
+                className="font-mono text-xs px-4 py-2 rounded-[2px] border border-border text-text-secondary hover:text-white hover:bg-white/5 transition-colors"
+              >
+                Try Again
+              </button>
+            </div>
+          )}
+
+          {/* Cost + Create button */}
           <div className="pt-2">
             {/* Unified Create Market flow — oracle auto-initialized if needed */}
-            {selectedMint && !checkingOracle && (
+            {selectedMint && !checkingOracle && !oracleWaitPhase && (
               <>
                 <div className="flex items-center justify-between text-xs mb-3">
                   <span className="text-text-secondary font-sans">Cost</span>
