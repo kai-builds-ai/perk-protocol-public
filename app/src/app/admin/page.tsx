@@ -1447,6 +1447,7 @@ function MarketEditPanel({
         <FreezePerkOracle client={client} market={market} onRefresh={onRefresh} />
         <SetFallbackOraclePanel client={client} market={market} onRefresh={onRefresh} />
         <FixMarketAccrue client={client} market={market} onRefresh={onRefresh} />
+        <ResetKIndices client={client} market={market} onRefresh={onRefresh} />
       </div>
     </section>
   );
@@ -1505,6 +1506,63 @@ function FixMarketAccrue({
         className="w-full py-2 font-mono text-xs border border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10 rounded-[2px] disabled:opacity-40 transition-colors"
       >
         {submitting ? 'Fixing…' : 'Fix Market Accrue'}
+      </button>
+    </div>
+  );
+}
+
+function ResetKIndices({
+  client,
+  market,
+  onRefresh,
+}: {
+  client: NonNullable<ReturnType<typeof usePerk>['client']>;
+  market: MarketWithAddress;
+  onRefresh: () => Promise<void>;
+}) {
+  const [submitting, setSubmitting] = useState(false);
+  const m = market.account;
+  const hasOI = Number(m.totalLongPosition) > 0 || Number(m.totalShortPosition) > 0;
+  const longK = m.longKIndex?.toString() ?? '0';
+  const shortK = m.shortKIndex?.toString() ?? '0';
+  const needsReset = longK !== '0' || shortK !== '0';
+
+  const handleReset = async () => {
+    if (submitting || hasOI) return;
+    setSubmitting(true);
+    try {
+      const sig = await client.adminResetKIndices(m.tokenMint, m.creator);
+      toast.success(`K indices reset: ${sig.slice(0, 12)}…`);
+      await onRefresh();
+    } catch (err: unknown) {
+      console.error('adminResetKIndices error:', err);
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(`Reset failed: ${msg.slice(0, 200)}`);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="p-4 bg-surface">
+      <div className="flex items-center justify-between mb-2">
+        <span className="font-mono text-xs text-text-tertiary uppercase">Reset K Indices</span>
+        {needsReset && !hasOI && (
+          <span className="font-mono text-[10px] text-yellow-400">⚠ Non-zero K</span>
+        )}
+      </div>
+      <p className="text-xs text-text-secondary mb-1">
+        Zeroes K indices to clear phantom PNL accumulation. Only works when no positions are open.
+      </p>
+      {hasOI && (
+        <p className="text-xs text-red-400 mb-2">Cannot reset — open positions exist. Close all positions first.</p>
+      )}
+      <button
+        onClick={handleReset}
+        disabled={submitting || hasOI || !needsReset}
+        className="w-full py-2 font-mono text-xs border border-red-500/30 text-red-400 hover:bg-red-500/10 rounded-[2px] disabled:opacity-40 transition-colors"
+      >
+        {submitting ? 'Resetting…' : hasOI ? 'Positions Open' : !needsReset ? 'K Already Zero' : 'Reset K Indices'}
       </button>
     </div>
   );

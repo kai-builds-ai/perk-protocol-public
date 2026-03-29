@@ -133,6 +133,81 @@
       "args": []
     },
     {
+      "name": "admin_reset_k_indices",
+      "docs": [
+        "Reset K indices on a market with zero open interest. Admin only."
+      ],
+      "discriminator": [
+        201,
+        131,
+        7,
+        155,
+        9,
+        213,
+        171,
+        6
+      ],
+      "accounts": [
+        {
+          "name": "protocol",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market.token_mint",
+                "account": "Market"
+              },
+              {
+                "kind": "account",
+                "path": "market.creator",
+                "account": "Market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "admin",
+          "signer": true,
+          "relations": [
+            "protocol"
+          ]
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "admin_pause",
       "docs": [
         "Emergency pause/unpause. Admin only."

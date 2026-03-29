@@ -889,6 +889,25 @@ export class PerkClient {
       .preInstructions(this.preInstructions).rpc();
   }
 
+  /** Reset K indices on a market with zero open interest.
+   *  Zeroes long_k_index, short_k_index, long_epoch_start_k, short_epoch_start_k.
+   *  Rejects if any open positions exist. */
+  async adminResetKIndices(
+    tokenMint: PublicKey,
+    creator: PublicKey,
+  ): Promise<TransactionSignature> {
+    const protocol = this.getProtocolAddress();
+    const market = this.getMarketAddress(tokenMint, creator);
+    return this.program.methods
+      .adminResetKIndices()
+      .accounts({
+        protocol,
+        market,
+        admin: this.wallet.publicKey,
+      })
+      .preInstructions(this.preInstructions).rpc();
+  }
+
   /** Initialize a PerkOracle price feed. Permissionless — anyone pays rent.
    *  Oracle authority is inherited from Protocol.oracle_authority. */
   async initializePerkOracle(
