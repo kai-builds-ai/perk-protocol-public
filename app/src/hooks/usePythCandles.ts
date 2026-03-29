@@ -1,9 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { fetchHistoricalCandles, PYTH_FEEDS } from "@/lib/pyth";
 import { CandleData } from "@/types";
 import { MOCK_CANDLES } from "@/lib/mock-data";
+import { useBirdeyeWs } from "./useBirdeyeWs";
+
+const BIRDEYE_API_KEY = process.env.NEXT_PUBLIC_BIRDEYE_API_KEY;
 
 /** Map our resolution strings to GeckoTerminal OHLCV endpoints */
 function geckoTimeframe(resolution: string): { period: string; aggregate: number } {
@@ -174,5 +177,21 @@ export function usePythCandles(
     return () => clearInterval(interval);
   }, [symbol, resolution, count, mint]);
 
-  return { candles, loading, isReal };
+  // Birdeye WebSocket for real-time candle updates
+  const { liveCandles, connected: wsConnected } = useBirdeyeWs(
+    mint,
+    resolution,
+    BIRDEYE_API_KEY
+  );
+
+  // Merge historical + live: live candles override historical at same timestamp, append new ones
+  const mergedCandles = useMemo(() => {
+    if (liveCandles.length === 0) return candles;
+    const map = new Map<number, CandleData>();
+    for (const c of candles) map.set(c.time as number, c);
+    for (const c of liveCandles) map.set(c.time as number, c);
+    return Array.from(map.values()).sort((a, b) => (a.time as number) - (b.time as number));
+  }, [candles, liveCandles]);
+
+  return { candles: mergedCandles, loading, isReal: isReal || wsConnected };
 }
