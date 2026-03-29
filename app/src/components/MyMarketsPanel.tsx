@@ -192,27 +192,15 @@ export function MyMarketsPanel({ markets }: MyMarketsPanelProps) {
                 }`}
               >
                 <span className="font-mono">
-                  {effectiveFees > 0 ? effectiveFees.toFixed(4) : "0.0000"}
+                  {effectiveFees > 0 ? formatUsd(effectiveFees) : "$0.00"}
                 </span>
-                <span className="text-xs ml-1 font-sans">{m.symbol}</span>
-                {effectiveFees > 0 && m.markPrice > 0 && (
-                  <span className="text-xs text-text-tertiary ml-1.5 font-mono">
-                    (~{formatUsd(effectiveFees * m.markPrice)})
-                  </span>
-                )}
               </td>
 
               {/* Lifetime Earned */}
               <td className="text-right py-2.5 px-4 text-text-secondary">
                 <span className="font-mono">
-                  {m.creatorFeesEarned > 0 ? m.creatorFeesEarned.toFixed(4) : "0.0000"}
+                  {m.creatorFeesEarned > 0 ? formatUsd(m.creatorFeesEarned) : "$0.00"}
                 </span>
-                <span className="text-xs ml-1 font-sans">{m.symbol}</span>
-                {m.creatorFeesEarned > 0 && m.markPrice > 0 && (
-                  <span className="text-xs text-text-tertiary ml-1.5 font-mono">
-                    (~{formatUsd(m.creatorFeesEarned * m.markPrice)})
-                  </span>
-                )}
               </td>
 
               {/* Claim Button */}

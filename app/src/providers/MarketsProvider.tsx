@@ -102,9 +102,9 @@ function toFrontendMarket(address: PublicKey, m: SDKMarketAccount): Market {
     totalPositions: m.totalPositions,
     createdAt: m.createdAt.toNumber() * 1000,
 
-    // Creator fees: convert from raw units to human-readable using token decimals
-    creatorClaimableFees: (m.creatorClaimableFees?.toNumber() ?? 0) / (10 ** getTokenDecimals(mintStr)),
-    creatorFeesEarned: (m.creatorFeesEarned?.toNumber() ?? 0) / (10 ** getTokenDecimals(mintStr)),
+    // Creator fees are in collateral (USDC) — use collateral decimals, not token decimals
+    creatorClaimableFees: (m.creatorClaimableFees?.toNumber() ?? 0) / (10 ** getTokenDecimals(m.collateralMint.toBase58())),
+    creatorFeesEarned: (m.creatorFeesEarned?.toNumber() ?? 0) / (10 ** getTokenDecimals(m.collateralMint.toBase58())),
   };
 }
 
