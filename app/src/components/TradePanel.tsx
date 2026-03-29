@@ -373,6 +373,25 @@ export function TradePanel({ market, hasOpenPosition: hasOpenPositionProp }: Tra
           onChange={setLeverage}
         />
 
+        {/* Submit — above estimates so users don't have to scroll */}
+        <button
+          onClick={handleSubmit}
+          disabled={!sizeNum || isSubmitting}
+          className={`w-full py-3 text-sm font-sans font-medium rounded-[4px] border transition-colors duration-100 ${
+            !sizeNum || isSubmitting
+              ? "text-zinc-600 border-zinc-800 cursor-not-allowed"
+              : isLong
+              ? "bg-profit/10 border-profit/50 text-profit hover:bg-profit/20"
+              : "bg-loss/10 border-loss/50 text-loss hover:bg-loss/20"
+          }`}
+        >
+          {isSubmitting
+            ? "Submitting..."
+            : isLong
+            ? "Open Long"
+            : "Open Short"}
+        </button>
+
         {/* Estimates */}
         {estimates && (
           <div className="space-y-1.5 py-3 border-t border-border">
@@ -394,25 +413,6 @@ export function TradePanel({ market, hasOpenPosition: hasOpenPositionProp }: Tra
             )}
           </div>
         )}
-
-        {/* Submit */}
-        <button
-          onClick={handleSubmit}
-          disabled={!sizeNum || isSubmitting}
-          className={`w-full py-3 text-sm font-sans font-medium rounded-[4px] border transition-colors duration-100 ${
-            !sizeNum || isSubmitting
-              ? "text-zinc-600 border-zinc-800 cursor-not-allowed"
-              : isLong
-              ? "bg-profit/10 border-profit/50 text-profit hover:bg-profit/20"
-              : "bg-loss/10 border-loss/50 text-loss hover:bg-loss/20"
-          }`}
-        >
-          {isSubmitting
-            ? "Submitting..."
-            : isLong
-            ? "Open Long"
-            : "Open Short"}
-        </button>
       </div>
     </div>
   );
