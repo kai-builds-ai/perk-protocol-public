@@ -364,7 +364,6 @@ export function CreateMarketForm() {
     selectedMint,
     tradingFee,
     maxLeverage,
-    initialK,
     collateralMint,
     readonlyClient,
     router,
