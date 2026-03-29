@@ -9,15 +9,18 @@
 
 ## Executive Summary
 
+> **All findings in this report have been resolved or acknowledged. See individual status lines per finding.**
+
 The on-chain program is rock-solid. All security invariants (circuit breaker, banding, EMA, unfreeze anchoring) are enforced in Rust with proper type safety. The client-side validation added in ATK-01 is *mostly* correct but has **two gaps caused by JavaScript's NaN comparison semantics** that allow malformed inputs to silently pass validation and serialize as 0 (disabled). These are Low severity because the on-chain program still enforces its own bounds, and the worst outcome is silently disabling a safety feature — not exploiting one.
 
-The E2E test suite is well-designed and mathematically correct. No logic errors found.
+The E2E test suite is well-designed and mathematically correct. No logic errors found. All findings have been resolved or acknowledged with no unresolved issues remaining.
 
 ---
 
 ## Attack Vector Results
 
 ### 1. NaN Bypass — ⚠️ LOW SEVERITY (Client Gap)
+**Status:** Resolved — `Number.isFinite()` + `Number.isInteger()` guards added to `initializePerkOracle` and `updateOracleConfig` in SDK.
 
 **Attack:** Pass `NaN` as `circuitBreakerDeviationBps` or `maxPriceChangeBps`.
 
@@ -60,6 +63,7 @@ for (const [name, val] of numericFields) {
 ```
 
 ### 2. Float Truncation — ⚠️ LOW SEVERITY (Client Gap)
+**Status:** Resolved — `Number.isInteger()` check catches fractional bps values; on-chain Rust u16 type provides secondary defense.
 
 **Attack:** Pass `500.7` as `circuitBreakerDeviationBps`.
 

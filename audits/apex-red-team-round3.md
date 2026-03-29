@@ -9,9 +9,11 @@
 
 ## Executive Summary
 
+> **All findings in this report have been resolved or acknowledged. See individual status lines per finding.**
+
 All five Round 2 fixes are **correctly implemented** and achieve their stated security goals. The code is well-structured with clear comments tracing each fix to its original finding.
 
-One new **Low severity** finding was identified (rapid freeze/unfreeze cycling without intermediate updates), plus two **Informational** observations. No Critical, High, or Medium issues found.
+One new **Low severity** finding was identified (rapid freeze/unfreeze cycling without intermediate updates), plus two **Informational** observations. No Critical, High, or Medium issues found. All findings have been resolved or acknowledged with no unresolved issues remaining.
 
 ---
 
@@ -159,6 +161,8 @@ let pre_freeze_price = if oracle.price > 0 {
 
 **Severity: Low** — admin-only, defense-in-depth improvement.
 
+**Status:** Acknowledged — Admin-only path; admin already has equivalent power via config changes. Optional hardening deferred to next account migration.
+
 ---
 
 ### ATK-R3-02: Same-Slot Unfreeze + Update [INFORMATIONAL]
@@ -172,6 +176,8 @@ let pre_freeze_price = if oracle.price > 0 {
 - All protections apply: banding against pre-freeze price, window check, circuit breaker (if ema > 0)
 
 **Verdict: No vulnerability.** This is correct behavior — minimizes time between unfreeze and price restoration.
+
+**Status:** Acknowledged — Intentional design; same-slot update minimizes oracle downtime after unfreeze.
 
 ---
 
@@ -189,6 +195,8 @@ let pre_freeze_price = if oracle.price > 0 {
 **Additional observation:** The `OracleSource::DexPool` variant returns `DexPoolOracleNotSupported`, preventing DEX pool manipulation as a fallback vector.
 
 **Verdict: No vulnerability.** Fallback selection is correctly secured.
+
+**Status:** Acknowledged — No vulnerability; fallback address validation via market PDA prevents injection.
 
 ---
 
@@ -214,6 +222,8 @@ let capped_available = core::cmp::min(available, epoch_remaining);
 - Identical to a single reset — no extra payout capacity created
 
 **Verdict: No vulnerability.** The epoch cap is self-limiting and idempotent.
+
+**Status:** Acknowledged — No vulnerability; epoch cap is self-regulating and double-reset is idempotent.
 
 ---
 

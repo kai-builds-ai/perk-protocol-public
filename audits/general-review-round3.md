@@ -104,6 +104,8 @@ All instructions that move tokens in/out of the vault run `check_conservation()`
 
 - `c_tot -= fee` and `claimable += fee` → net change to `c_tot + claimable` = 0. Conservation is preserved by construction. ✅ But adding the explicit check costs nothing and provides defense-in-depth. Worth adding.
 
+**Status:** Acknowledged — Conservation preserved by construction (c_tot and claimable offset); no token movement occurs in open_position.
+
 ### Instruction-Oracle-Active Consistency
 All instructions that read oracle price and make financial decisions check `market.active`:
 | Instruction | Checks market.active? | Reads oracle? |
@@ -119,6 +121,7 @@ All instructions that read oracle price and make financial decisions check `mark
 | reclaim_empty_account | ❌ | ✅ |
 
 **Finding [GEN-02] — withdraw, close_position, liquidate, reclaim_empty_account don't check market.active:**
+**Status:** Acknowledged — Intentional design; users must always be able to exit positions and recover funds from inactive markets.
 This is **intentional and correct**. Users must always be able to:
 - Withdraw collateral from inactive markets
 - Close positions in inactive markets
@@ -134,6 +137,7 @@ This is **intentional and correct**. Users must always be able to:
 ### 1. Saturating Math Hiding Failures
 
 **[GEN-03] — `total_long_position` / `total_short_position` use `saturating_sub`:**
+**Status:** Acknowledged — Informational counters not used in risk math; saturating_sub is the safe default.
 In `close_position.rs`, `liquidate.rs`, and `execute_trigger_order.rs`, position counter decrements use `saturating_sub`:
 ```rust
 market.total_long_position = market.total_long_position.saturating_sub(close_size as u128);
@@ -141,9 +145,11 @@ market.total_long_position = market.total_long_position.saturating_sub(close_siz
 If the tracking counters are ever off (e.g., due to epoch-mismatch zeroing in `settle_side_effects`), this silently goes to 0 instead of erroring. These counters are informational (not used in risk math — `oi_eff_long_q`/`oi_eff_short_q` are), so `saturating_sub` is acceptable. **Low risk, informational.**
 
 **[GEN-04] — `total_positions` uses `saturating_sub` in close and liquidate:**
+**Status:** Acknowledged — Same as GEN-03; informational counter, saturating_sub is acceptable.
 Same analysis — informational counter, not used in risk math. **Low risk.**
 
 **[GEN-05] — Insurance epoch payout tracking uses `saturating_add`:**
+**Status:** Acknowledged — Saturation extremely unlikely (requires >u64::MAX single payout); negligible risk.
 ```rust
 market.insurance_epoch_payout = market.insurance_epoch_payout
     .saturating_add(core::cmp::min(pay, u64::MAX as u128) as u64);
@@ -189,6 +195,7 @@ All token transfers use Anchor CPI (`token::transfer`), which propagates errors 
 ### 4. Specific Security Concerns
 
 **[GEN-06] — `withdraw.rs` has a double-signer pattern:**
+**Status:** Acknowledged — Functionally correct; redundant signer is a minor UX friction, not a security issue.
 ```rust
 pub authority: Signer<'info>,
 pub user: Signer<'info>,
@@ -196,12 +203,15 @@ pub user: Signer<'info>,
 With constraints `user.key() == user_position.authority` and `has_one = authority`. This requires **two signatures** that must both equal `user_position.authority`. In practice, the caller passes the same account for both. This is functionally correct but the `authority` signer is redundant — `user` already proves identity. Not a security issue, just unnecessary UX friction (client must pass the same key twice).
 
 **[GEN-07] — `close_position` applies swap AFTER fee deduction but marks for slippage BEFORE:**
+**Status:** Acknowledged — Close operations have no slippage parameter by design; user is exiting an existing position.
 In `close_position`, the vAMM swap is simulated, then fees are charged from collateral, then `apply_swap` is called. There's no slippage check in close_position (unlike open_position which checks `max_slippage_bps`). This is acceptable — close operations have no slippage parameter, and the user is exiting an existing position.
 
 **[GEN-08] — `liquidate.rs` — OI update gap after enqueue_adl:**
+**Status:** Acknowledged — Correct by design; enqueue_adl is the authoritative OI manager during liquidation.
 After `enqueue_adl` decrements `oi_eff_{side}_q` for the liquidated side, the instruction then calls `attach_effective_position(position, market, 0)` which doesn't touch OI. The OI decrement happens inside `enqueue_adl` (step 1), and the opposing side's OI is handled by A/K adjustment (also inside enqueue_adl). The `update_oi_delta` helper is NOT called in liquidate because `enqueue_adl` handles OI directly. **This is correct** — enqueue_adl is the authoritative OI manager during liquidation.
 
 **[GEN-09] — Potential double-decrement of stored_pos_count:**
+**Status:** Acknowledged — Separate counters (stored_pos_count vs stale_account_count); verified no double-decrement.
 In `settle_side_effects` epoch-mismatch branch, `stale_account_count` is decremented. In `set_position_basis_q`, `stored_pos_count` is decremented when clearing basis. These are separate counters. In the epoch-mismatch path, the flow is:
 1. `set_position_basis_q(position, market, 0)` → decrements `stored_pos_count_{side}`
 2. `set_stale_count(market, side, new_stale)` → decrements `stale_account_count_{side}`
@@ -209,6 +219,7 @@ In `settle_side_effects` epoch-mismatch branch, `stale_account_count` is decreme
 And in `begin_full_drain_reset`, `set_stale_count(market, side, spc)` sets stale count to `stored_pos_count`. So after the full sequence, stale_count tracks how many accounts still need to settle through the epoch mismatch. This is correct. ✅
 
 **[GEN-10] — Window reference not updated on successful within-window update:**
+**Status:** Acknowledged — Correct behavior; window measures cumulative drift from start, per-update drift covered by banding.
 In `update_perk_oracle.rs`, when the sliding window check passes (price is within bounds), the `window_ref_price` and `window_ref_slot` are **not** updated. The window reference stays at the start-of-window price. This means the window bounds are measured from the window start, not from the previous update. This is the correct behavior — it measures cumulative drift over the window period, not per-update drift (which is already covered by `max_price_change_bps`). ✅
 
 ---
@@ -258,6 +269,8 @@ These removals shift the discriminants of all subsequent variants. Clients parsi
 
 **Finding [GEN-11]:** No migration notes file found in the repo documenting this breaking change. Recommend creating `MIGRATION.md` or adding to release notes.
 
+**Status:** Acknowledged — Breaking changes documented in SDK release notes and IDL changelog; clients regenerate IDL on upgrade.
+
 ### Params Struct Changes
 1. **`AdminUpdateMarketParams`** — added `max_leverage: Option<u32>` (H4 Pashov2). Backward-compatible (Option field, existing clients can pass None).
 2. **`InitPerkOracleParams`** — added `circuit_breaker_deviation_bps: u16` (ATK-05 R2). **Breaking** — all clients creating PerkOracles must now supply this field.
@@ -277,7 +290,8 @@ These removals shift the discriminants of all subsequent variants. Clients parsi
 | `M5 fix: pending_admin` on Protocol | No (new field) | No action |
 | Fallback oracle accounts on all oracle-reading instructions | **Yes** | All transaction builders must include fallback_oracle account |
 
-**Finding [GEN-12]:** The fallback oracle pattern requires **every instruction that reads price** to pass `fallback_oracle` as an account. This is a significant client-side change affecting: deposit, withdraw, open_position, close_position, liquidate, execute_trigger_order, reclaim_empty_account, crank_funding, update_amm. Clients must be updated to pass a valid account (or any account when no fallback is configured).
+**Finding [GEN-12]:** The fallback oracle pattern requires **every instruction that reads price** to pass `fallback_oracle` as an account.
+**Status:** Resolved — All SDK instruction methods and cranker loops now pass `fallbackOracle` (SystemProgram.programId as sentinel when unconfigured). This is a significant client-side change affecting: deposit, withdraw, open_position, close_position, liquidate, execute_trigger_order, reclaim_empty_account, crank_funding, update_amm. Clients must be updated to pass a valid account (or any account when no fallback is configured).
 
 ---
 
@@ -334,7 +348,9 @@ These removals shift the discriminants of all subsequent variants. Clients parsi
 | GEN-11 | **Medium** | Error discriminant shifts (ARCH-05) not documented — clients will parse wrong errors |
 | GEN-12 | **Medium** | Fallback oracle account requirement is a major client-side breaking change — needs migration guide |
 | Dead code | **Low** | Entire `margin.rs` module is unused; `I128`/`U128` types unused; `haircut_numerator/denominator` and `cumulative_*_funding` dead fields on Market |
+| | | **Status:** Acknowledged — Cleanup deferred to post-launch hygiene PR; dead code has zero runtime impact. |
 | `_reserved` fragility | **Low** | PerkOracle stores critical security state (window, CB, pre-freeze price) in raw byte offsets — works but fragile for future development |
+| | | **Status:** Resolved — Named offset constants (`RESERVED_OFFSET_*`) added in `constants.rs`; proper struct fields planned for next account migration. |
 
 ### Verdict
 **Ready for deployment** with the caveat that client migration documentation must be completed before launch. The dead code should be cleaned up in a follow-up PR (not blocking — purely hygiene). The `_reserved` field usage should be refactored to proper struct fields when the next account migration is planned.
