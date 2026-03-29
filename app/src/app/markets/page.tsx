@@ -8,8 +8,9 @@ import { MarketTable } from "@/components/MarketTable";
 import { MyMarketsPanel } from "@/components/MyMarketsPanel";
 import { useMarkets } from "@/hooks/useMarkets";
 import { Market, OracleSource } from "@/types";
+import { usePositions } from "@/hooks/usePosition";
 
-type Tab = "trending" | "new" | "gainers" | "losers" | "all" | "watchlist" | "mine";
+type Tab = "trending" | "new" | "gainers" | "losers" | "all" | "watchlist" | "mine" | "positions";
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "trending", label: "Trending" },
@@ -37,17 +38,19 @@ const MARKETS_PER_PAGE = 20;
 function MarketExplorerInner() {
   const { markets } = useMarkets();
   const { publicKey } = useWallet();
+  const { positions } = usePositions();
   const searchParams = useSearchParams();
   const [filter, setFilter] = useState("");
   const [tab, setTab] = useState<Tab>("trending");
   const [page, setPage] = useState(1);
 
-  // Handle ?filter=mine from wallet dropdown (apply once)
+  // Handle ?filter=mine or ?filter=positions from wallet dropdown (apply once)
   const appliedFilterRef = useRef(false);
   useEffect(() => {
-    if (!appliedFilterRef.current && searchParams.get("filter") === "mine" && publicKey) {
-      setTab("mine");
-      appliedFilterRef.current = true;
+    if (!appliedFilterRef.current && publicKey) {
+      const f = searchParams.get("filter");
+      if (f === "mine") { setTab("mine"); appliedFilterRef.current = true; }
+      if (f === "positions") { setTab("positions"); appliedFilterRef.current = true; }
     }
   }, [searchParams, publicKey]);
   const [watchlist, setWatchlist] = useState<Set<string>>(getWatchlist);
@@ -119,6 +122,12 @@ function MarketExplorerInner() {
         list = list.filter((m) => watchlist.has(m.address));
         list.sort((a, b) => b.volume24h - a.volume24h);
         break;
+      case "positions": {
+        const posMarkets = new Set(positions.map((p) => p.market));
+        list = list.filter((m) => posMarkets.has(m.address));
+        list.sort((a, b) => b.volume24h - a.volume24h);
+        break;
+      }
       case "mine":
         if (publicKey) {
           list = list.filter((m) => m.creator === publicKey.toBase58());
@@ -182,16 +191,28 @@ function MarketExplorerInner() {
           </button>
         ))}
         {publicKey && (
-          <button
-            onClick={() => setTab("mine")}
-            className={`px-4 py-2.5 text-sm font-sans transition-colors duration-100 border-b-2 whitespace-nowrap flex-shrink-0 ${
-              tab === "mine"
-                ? "text-white border-white"
-                : "text-text-secondary border-transparent hover:text-text-primary"
-            }`}
-          >
-            My Markets
-          </button>
+          <>
+            <button
+              onClick={() => setTab("positions")}
+              className={`px-4 py-2.5 text-sm font-sans transition-colors duration-100 border-b-2 whitespace-nowrap flex-shrink-0 ${
+                tab === "positions"
+                  ? "text-white border-white"
+                  : "text-text-secondary border-transparent hover:text-text-primary"
+              }`}
+            >
+              My Positions
+            </button>
+            <button
+              onClick={() => setTab("mine")}
+              className={`px-4 py-2.5 text-sm font-sans transition-colors duration-100 border-b-2 whitespace-nowrap flex-shrink-0 ${
+                tab === "mine"
+                  ? "text-white border-white"
+                  : "text-text-secondary border-transparent hover:text-text-primary"
+              }`}
+            >
+              My Markets
+            </button>
+          </>
         )}
       </div>
 
@@ -270,6 +291,12 @@ function MarketExplorerInner() {
       <div className="flex-1 overflow-auto" style={{ WebkitOverflowScrolling: "touch" }}>
         {tab === "mine" ? (
           <MyMarketsPanel markets={filtered} />
+        ) : tab === "positions" && filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full gap-2">
+            <span className="text-text-tertiary text-2xl">📊</span>
+            <span className="text-sm font-sans text-text-secondary">No open positions</span>
+            <span className="text-xs font-sans text-text-tertiary">Open a position on any market to see it here</span>
+          </div>
         ) : tab === "watchlist" && filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-2">
             <span className="text-text-tertiary text-2xl">★</span>

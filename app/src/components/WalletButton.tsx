@@ -56,6 +56,17 @@ export function WalletButton() {
               {copied ? "Copied!" : `${address.slice(0, 16)}…${address.slice(-4)}`}
             </button>
 
+            {/* My Positions */}
+            <button
+              onClick={() => {
+                setOpen(false);
+                router.push("/markets?filter=positions");
+              }}
+              className="w-full text-left px-4 py-2.5 text-sm font-sans text-zinc-300 hover:text-white hover:bg-white/5 transition-colors"
+            >
+              My Positions
+            </button>
+
             {/* My Markets */}
             <button
               onClick={() => {
