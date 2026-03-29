@@ -766,6 +766,7 @@ const TOKEN_LIST: { label: string; mint: string }[] = [
   { label: 'AI16Z', mint: 'HeLp6NuQkmYB4pYWo2zYs22mESHXPQYzXbB8n4V98jwC' },
   { label: 'FARTCOIN', mint: '9BB6NFEcjBCtnNLFko2FqVQBq8HHM13kCyYcdQbgpump' },
   { label: 'TRUMP', mint: '6p6xgHyF7AeE6TZkSmFsko444wqoP15icUSqi2jfGiPN' },
+  { label: 'MOODENG', mint: 'ED5nyyWEzpPPiWimP8vYm7sD7TD3LAt3Q3gRTWHzPJBY' },
 ];
 
 function InitPerkOracle({
@@ -1088,14 +1089,36 @@ function UnfreezeAllOracles({
         const allOracles = await client.fetchAllPerkOracles();
         const now = Math.floor(Date.now() / 1000);
         const frozen: { mint: PublicKey; label: string }[] = [];
+        // Collect unknown mints to batch-resolve via Jupiter
+        const unknownMints: string[] = [];
+        const staleOracles: { mint: PublicKey; mintStr: string }[] = [];
         for (const o of allOracles) {
           const age = now - o.account.timestamp.toNumber();
           const maxStale = o.account.maxStalenessSeconds;
-          // Consider frozen if explicitly frozen OR stale beyond 2x maxStaleness
           if (o.account.isFrozen || age > maxStale * 2) {
             const mintStr = o.account.tokenMint.toBase58();
-            const token = TOKEN_LIST.find(t => t.mint === mintStr);
-            frozen.push({ mint: o.account.tokenMint, label: token?.label ?? mintStr.slice(0, 8) });
+            const known = TOKEN_LIST.find(t => t.mint === mintStr);
+            if (known) {
+              frozen.push({ mint: o.account.tokenMint, label: known.label });
+            } else {
+              unknownMints.push(mintStr);
+              staleOracles.push({ mint: o.account.tokenMint, mintStr });
+            }
+          }
+        }
+        // Resolve unknown mints via Jupiter token API
+        if (unknownMints.length > 0) {
+          try {
+            const resp = await fetch(`https://api.jup.ag/tokens/v1/by-mint/${unknownMints.join(',')}`);
+            const tokens: { address: string; symbol: string }[] = resp.ok ? await resp.json() : [];
+            const tokenMap = new Map(tokens.map(t => [t.address, t.symbol]));
+            for (const s of staleOracles) {
+              frozen.push({ mint: s.mint, label: tokenMap.get(s.mintStr) ?? s.mintStr.slice(0, 8) });
+            }
+          } catch {
+            for (const s of staleOracles) {
+              frozen.push({ mint: s.mint, label: s.mintStr.slice(0, 8) });
+            }
           }
         }
         if (!cancelled) {
