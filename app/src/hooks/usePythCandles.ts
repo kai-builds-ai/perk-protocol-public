@@ -20,6 +20,10 @@ function geckoTimeframe(resolution: string): { period: string; aggregate: number
   }
 }
 
+// Cache pool addresses to avoid redundant GeckoTerminal lookups
+const poolCache = new Map<string, { pool: string; ts: number }>();
+const POOL_CACHE_TTL = 300_000; // 5 min
+
 /**
  * Fetch candle data from GeckoTerminal for any Solana token by mint.
  * Finds the highest-liquidity pool, then fetches OHLCV.
@@ -30,14 +34,21 @@ async function fetchGeckoTerminalCandles(
   resolution: string = "60"
 ): Promise<CandleData[]> {
   try {
-    // 1. Find top pool for this token
-    const poolsResp = await fetch(
-      `https://api.geckoterminal.com/api/v2/networks/solana/tokens/${mint}/pools?sort=h24_volume_usd_desc&page=1`,
-      { signal: AbortSignal.timeout(8000), headers: { Accept: "application/json" } }
-    );
-    if (!poolsResp.ok) return [];
-    const poolsData = await poolsResp.json();
-    const topPool = poolsData.data?.[0]?.attributes?.address;
+    // 1. Find top pool for this token (cached)
+    let topPool: string | undefined;
+    const cached = poolCache.get(mint);
+    if (cached && Date.now() - cached.ts < POOL_CACHE_TTL) {
+      topPool = cached.pool;
+    } else {
+      const poolsResp = await fetch(
+        `https://api.geckoterminal.com/api/v2/networks/solana/tokens/${mint}/pools?sort=h24_volume_usd_desc&page=1`,
+        { signal: AbortSignal.timeout(8000), headers: { Accept: "application/json" } }
+      );
+      if (!poolsResp.ok) return [];
+      const poolsData = await poolsResp.json();
+      topPool = poolsData.data?.[0]?.attributes?.address;
+      if (topPool) poolCache.set(mint, { pool: topPool, ts: Date.now() });
+    }
     if (!topPool) return [];
 
     // 2. Fetch OHLCV at requested resolution
@@ -173,7 +184,7 @@ export function usePythCandles(
       } catch {
         // Silently ignore refresh errors — keep existing candles
       }
-    }, 15_000);
+    }, 60_000); // 60s — Birdeye WS handles real-time, this is just backfill refresh
     return () => clearInterval(interval);
   }, [symbol, resolution, count, mint]);
 
