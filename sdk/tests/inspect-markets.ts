@@ -4,7 +4,7 @@ import { Keypair } from "@solana/web3.js";
 import { PerkClient } from "../src";
 
 const PROGRAM_ID = "3L72e4b8wKJ8ReMpLUeXxVNrRGpiK6m4VYxeSnecpNW2";
-const RPC = "https://mainnet.helius-rpc.com/?api-key=60b57283-2b78-4d4b-80b5-bb83495b0c09";
+const RPC = "https://mainnet.helius-rpc.com/?api-key=01c862fa-ae04-4c0d-92bf-4d547db44c88";
 const USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 const WSOL_MINT = "So11111111111111111111111111111111111111112";
 

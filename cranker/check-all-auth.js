@@ -1,7 +1,7 @@
 const { Connection, PublicKey } = require("@solana/web3.js");
 
 (async () => {
-  const conn = new Connection("https://mainnet.helius-rpc.com/?api-key=60b57283-2b78-4d4b-80b5-bb83495b0c09");
+  const conn = new Connection("https://mainnet.helius-rpc.com/?api-key=01c862fa-ae04-4c0d-92bf-4d547db44c88");
   const PROGRAM = new PublicKey("3L72e4b8wKJ8ReMpLUeXxVNrRGpiK6m4VYxeSnecpNW2");
   const CRANKER = "99mUUwVBvCD1pLP7fk5z7xPuBoGpyuUGpyTBhW53yw99";
   
