@@ -22,9 +22,12 @@ export const Chart = memo(function Chart({ data, symbol }: ChartProps) {
     import("lightweight-charts").then(({ createChart }) => {
       if (!mounted || !containerRef.current) return;
 
+      const isMobile = window.innerWidth < 768;
       const chart = createChart(containerRef.current, {
         width: containerRef.current.clientWidth,
         height: containerRef.current.clientHeight,
+        handleScroll: isMobile ? { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: false } : true,
+        handleScale: isMobile ? { mouseWheel: false, pinch: true, axisPressedMouseMove: false, axisDoubleClickReset: true } : true,
         layout: {
           background: { color: COLORS.surface },
           textColor: COLORS.textSecondary,
@@ -138,6 +141,7 @@ export const Chart = memo(function Chart({ data, symbol }: ChartProps) {
     <div
       ref={containerRef}
       className="w-full h-full min-h-[400px]"
+      style={{ touchAction: 'pan-y' }}
       aria-label={`${symbol} price chart`}
     />
   );
