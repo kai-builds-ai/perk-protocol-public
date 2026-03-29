@@ -97,10 +97,10 @@ export function getVolume24h(marketAddress: string, currentTotalVolume: number):
   // Use it anyway but the volume will be an underestimate (better than lifetime)
   const volume = Math.max(0, currentTotalVolume - closest.vol);
 
-  // Sanity: if volume is 0 and we have totalVolume, the tracker just started
-  // Return totalVolume as fallback only if we have no meaningful history (< 1h of snapshots)
-  const oldestSnapshot = snapshots[0];
-  if (volume === 0 && oldestSnapshot && now - oldestSnapshot.ts < 60 * 60 * 1000) {
+  // If computed 24h volume is 0 but there IS lifetime volume, fall back to lifetime.
+  // This handles: new visits, cleared localStorage, and low-activity markets where
+  // all trades happened before the earliest snapshot.
+  if (volume === 0 && currentTotalVolume > 0) {
     return currentTotalVolume;
   }
 
