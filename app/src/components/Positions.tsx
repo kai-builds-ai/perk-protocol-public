@@ -1,11 +1,18 @@
 "use client";
 
 import React, { memo, useState, useCallback, useRef } from "react";
-import { UserPosition, Market } from "@/types";
+import { UserPosition, Market, Side } from "@/types";
 import { formatUsd, formatPct } from "@/lib/format";
 import { usePerk } from "@/providers/PerkProvider";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
+import { BN } from "@coral-xyz/anchor";
+import {
+  Side as SdkSide,
+  TriggerOrderType as SdkTriggerOrderType,
+  POS_SCALE,
+  PRICE_SCALE,
+} from "@perk/sdk";
 import toast from "react-hot-toast";
 import { sanitizeError } from "@/lib/error-utils";
 
@@ -20,12 +27,86 @@ export const Positions = memo(function Positions({ positions, market }: Position
   const [closingIndex, setClosingIndex] = useState<number | null>(null);
   const [confirmIndex, setConfirmIndex] = useState<number | null>(null);
   const confirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // TP/SL inline input state: { posIndex, type }
+  const [tpslInput, setTpslInput] = useState<{ posIndex: number; type: "tp" | "sl" } | null>(null);
+  const [tpslPrice, setTpslPrice] = useState("");
+  const [tpslSubmitting, setTpslSubmitting] = useState(false);
 
   // Clear confirm state after 3s if user doesn't click again
   const startConfirmTimer = useCallback(() => {
     if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current);
     confirmTimerRef.current = setTimeout(() => setConfirmIndex(null), 3000);
   }, []);
+
+  const handleTpsl = useCallback(
+    async (pos: UserPosition, type: "tp" | "sl") => {
+      const price = parseFloat(tpslPrice);
+      if (!price || price <= 0) {
+        toast.error("Enter a valid price.");
+        return;
+      }
+      if (!client || !publicKey) {
+        toast.error("Connect wallet first.");
+        return;
+      }
+      if (!pos.tokenMint || !pos.creator || !pos.oracleAddress) {
+        toast.error("Position data incomplete.");
+        return;
+      }
+
+      const isLong = pos.baseSize > 0;
+      const markPrice = market?.markPrice || 0;
+
+      // Validate TP/SL direction
+      if (type === "tp") {
+        if (isLong && price <= markPrice) {
+          toast.error(`Take Profit must be above mark price (${formatUsd(markPrice)})`);
+          return;
+        }
+        if (!isLong && price >= markPrice) {
+          toast.error(`Take Profit must be below mark price (${formatUsd(markPrice)})`);
+          return;
+        }
+      } else {
+        if (isLong && price >= markPrice) {
+          toast.error(`Stop Loss must be below mark price (${formatUsd(markPrice)})`);
+          return;
+        }
+        if (!isLong && price <= markPrice) {
+          toast.error(`Stop Loss must be above mark price (${formatUsd(markPrice)})`);
+          return;
+        }
+      }
+
+      setTpslSubmitting(true);
+      try {
+        const tokenMint = new PublicKey(pos.tokenMint);
+        const creator = new PublicKey(pos.creator);
+        const sdkSide = isLong ? SdkSide.Long : SdkSide.Short;
+        const orderType = type === "tp" ? SdkTriggerOrderType.TakeProfit : SdkTriggerOrderType.StopLoss;
+        const size = new BN(Math.floor(Math.abs(pos.baseSize) * POS_SCALE));
+
+        const sig = await client.placeTriggerOrder(tokenMint, creator, {
+          orderType,
+          side: sdkSide,
+          size,
+          triggerPrice: new BN(Math.floor(price * PRICE_SCALE)),
+          leverage: 0, // reduce-only, leverage doesn't matter
+          reduceOnly: true,
+          expiry: new BN(0),
+        });
+
+        toast.success(`${type === "tp" ? "Take Profit" : "Stop Loss"} set at ${formatUsd(price)}!\nTX: ${sig.slice(0, 16)}...`);
+        setTpslInput(null);
+        setTpslPrice("");
+      } catch (err: unknown) {
+        toast.error(sanitizeError(err, "place-tpsl"));
+      } finally {
+        setTpslSubmitting(false);
+      }
+    },
+    [client, publicKey, tpslPrice, market]
+  );
 
   const handleClose = useCallback(
     async (posIndex: number) => {
@@ -130,14 +211,34 @@ export const Positions = memo(function Positions({ positions, market }: Position
                 <td className="px-3 py-2 text-right">
                   <div className="flex items-center justify-end gap-1.5">
                     <button
-                      onClick={() => toast("Use the STOP/TP tab above to set a Take Profit.", { icon: "💰" })}
-                      className="px-2 py-1 text-xs font-sans text-text-secondary border border-zinc-700 rounded-[4px] hover:text-white hover:border-zinc-500 transition-colors duration-100"
+                      onClick={() => {
+                        if (tpslInput?.posIndex === i && tpslInput.type === "tp") {
+                          setTpslInput(null); setTpslPrice("");
+                        } else {
+                          setTpslInput({ posIndex: i, type: "tp" }); setTpslPrice("");
+                        }
+                      }}
+                      className={`px-2 py-1 text-xs font-sans rounded-[4px] border transition-colors duration-100 ${
+                        tpslInput?.posIndex === i && tpslInput.type === "tp"
+                          ? "text-profit border-profit/50 bg-profit/10"
+                          : "text-text-secondary border-zinc-700 hover:text-white hover:border-zinc-500"
+                      }`}
                     >
                       TP
                     </button>
                     <button
-                      onClick={() => toast("Use the STOP/TP tab above to set a Stop Loss.", { icon: "🛡️" })}
-                      className="px-2 py-1 text-xs font-sans text-text-secondary border border-zinc-700 rounded-[4px] hover:text-white hover:border-zinc-500 transition-colors duration-100"
+                      onClick={() => {
+                        if (tpslInput?.posIndex === i && tpslInput.type === "sl") {
+                          setTpslInput(null); setTpslPrice("");
+                        } else {
+                          setTpslInput({ posIndex: i, type: "sl" }); setTpslPrice("");
+                        }
+                      }}
+                      className={`px-2 py-1 text-xs font-sans rounded-[4px] border transition-colors duration-100 ${
+                        tpslInput?.posIndex === i && tpslInput.type === "sl"
+                          ? "text-loss border-loss/50 bg-loss/10"
+                          : "text-text-secondary border-zinc-700 hover:text-white hover:border-zinc-500"
+                      }`}
                     >
                       SL
                     </button>
@@ -155,6 +256,40 @@ export const Positions = memo(function Positions({ positions, market }: Position
                       {isClosing ? "..." : confirmIndex === i ? "Confirm?" : "Close"}
                     </button>
                   </div>
+                  {/* Inline TP/SL price input */}
+                  {tpslInput?.posIndex === i && (
+                    <div className="flex items-center gap-1.5 mt-2 justify-end">
+                      <input
+                        type="number"
+                        value={tpslPrice}
+                        onChange={(e) => setTpslPrice(e.target.value)}
+                        placeholder={tpslInput.type === "tp"
+                          ? (isLong ? "Above mark..." : "Below mark...")
+                          : (isLong ? "Below mark..." : "Above mark...")}
+                        autoFocus
+                        className="w-24 bg-transparent border border-zinc-700 rounded-[4px] px-2 py-1 text-xs font-mono text-white outline-none focus:border-zinc-400 placeholder:text-text-tertiary"
+                      />
+                      <button
+                        onClick={() => handleTpsl(p, tpslInput.type)}
+                        disabled={tpslSubmitting}
+                        className={`px-2 py-1 text-xs font-sans rounded-[4px] border transition-colors duration-100 ${
+                          tpslSubmitting
+                            ? "text-zinc-600 border-zinc-800 cursor-not-allowed"
+                            : tpslInput.type === "tp"
+                              ? "text-profit border-profit/50 hover:bg-profit/10"
+                              : "text-loss border-loss/50 hover:bg-loss/10"
+                        }`}
+                      >
+                        {tpslSubmitting ? "..." : "Set"}
+                      </button>
+                      <button
+                        onClick={() => { setTpslInput(null); setTpslPrice(""); }}
+                        className="px-1.5 py-1 text-xs font-sans text-text-tertiary hover:text-white"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )}
                 </td>
               </tr>
             );
