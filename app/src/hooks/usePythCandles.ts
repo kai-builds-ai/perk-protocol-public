@@ -166,7 +166,7 @@ export function usePythCandles(
           setCandles(data);
         }
       }
-    }, 60_000);
+    }, 15_000);
     return () => clearInterval(interval);
   }, [symbol, resolution, count, mint]);
 
