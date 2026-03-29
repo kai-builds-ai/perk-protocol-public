@@ -253,11 +253,6 @@ function AdminDashboard({
       </div>
 
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-6 space-y-6">
-        {/* Section 0: Pending Market Requests */}
-        {client && (
-          <PendingMarketRequests client={client} onRefresh={fetchData} />
-        )}
-
         {/* Section 1: Protocol Overview */}
         {protocol && (
           <ProtocolOverview

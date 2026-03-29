@@ -12,10 +12,6 @@ import {
   LEVERAGE_SCALE,
   MIN_INITIAL_K,
 } from "@perk/sdk";
-import {
-  SystemProgram,
-  Transaction,
-} from "@solana/web3.js";
 import { useRouter } from "next/navigation";
 import { getTokenLogo, getTokenInfo } from "@/lib/token-metadata";
 import toast from "react-hot-toast";
@@ -96,8 +92,6 @@ export function CreateMarketForm() {
   // Oracle existence check
   const [oracleExists, setOracleExists] = useState<boolean | null>(null);
   const [checkingOracle, setCheckingOracle] = useState(false);
-  const [requestingMarket, setRequestingMarket] = useState(false);
-  const [requestPending, setRequestPending] = useState(false);
 
   const { client, readonlyClient } = usePerk();
   const { publicKey, sendTransaction } = useWallet();
@@ -165,37 +159,21 @@ export function CreateMarketForm() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Check oracle existence + pending request when a token is selected
+  // Check oracle existence when a token is selected
   const selectedMintForOracle = selectedToken?.mint ?? customMint?.mint ?? null;
   useEffect(() => {
     if (!selectedMintForOracle) {
       setOracleExists(null);
-      setRequestPending(false);
       return;
     }
     let cancelled = false;
     setCheckingOracle(true);
     setOracleExists(null);
-    setRequestPending(false);
 
     (async () => {
       try {
         const oracle = await readonlyClient.fetchPerkOracleNullable(new PublicKey(selectedMintForOracle));
         if (!cancelled) setOracleExists(oracle !== null);
-
-        // If no oracle, check if there's already a pending request
-        if (!oracle && !cancelled) {
-          try {
-            const res = await fetch('/api/request-market');
-            if (res.ok) {
-              const data = await res.json();
-              const pending = (data.requests ?? []).some(
-                (r: { mint: string }) => r.mint === selectedMintForOracle
-              );
-              if (!cancelled) setRequestPending(pending);
-            }
-          } catch { /* ignore — just won't show pending state */ }
-        }
       } catch {
         if (!cancelled) setOracleExists(false);
       } finally {
@@ -205,99 +183,6 @@ export function CreateMarketForm() {
 
     return () => { cancelled = true; };
   }, [selectedMintForOracle, readonlyClient]);
-
-  // Poll oracle status every 15s when request is pending — auto-flip to Create Market when approved
-  useEffect(() => {
-    if (!requestPending || !selectedMintForOracle) return;
-    const interval = setInterval(async () => {
-      try {
-        const oracle = await readonlyClient.fetchPerkOracleNullable(new PublicKey(selectedMintForOracle));
-        if (oracle) {
-          setOracleExists(true);
-          setRequestPending(false);
-          toast.success("Oracle approved! You can now create a market.");
-        }
-      } catch { /* ignore */ }
-    }, 15_000);
-    return () => clearInterval(interval);
-  }, [requestPending, selectedMintForOracle, readonlyClient]);
-
-  // Protocol PDA for request market payment
-  const PROGRAM_ID = useMemo(
-    () => new PublicKey("3L72e4b8wKJ8ReMpLUeXxVNrRGpiK6m4VYxeSnecpNW2"),
-    [],
-  );
-  const protocolPDA = useMemo(
-    () => PublicKey.findProgramAddressSync([Buffer.from("protocol")], PROGRAM_ID)[0],
-    [PROGRAM_ID],
-  );
-
-  const handleRequestMarket = useCallback(async () => {
-    if (!selectedMintForOracle || !publicKey) {
-      toast.error("Please connect your wallet and select a token.");
-      return;
-    }
-
-    setRequestingMarket(true);
-    try {
-      // Build 0.01 SOL transfer to protocol PDA
-      const tx = new Transaction().add(
-        SystemProgram.transfer({
-          fromPubkey: publicKey,
-          toPubkey: protocolPDA,
-          lamports: 10_000_000, // 0.01 SOL
-        }),
-      );
-
-      const { blockhash, lastValidBlockHeight } =
-        await connection.getLatestBlockhash("confirmed");
-      tx.recentBlockhash = blockhash;
-      tx.feePayer = publicKey;
-
-      const sig = await sendTransaction(tx, connection);
-
-      // Wait for confirmation
-      await connection.confirmTransaction(
-        { signature: sig, blockhash, lastValidBlockHeight },
-        "confirmed",
-      );
-
-      // POST to request-market API
-      const tokenInfo = selectedToken ?? customMint;
-      const res = await fetch("/api/request-market", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          mint: selectedMintForOracle,
-          txSignature: sig,
-          requester: publicKey.toBase58(),
-          symbol: tokenInfo?.symbol,
-          name: tokenInfo?.name,
-        }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error ?? `Request failed (${res.status})`);
-      }
-
-      toast.success("Market requested! The team will review and initialize it.");
-      setRequestPending(true);
-    } catch (err: unknown) {
-      console.error("[request-market] error:", err);
-      toast.error(sanitizeError(err, "request-market"));
-    } finally {
-      setRequestingMarket(false);
-    }
-  }, [
-    selectedMintForOracle,
-    publicKey,
-    protocolPDA,
-    connection,
-    sendTransaction,
-    selectedToken,
-    customMint,
-  ]);
 
   // Jupiter search is server-side, results are already filtered
   const filtered = jupiterTokens;
