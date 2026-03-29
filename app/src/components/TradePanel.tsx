@@ -176,6 +176,9 @@ export function TradePanel({ market, hasOpenPosition: hasOpenPositionProp }: Tra
           const depositAmount = new BN(Math.floor(needed * 10 ** decimals));
           toast(`Depositing ${needed.toFixed(2)} ${getTokenSymbol(market.collateralMint)}...`, { icon: "⏳" });
           await client.deposit(tokenMint, creator, oracle, depositAmount);
+          // Wait for deposit TX to finalize before opening position
+          // Otherwise open_position sees pre-deposit collateral → InsufficientMargin
+          await new Promise(r => setTimeout(r, 3000));
         } else {
           toast("Using vault collateral", { icon: "✓" });
         }
