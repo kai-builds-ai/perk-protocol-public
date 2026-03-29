@@ -21,11 +21,12 @@ import { getTokenSymbol } from "@/lib/token-meta";
 
 interface TradePanelProps {
   market: Market;
+  hasOpenPosition?: boolean;
 }
 
 const MAX_SLIPPAGE_BPS = 100; // 1%
 
-export function TradePanel({ market }: TradePanelProps) {
+export function TradePanel({ market, hasOpenPosition: hasOpenPositionProp }: TradePanelProps) {
   const [tab, setTab] = useState<OrderTab>("market");
   const [side, setSide] = useState<Side>(Side.Long);
   const [size, setSize] = useState("");
@@ -136,19 +137,20 @@ export function TradePanel({ market }: TradePanelProps) {
         // Step 1: Determine how much to deposit from wallet
         // - Existing position (adding): ALWAYS deposit size from wallet to maintain leverage
         // - No position: use free vault collateral, deposit only difference
-        let hasPosition = false;
+        // Use React state prop (not stale RPC fetch) to determine if position exists
         let freeCollateral = 0;
-        try {
-          const pos = await client.fetchPosition(marketAddr, publicKey);
-          hasPosition = pos.baseSize.toNumber() !== 0;
-          if (!hasPosition) {
-            freeCollateral = pos.depositedCollateral.toNumber() / 10 ** decimals;
+        if (!hasOpenPositionProp) {
+          try {
+            const pos = await client.fetchPosition(marketAddr, publicKey);
+            if (pos.baseSize.toNumber() === 0) {
+              freeCollateral = pos.depositedCollateral.toNumber() / 10 ** decimals;
+            }
+          } catch {
+            // No position account yet
           }
-        } catch {
-          // No position account yet
         }
 
-        const needed = hasPosition ? sizeNum : Math.max(0, sizeNum - freeCollateral);
+        const needed = hasOpenPositionProp ? sizeNum : Math.max(0, sizeNum - freeCollateral);
         if (needed > 0) {
           // Check wallet balance
           try {
