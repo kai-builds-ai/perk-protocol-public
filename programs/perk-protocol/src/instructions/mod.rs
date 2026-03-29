@@ -24,6 +24,7 @@ pub mod freeze_perk_oracle;
 pub mod transfer_oracle_authority;
 pub mod update_oracle_config;
 pub mod admin_set_fallback_oracle;
+pub mod admin_fix_market_accrue;
 
 #[allow(ambiguous_glob_reexports)]
 pub use initialize_protocol::*;
@@ -52,3 +53,4 @@ pub use freeze_perk_oracle::*;
 pub use transfer_oracle_authority::*;
 pub use update_oracle_config::*;
 pub use admin_set_fallback_oracle::*;
+pub use admin_fix_market_accrue::*;

@@ -575,7 +575,22 @@ pub fn accrue_market_to(market: &mut Market, now_slot: u64, oracle_price: u64) -
     let long_live = market.oi_eff_long_q != 0;
     let short_live = market.oi_eff_short_q != 0;
 
-    let total_dt = now_slot.saturating_sub(market.last_market_slot);
+    let raw_dt = now_slot.saturating_sub(market.last_market_slot);
+
+    // Safety: cap the slot gap to prevent catastrophic K accumulation.
+    // If a market was created without initializing last_market_slot (defaults to 0),
+    // or the cranker was down for an extended period, raw_dt can be hundreds of millions.
+    // Cap to ~7 minutes worth of slots. Any funding/mark beyond this is lost, but that's
+    // safer than producing trillions of phantom PNL.
+    const MAX_ACCRUE_DT: u64 = 1_000_000;
+    let total_dt = if raw_dt > MAX_ACCRUE_DT {
+        // Advance last_market_slot to close the gap
+        market.last_market_slot = now_slot.saturating_sub(MAX_ACCRUE_DT);
+        MAX_ACCRUE_DT
+    } else {
+        raw_dt
+    };
+
     if total_dt == 0 && market.last_oracle_price == oracle_price {
         market.current_slot = now_slot;
         return Ok(());

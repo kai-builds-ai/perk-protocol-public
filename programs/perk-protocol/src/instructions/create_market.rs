@@ -277,6 +277,14 @@ pub fn handler(ctx: Context<CreateMarket>, params: CreateMarketParams) -> Result
     market.bump = ctx.bumps.market;
     market.created_at = clock.unix_timestamp;
 
+    // Initialize accrue state to current slot/price.
+    // Without this, accrue_market_to sees a gap of current_slot - 0 = hundreds of millions
+    // of slots and applies catastrophic phantom funding/mark K-shifts.
+    market.last_market_slot = clock.slot;
+    market.current_slot = clock.slot;
+    market.last_oracle_price = oracle_price_result.price;
+    market.funding_price_sample_last = oracle_price_result.price;
+
     // H4 fix: Deferred reset flags
     market.pending_reset_long = false;
     market.pending_reset_short = false;

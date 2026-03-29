@@ -177,6 +177,12 @@ pub mod perk_protocol {
         instructions::admin_set_fallback_oracle::handler(ctx, params)
     }
 
+    /// Fix a market whose accrue state was never initialized. Admin only.
+    /// Closes the phantom slot gap that causes catastrophic K accumulation.
+    pub fn admin_fix_market_accrue(ctx: Context<AdminFixMarketAccrue>) -> Result<()> {
+        instructions::admin_fix_market_accrue::handler(ctx)
+    }
+
     /// Update PerkOracle config (price banding). Admin only.
     pub fn update_oracle_config(
         ctx: Context<UpdateOracleConfig>,

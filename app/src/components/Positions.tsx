@@ -198,14 +198,11 @@ export const Positions = memo(function Positions({ positions, market, livePrice,
         <tbody>
           {positions.map((p, i) => {
             const isLong = p.baseSize > 0;
-            // Use live streaming price for real-time PNL if available
+            // Real-time PNL: use current mark price (from poll or live stream)
             const currentPrice = livePrice && livePrice > 0 ? livePrice : (market?.markPrice || 0);
-            const livePnl = currentPrice > 0 && p.entryPrice > 0
-              ? (isLong
-                  ? Math.abs(p.baseSize) * (currentPrice - p.entryPrice)
-                  : Math.abs(p.baseSize) * (p.entryPrice - currentPrice))
-              : p.pnl;
-            const displayPnl = Math.abs(livePnl) > Math.abs(p.pnl) ? livePnl : p.pnl;
+            // On-chain PNL includes K-coefficient settlement + funding; price-based calc is just mark-to-market.
+            // Always use on-chain PNL as the base — it's the source of truth after settlement.
+            const displayPnl = p.pnl;
             const displayPnlPct = p.depositedCollateral > 0 ? (displayPnl / p.depositedCollateral) * 100 : p.pnlPercent;
             const pnlPositive = displayPnl >= 0;
             const isClosing = closingIndex === i;
