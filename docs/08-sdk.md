@@ -201,20 +201,31 @@ await client.createMarket(
 
 ---
 
-## PerkOracle (Admin / Cranker)
+## PerkOracle (Permissionless / Admin / Cranker)
 
-### Initialize Oracle (Admin)
+### Initialize Oracle (Permissionless)
+
+Anyone can initialize a PerkOracle for any SPL token by paying rent. The oracle authority is inherited from `Protocol.oracle_authority`.
 
 ```typescript
 await client.initializePerkOracle(
   tokenMint,
-  oracleAuthorityPubkey,
   {
     minSources: 2,
     maxStalenessSeconds: 15,
     maxPriceChangeBps: 0,               // 0 = no banding (memecoin)
     circuitBreakerDeviationBps: 0,      // 0 = disabled
   }
+);
+```
+
+### Set Oracle Authority (Admin, One-Time)
+
+Admin sets the oracle authority (cranker pubkey) on the Protocol account. All newly initialized oracles inherit this authority.
+
+```typescript
+await client.adminSetOracleAuthority(
+  newOracleAuthorityPubkey
 );
 ```
 

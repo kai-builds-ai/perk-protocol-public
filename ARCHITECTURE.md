@@ -653,7 +653,7 @@ Assuming average 0.06% blended fee, 90% protocol share.
 **Key properties:**
 - Fail-closed: if sources disagree beyond `MAX_DIVERGENCE_PCT` (5%), oracle freezes
 - Minimum 2 price sources required per update
-- Admin can initialize oracles for any SPL token (including Token-2022)
+- Anyone can initialize oracles for any SPL token (including Token-2022) by paying rent — no admin approval needed
 - One oracle per token mint, deterministic PDA: `[b"perk_oracle", token_mint]`
 - See `PERK-ORACLE-SPEC.md` for full specification
 

@@ -64,7 +64,7 @@ For everything else — memecoins, new launches, long-tail tokens. PerkOracle ag
 
 Requirements:
 - The token must have DEX liquidity visible to Jupiter and Birdeye
-- A PerkOracle price feed must be initialized for the token (admin creates these)
+- A PerkOracle price feed must exist for the token (auto-initialized permissionlessly during market creation if needed — the payer covers oracle rent)
 
 See [PerkOracle](06-perkoracle.md) for details on how the oracle system works.
 

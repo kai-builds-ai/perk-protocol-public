@@ -79,6 +79,19 @@ total_updates           u64     Lifetime update counter
 
 ---
 
+## Initialization (Permissionless)
+
+Oracle creation is fully permissionless since v1.2.0. Anyone can call `initialize_perk_oracle` for any SPL token by paying rent — no admin approval required.
+
+- **Payer:** Any wallet (pays oracle account rent)
+- **Oracle authority:** Inherited automatically from `Protocol.oracle_authority` (set once by admin via `admin_set_oracle_authority`)
+- **One oracle per token:** PDA seeds are `[b"perk_oracle", token_mint]` — duplicate initialization fails deterministically
+- **Auto-initialization:** During market creation, if no oracle exists for the token, the SDK auto-initializes one. The payer covers oracle rent in addition to the 1 SOL market creation fee.
+
+The admin's only role in the oracle lifecycle is setting `Protocol.oracle_authority` once (the cranker pubkey). After that, oracle creation is entirely user-driven.
+
+---
+
 ## Security Checks
 
 Every `update_perk_oracle` call must pass all of these:

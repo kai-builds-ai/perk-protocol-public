@@ -25,7 +25,7 @@ app/                      Next.js trading terminal
 
 ## Key Features
 
-- **Permissionless markets** — create a perp market for any SPL token with PerkOracle support
+- **Fully permissionless** — create a perp market for any SPL token. Oracle initialization is permissionless too (v1.2.0) — no admin approval needed at any step
 - **vAMM pricing** — virtual AMM (x\*y=k) with no order book needed
 - **Formal verification** — 117 Kani CBMC proofs covering math, safety, conservation, margins, funding, and full instruction composition
 - **Percolator risk engine** — ported from [Anatoly Yakovenko's reference implementation](https://github.com/aeyakovenko/percolator)
@@ -61,7 +61,7 @@ Market creators choose the collateral stablecoin at creation time. All traders o
 ## Stack
 
 - **On-chain:** Rust + Anchor
-- **Oracles:** PerkOracle (Jupiter + Birdeye aggregation, cranker-maintained)
+- **Oracles:** PerkOracle (Jupiter + Birdeye aggregation, cranker-maintained, permissionless initialization)
 - **Collateral:** USDC, USDT, PYUSD (6-decimal stablecoins)
 - **SDK:** TypeScript + BN.js (safety-critical math)
 - **Frontend:** Next.js 14 + Tailwind CSS

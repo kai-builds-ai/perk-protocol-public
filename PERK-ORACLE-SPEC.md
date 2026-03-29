@@ -69,10 +69,10 @@ pub fallback_oracle_address: Pubkey,
 ### 4. Instructions
 
 #### `initialize_perk_oracle`
-- **Signer:** Protocol admin only
+- **Signer:** Any payer (permissionless since v1.2.0)
 - **Creates:** PerkOraclePrice account for a given token mint
 - **Params:** min_sources, max_staleness_seconds
-- **Security:** Only admin can create oracles. Prevents spam account creation.
+- **Security:** Permissionless — anyone can create an oracle by paying rent. Oracle authority is inherited from `Protocol.oracle_authority` (set once by admin via `admin_set_oracle_authority`).
 
 #### `update_perk_oracle`
 - **Signer:** Authorized cranker (oracle.authority)
@@ -307,7 +307,7 @@ Minimum band: 100 bps (1%) when enabled. 0 = disabled.
 ## Implementation Order
 
 1. `PerkOraclePrice` account + `OracleSource::PerkOracle` enum variant
-2. `initialize_perk_oracle` instruction (admin only)
+2. `initialize_perk_oracle` instruction (permissionless)
 3. `update_perk_oracle` instruction (cranker, with all security checks)
 4. `freeze/unfreeze_perk_oracle` instructions
 5. `transfer_oracle_authority` instruction
