@@ -227,23 +227,7 @@ function MarketExplorerInner() {
           className="w-36 md:w-48 bg-transparent border border-zinc-800 rounded-[4px] px-3 py-1.5 text-sm font-sans text-white outline-none placeholder:text-text-tertiary focus:border-zinc-500 transition-colors duration-100 flex-shrink-0"
         />
 
-        {/* Oracle */}
-        <div className="flex items-center gap-1.5 flex-shrink-0">
-          <span className="text-sm font-sans text-text-secondary mr-1">Oracle</span>
-          {(["all", "pyth", "dex"] as const).map((v) => (
-            <button
-              key={v}
-              onClick={() => setOracleFilter(v)}
-              className={`px-3 py-1.5 text-sm font-sans rounded-[4px] border transition-colors duration-75 ${
-                oracleFilter === v
-                  ? "border-zinc-400 text-white bg-white/[0.05]"
-                  : "border-zinc-700 text-text-secondary hover:text-white hover:border-zinc-500"
-              }`}
-            >
-              {v === "all" ? "All" : v === "pyth" ? "Pyth" : "DEX"}
-            </button>
-          ))}
-        </div>
+        {/* Oracle filter removed — internal detail, not user-facing */}
 
         {/* Min volume */}
         <div className="flex items-center gap-1.5 flex-shrink-0">
