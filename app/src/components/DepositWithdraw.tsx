@@ -16,7 +16,7 @@ import {
   createCloseAccountInstruction,
 } from "@solana/spl-token";
 import { getTokenDecimals, getTokenSymbol } from "@/lib/token-meta";
-import { PerkClient, accountEquity, LEVERAGE_SCALE, POS_SCALE, PRICE_SCALE } from "@perk/sdk";
+import { PerkClient, accountEquity, calculateMarkPrice, priceToNumber, LEVERAGE_SCALE, POS_SCALE, PRICE_SCALE } from "@perk/sdk";
 import { sanitizeError } from "@/lib/error-utils";
 import { simulateTransaction } from "@/lib/tx-simulation";
 
@@ -103,7 +103,9 @@ export function DepositWithdraw({ market }: DepositWithdrawProps) {
         if (!cancelled) setHasOpenPosition(pos.baseSize.toNumber() !== 0);
         const maxLev = marketAccount.maxLeverage / LEVERAGE_SCALE;
         const imBps = maxLev > 0 ? Math.floor(10000 / maxLev) : 10000;
-        const imRequired = Math.abs(baseSize) * imBps / 10000;
+        const markPrice = priceToNumber(calculateMarkPrice(marketAccount));
+        const notional = Math.abs(baseSize) * markPrice;
+        const imRequired = notional * imBps / 10000;
         if (!cancelled) setFreeCollateral(Math.max(0, equityHuman - imRequired));
       } catch {
         if (!cancelled) { setVaultBalance(0); setFreeCollateral(0); }
