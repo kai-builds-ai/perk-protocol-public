@@ -13,9 +13,10 @@ export const Chart = memo(function Chart({ data, symbol }: ChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<ReturnType<typeof import("lightweight-charts").createChart> | null>(null);
   const seriesRef = useRef<ReturnType<ReturnType<typeof import("lightweight-charts").createChart>["addCandlestickSeries"]> | null>(null);
+  const createdRef = useRef(false);
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || data.length === 0 || createdRef.current) return;
 
     let mounted = true;
 
@@ -59,6 +60,9 @@ export const Chart = memo(function Chart({ data, symbol }: ChartProps) {
           borderColor: COLORS.border,
           timeVisible: true,
         },
+        watermark: {
+          visible: false,
+        },
       });
 
       // Auto-detect decimal precision from price magnitude
@@ -94,6 +98,7 @@ export const Chart = memo(function Chart({ data, symbol }: ChartProps) {
 
       chartRef.current = chart;
       seriesRef.current = series;
+      createdRef.current = true;
 
       const handleResize = () => {
         if (containerRef.current) {
@@ -118,9 +123,10 @@ export const Chart = memo(function Chart({ data, symbol }: ChartProps) {
       if (chartRef.current) {
         chartRef.current.remove();
         chartRef.current = null;
+        createdRef.current = false;
       }
     };
-  }, [symbol]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [symbol, data.length > 0]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Update data when it changes
   useEffect(() => {
