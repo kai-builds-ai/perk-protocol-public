@@ -2,7 +2,7 @@
 
 ## Oracle — #1 Attack Surface
 
-Roger flagged this explicitly. Price oracle manipulation is the most common DeFi exploit vector. Every major perp DEX hack traces back to oracle issues.
+Price oracle manipulation is the most common DeFi exploit vector. Every major perp DEX hack traces back to oracle issues.
 
 ### Known Oracle Attack Patterns (must defend against ALL)
 1. **Flash loan → pump DEX pool → read manipulated price → profit** — classic. Our DEX oracle (PumpSwap/Raydium) is especially vulnerable to this.

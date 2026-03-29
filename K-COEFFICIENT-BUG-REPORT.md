@@ -3,7 +3,7 @@
 **Date:** March 29, 2026  
 **Severity:** Critical — causes incorrect PNL settlement, loss of user funds  
 **Affects:** All markets, all positions (shorts much worse), all interactions  
-**Discovered by:** Roger + Kai during live mainnet testing
+**Discovered by:** Team during live mainnet testing
 
 ---
 
@@ -11,7 +11,7 @@
 
 `create_market.rs` never initializes `last_market_slot` or `current_slot`. They default to `0`. This causes `accrue_market_to` to process a gap of ~409 million slots on first interaction, producing catastrophically wrong K-coefficient values. Every subsequent trade/deposit/close compounds the error by processing more of the never-ending gap.
 
-The result: positions gain or lose thousands of percent in "phantom PNL" that has nothing to do with actual price movement. Roger lost ~$45 and gained ~$5 in separate tests on a chart that barely moved.
+The result: positions gain or lose thousands of percent in "phantom PNL" that has nothing to do with actual price movement. User lost ~$45 and gained ~$5 in separate tests on a chart that barely moved.
 
 ---
 
@@ -144,7 +144,7 @@ if total_dt > MAX_REASONABLE_GAP {
 ## Evidence
 
 ### Transaction history showing phantom PNL:
-- Roger opens SHORT $35 at 3x → vault $35
+- User opens SHORT $35 at 3x → vault $35
 - Deposits $20 more → `settle_side_effects` runs during deposit, K-diff produces `-$22` PNL
 - `settle_losses` deducts $22 from `deposited_collateral`
 - Result: $35 + $20 = $55 deposited, but only $18.06 remaining
