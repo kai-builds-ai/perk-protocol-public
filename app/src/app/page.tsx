@@ -321,22 +321,25 @@ export default function Landing() {
         </div>
 
         {/* Footer */}
-        <footer className="border-t border-border px-4 md:px-8 py-5">
-          <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+        <footer className="border-t border-border px-4 md:px-8 py-6">
+          <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-5">
+            {/* Logo + brand */}
             <div className="flex items-center gap-2">
               <div className="w-5 h-5 rounded-[2px] overflow-hidden bg-bg flex-shrink-0 opacity-60"><img src="/logo.png" alt="Perk" width={20} height={20} className="mix-blend-lighten" /></div>
               <span className="text-sm font-sans text-text-secondary tracking-wider">PERK PROTOCOL</span>
             </div>
-            <div className="flex items-center gap-6">
+            {/* Links — centered row on mobile */}
+            <div className="flex items-center gap-5 flex-wrap justify-center">
               <a href="https://x.com/PERK_FUND" className="text-text-secondary hover:text-white transition-colors" aria-label="X">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
               </a>
-              <a href="https://docs.perk.fund" className="text-sm font-sans text-text-secondary hover:text-white transition-colors">Docs</a>
-              <Link href="/terms" className="text-sm font-sans text-text-secondary hover:text-white transition-colors">Terms</Link>
-              <Link href="/privacy" className="text-sm font-sans text-text-secondary hover:text-white transition-colors">Privacy</Link>
-              <a href="mailto:contact@perk.fund" className="text-sm font-sans text-text-secondary hover:text-white transition-colors">Contact</a>
+              <a href="https://docs.perk.fund" className="text-xs font-sans text-text-tertiary hover:text-white transition-colors">Docs</a>
+              <Link href="/terms" className="text-xs font-sans text-text-tertiary hover:text-white transition-colors">Terms</Link>
+              <Link href="/privacy" className="text-xs font-sans text-text-tertiary hover:text-white transition-colors">Privacy</Link>
+              <a href="mailto:contact@perk.fund" className="text-xs font-sans text-text-tertiary hover:text-white transition-colors">Contact</a>
             </div>
-            <span className="text-sm font-mono text-text-secondary w-full text-center md:w-auto md:text-right">Powered by Solana</span>
+            {/* Powered by */}
+            <span className="text-xs font-mono text-text-tertiary">Powered by Solana</span>
           </div>
         </footer>
       </div>
