@@ -332,6 +332,8 @@ export default function Landing() {
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
               </a>
               <a href="https://docs.perk.fund" className="text-sm font-sans text-text-secondary hover:text-white transition-colors">Docs</a>
+              <Link href="/terms" className="text-sm font-sans text-text-secondary hover:text-white transition-colors">Terms</Link>
+              <Link href="/privacy" className="text-sm font-sans text-text-secondary hover:text-white transition-colors">Privacy</Link>
               <a href="mailto:contact@perk.fund" className="text-sm font-sans text-text-secondary hover:text-white transition-colors">Contact</a>
             </div>
             <span className="text-sm font-mono text-text-secondary w-full text-center md:w-auto md:text-right">Powered by Solana</span>
