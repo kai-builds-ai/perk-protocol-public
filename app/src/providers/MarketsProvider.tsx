@@ -57,8 +57,10 @@ function toFrontendMarket(address: PublicKey, m: SDKMarketAccount): Market {
       : markPrice;
 
   const fundingRateRaw = m.fundingRateBpsPerSlotLast?.toNumber() ?? 0;
-  // Clamp funding rate to ±100% to prevent display overflow from edge cases
-  const fundingRateCalc = (fundingRateRaw * 9000) / 1_000_000;
+  // On-chain: BPS per slot, scaled by FUNDING_RATE_PRECISION (1,000,000)
+  // To get hourly %: raw * slots_per_hour / PRECISION / BPS_DENOM * 100
+  // = raw * 9000 / 1_000_000 / 10_000 * 100 = raw * 9000 / 100_000_000
+  const fundingRateCalc = (fundingRateRaw * 9000) / 100_000_000;
   const fundingRate = Math.max(-100, Math.min(100, fundingRateCalc));
 
   const totalLong = m.totalLongPosition.toNumber() / POS_SCALE;
