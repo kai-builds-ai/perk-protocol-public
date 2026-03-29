@@ -120,4 +120,6 @@ pub enum PerkError {
     OracleFallbackFailed,
     #[msg("Oracle circuit breaker tripped — price deviation from EMA exceeds threshold")]
     OracleCircuitBreakerTripped,
+    #[msg("Market has open positions — cannot reset K indices")]
+    MarketHasOpenPositions,
 }
