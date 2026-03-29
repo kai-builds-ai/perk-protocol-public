@@ -13,6 +13,6 @@ export const COLORS = {
   blue: "#3b82f6",
 } as const;
 
-export const LEVERAGE_STEPS = [1, 2, 3, 5, 10, 15, 20] as const;
+export const LEVERAGE_STEPS = [2, 3, 5, 10, 15, 20] as const;
 
 export const SOLANA_RPC = process.env.NEXT_PUBLIC_RPC_URL || "";
