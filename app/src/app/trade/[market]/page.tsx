@@ -26,7 +26,8 @@ export default function TradingView() {
     symbol,
     market?.markPrice
   );
-  const { candles, isReal } = usePythCandles(symbol, "60", 200, market?.tokenMint);
+  const [interval, setInterval] = React.useState("60");
+  const { candles, isReal } = usePythCandles(symbol, interval, 200, market?.tokenMint);
 
   // Show loading state while markets are being fetched (e.g., after market creation redirect).
   // Grace period: keep showing "Loading" for up to 15s to let MarketsProvider poll new markets.
@@ -77,7 +78,28 @@ export default function TradingView() {
       <div className="flex flex-col md:flex-row flex-1 min-h-0 md:overflow-auto no-scrollbar">
         {/* Left: Chart + Positions (desktop) */}
         <div className="flex flex-col md:flex-1 md:border-r border-border min-w-0">
-          <div className="h-[260px] md:h-auto md:flex-1 md:min-h-[300px]">
+          <div className="flex items-center gap-1 px-2 py-1 border-b border-border bg-surface">
+            {[
+              { label: "5m", value: "5" },
+              { label: "15m", value: "15" },
+              { label: "1H", value: "60" },
+              { label: "4H", value: "240" },
+              { label: "1D", value: "D" },
+            ].map((tf) => (
+              <button
+                key={tf.value}
+                onClick={() => setInterval(tf.value)}
+                className={`px-2 py-0.5 text-xs font-mono rounded-[2px] transition-colors ${
+                  interval === tf.value
+                    ? "bg-accent/20 text-accent"
+                    : "text-text-tertiary hover:text-white"
+                }`}
+              >
+                {tf.label}
+              </button>
+            ))}
+          </div>
+          <div className="h-[240px] md:h-auto md:flex-1 md:min-h-[300px]">
             <Chart data={candles} symbol={symbol} />
           </div>
           {/* Positions + Orders — below chart on desktop, below everything on mobile */}

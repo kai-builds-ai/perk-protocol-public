@@ -200,6 +200,7 @@ export async function fetchHistoricalCandles(
     case "5": secondsPerBar = 300; break;
     case "15": secondsPerBar = 900; break;
     case "60": secondsPerBar = 3600; break;
+    case "240": secondsPerBar = 14400; break;
     case "D": secondsPerBar = 86400; break;
     default: secondsPerBar = 3600;
   }

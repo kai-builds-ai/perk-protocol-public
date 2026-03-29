@@ -5,13 +5,26 @@ import { fetchHistoricalCandles, PYTH_FEEDS } from "@/lib/pyth";
 import { CandleData } from "@/types";
 import { MOCK_CANDLES } from "@/lib/mock-data";
 
+/** Map our resolution strings to GeckoTerminal OHLCV endpoints */
+function geckoTimeframe(resolution: string): { period: string; aggregate: number } {
+  switch (resolution) {
+    case "5":  return { period: "minute", aggregate: 5 };
+    case "15": return { period: "minute", aggregate: 15 };
+    case "60": return { period: "hour", aggregate: 1 };
+    case "240": return { period: "hour", aggregate: 4 };
+    case "D":  return { period: "day", aggregate: 1 };
+    default:   return { period: "hour", aggregate: 1 };
+  }
+}
+
 /**
  * Fetch candle data from GeckoTerminal for any Solana token by mint.
  * Finds the highest-liquidity pool, then fetches OHLCV.
  */
 async function fetchGeckoTerminalCandles(
   mint: string,
-  count: number = 200
+  count: number = 200,
+  resolution: string = "60"
 ): Promise<CandleData[]> {
   try {
     // 1. Find top pool for this token
@@ -24,9 +37,10 @@ async function fetchGeckoTerminalCandles(
     const topPool = poolsData.data?.[0]?.attributes?.address;
     if (!topPool) return [];
 
-    // 2. Fetch hourly OHLCV
+    // 2. Fetch OHLCV at requested resolution
+    const { period, aggregate } = geckoTimeframe(resolution);
     const ohlcvResp = await fetch(
-      `https://api.geckoterminal.com/api/v2/networks/solana/pools/${topPool}/ohlcv/hour?aggregate=1&limit=${Math.min(count, 1000)}&currency=usd`,
+      `https://api.geckoterminal.com/api/v2/networks/solana/pools/${topPool}/ohlcv/${period}?aggregate=${aggregate}&limit=${Math.min(count, 1000)}&currency=usd`,
       { signal: AbortSignal.timeout(8000), headers: { Accept: "application/json" } }
     );
     if (!ohlcvResp.ok) return [];
@@ -113,7 +127,7 @@ export function usePythCandles(
 
       // 2. Fall back to GeckoTerminal (works for any Solana token)
       if (mint) {
-        const data = await fetchGeckoTerminalCandles(mint, count);
+        const data = await fetchGeckoTerminalCandles(mint, count, resolution);
         if (!cancelled && symbolRef.current === symbol && data.length > 0) {
           setCandles(data);
           setIsReal(true);
