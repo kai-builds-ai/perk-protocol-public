@@ -156,6 +156,12 @@ export function startOracleLoop(
           log.warn("Price banding rejected update", { mint: mintStr });
           continue;
         }
+        if (errStr.includes("OracleGapTooLarge")) {
+          // Oracle needs admin unfreeze — skip it to avoid wasting cycles
+          log.warn("Oracle gap too large (needs admin unfreeze) — removing from cache", { mint: mintStr });
+          oracleMintsCache.delete(mintStr);
+          continue;
+        }
 
         state.consecutiveFailures++;
         log.error(`Oracle update failed [${mintStr.slice(0,8)}]: ${errStr.slice(0, 200)}`, {

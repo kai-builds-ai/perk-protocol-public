@@ -640,22 +640,23 @@ export function CreateMarketForm() {
                 {oracleWaitPhase === "ready" && "Creating your market now..."}
               </p>
               {oracleWaitPhase === "waiting" && (
-                <div className="w-full h-3 bg-zinc-800/80 rounded-full overflow-hidden border border-zinc-700/50">
-                  <div
-                    className="h-full rounded-full transition-all duration-[60000ms] ease-[cubic-bezier(0.4,0,0.2,1)]"
-                    style={{
-                      width: '95%',
-                      background: 'linear-gradient(90deg, #10b981, #34d399, #6ee7b7)',
-                    }}
-                    ref={(el) => {
-                      if (el) {
-                        el.style.width = '0%';
-                        void el.offsetWidth;
-                        el.style.width = '95%';
-                      }
-                    }}
-                  />
-                </div>
+                <>
+                  <style>{`
+                    @keyframes perk-progress {
+                      from { width: 0%; }
+                      to { width: 95%; }
+                    }
+                  `}</style>
+                  <div className="w-full h-3 bg-zinc-800/80 rounded-full overflow-hidden border border-zinc-700/50">
+                    <div
+                      className="h-full rounded-full"
+                      style={{
+                        background: 'linear-gradient(90deg, #10b981, #34d399, #6ee7b7)',
+                        animation: 'perk-progress 60s cubic-bezier(0.4, 0, 0.2, 1) forwards',
+                      }}
+                    />
+                  </div>
+                </>
               )}
             </div>
           )}
