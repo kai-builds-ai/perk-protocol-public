@@ -23,6 +23,13 @@ import { usePerk } from "@/providers/PerkProvider";
 import { getTokenSymbol, getTokenDecimals } from "@/lib/token-meta";
 
 function mapTriggerOrderType(t: SDKTriggerOrderType): TriggerOrderType {
+  // Anchor deserializes enums as objects: {"takeProfit":{}} not numeric 2
+  if (t && typeof t === "object") {
+    const key = Object.keys(t)[0]?.toLowerCase();
+    if (key === "stoploss") return TriggerOrderType.StopLoss;
+    if (key === "takeprofit") return TriggerOrderType.TakeProfit;
+    if (key === "limit") return TriggerOrderType.Limit;
+  }
   switch (t) {
     case SDKTriggerOrderType.Limit:
       return TriggerOrderType.Limit;
@@ -36,6 +43,12 @@ function mapTriggerOrderType(t: SDKTriggerOrderType): TriggerOrderType {
 }
 
 function mapSide(s: SDKSide): Side {
+  // Anchor deserializes enums as objects: {"long":{}} not numeric 0
+  if (s && typeof s === "object") {
+    const key = Object.keys(s as object)[0]?.toLowerCase();
+    if (key === "long") return Side.Long;
+    if (key === "short") return Side.Short;
+  }
   return s === SDKSide.Long ? Side.Long : Side.Short;
 }
 
