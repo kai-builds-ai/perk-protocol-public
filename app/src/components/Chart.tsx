@@ -15,7 +15,7 @@ export const Chart = memo(function Chart({ data, symbol }: ChartProps) {
   const seriesRef = useRef<ReturnType<ReturnType<typeof import("lightweight-charts").createChart>["addCandlestickSeries"]> | null>(null);
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || data.length === 0) return;
 
     let mounted = true;
 
@@ -120,7 +120,7 @@ export const Chart = memo(function Chart({ data, symbol }: ChartProps) {
         chartRef.current = null;
       }
     };
-  }, [symbol]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [symbol, data.length > 0]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Update data when it changes
   useEffect(() => {
