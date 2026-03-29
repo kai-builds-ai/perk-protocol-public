@@ -279,32 +279,22 @@ export function DepositWithdraw({ market }: DepositWithdrawProps) {
       <div className="flex items-center justify-between">
         <span className="text-sm font-sans font-medium text-text-secondary uppercase tracking-wider">Balance</span>
       </div>
-      <div className="flex items-center justify-between text-sm">
-        <span className="text-text-secondary font-sans">Wallet</span>
-        <span className="font-mono text-white">
-          {displayWallet} {collateralSymbol}
-        </span>
-      </div>
-      <div className="flex items-center justify-between text-sm">
-        <span className="text-text-secondary font-sans" title="Total collateral deposited in this market's vault">Vault</span>
-        <span className="font-mono text-white">
-          {displayVault} {collateralSymbol}
-        </span>
-      </div>
+      <BalanceRow label="Wallet" tooltip="Your wallet balance" value={`${displayWallet} ${collateralSymbol}`} />
+      <BalanceRow label="Vault" tooltip="Total collateral deposited in this market" value={`${displayVault} ${collateralSymbol}`} />
       {marginUsed !== null && marginUsed > 0 && (
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-text-secondary font-sans" title="Collateral locked as margin for your open position (10% of notional at max 10x leverage)">Margin</span>
-          <span className="font-mono text-yellow-400">
-            {(Math.floor(marginUsed * 10000) / 10000).toFixed(4)} {collateralSymbol}
-          </span>
-        </div>
+        <BalanceRow
+          label="Margin"
+          tooltip="Locked as margin for your open position (10% of position value at 10x max leverage)"
+          value={`${(Math.floor(marginUsed * 10000) / 10000).toFixed(4)} ${collateralSymbol}`}
+          color="text-yellow-400"
+        />
       )}
-      <div className="flex items-center justify-between text-sm">
-        <span className="text-text-secondary font-sans" title="Vault balance minus margin — available to withdraw or use for new trades">Free</span>
-        <span className="font-mono text-profit">
-          {displayFree} {collateralSymbol}
-        </span>
-      </div>
+      <BalanceRow
+        label="Free"
+        tooltip="Vault minus margin — available to withdraw or use for new trades"
+        value={`${displayFree} ${collateralSymbol}`}
+        color="text-profit"
+      />
       {mode === "withdraw" && hasOpenPosition && (
         <div className="text-xs font-sans text-yellow-400 bg-yellow-400/5 border border-yellow-400/20 rounded-[4px] px-3 py-2">
           ⚠ You have an open position. Close it first to withdraw all collateral.
@@ -367,6 +357,37 @@ export function DepositWithdraw({ market }: DepositWithdrawProps) {
           {isSubmitting && mode === "withdraw" ? "..." : "Withdraw"}
         </button>
       </div>
+    </div>
+  );
+}
+
+/** Balance row with tap-to-reveal tooltip */
+function BalanceRow({ label, tooltip, value, color = "text-white" }: {
+  label: string;
+  tooltip: string;
+  value: string;
+  color?: string;
+}) {
+  const [showTip, setShowTip] = React.useState(false);
+  return (
+    <div className="text-sm">
+      <div className="flex items-center justify-between">
+        <span
+          className="text-text-secondary font-sans flex items-center gap-1 cursor-help"
+          onClick={() => setShowTip(!showTip)}
+        >
+          {label}
+          <svg className="w-3 h-3 text-text-tertiary" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M8 0a8 8 0 100 16A8 8 0 008 0zm.93 12.28h-1.9v-1.6h1.9v1.6zm2.02-5.46c-.18.27-.56.59-1.13.96-.36.24-.58.45-.67.64-.08.17-.12.42-.12.76h-1.8c0-.57.08-1.01.24-1.33.16-.31.5-.65 1.02-.99.42-.28.7-.52.84-.72.14-.2.21-.43.21-.68 0-.32-.11-.58-.33-.77-.22-.2-.52-.29-.9-.29-.38 0-.68.1-.91.3s-.35.48-.35.83H5.3c.02-.88.33-1.55.93-2.02.6-.47 1.38-.7 2.33-.7.99 0 1.77.23 2.33.68.56.45.84 1.06.84 1.83 0 .5-.13.93-.38 1.3z" />
+          </svg>
+        </span>
+        <span className={`font-mono ${color}`}>{value}</span>
+      </div>
+      {showTip && (
+        <p className="text-[10px] font-sans text-text-tertiary mt-0.5 ml-0.5">
+          {tooltip}
+        </p>
+      )}
     </div>
   );
 }
