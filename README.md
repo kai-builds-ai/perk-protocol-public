@@ -73,6 +73,10 @@ Deployed to **mainnet**: [`3L72e4b8wKJ8ReMpLUeXxVNrRGpiK6m4VYxeSnecpNW2`](https:
 
 OtterSec verified ✅
 
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for setup, build commands, Kani checks, and pull request expectations.
+
 ## License
 
 MIT — see [LICENSE](./LICENSE) for details.
