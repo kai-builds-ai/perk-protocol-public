@@ -497,21 +497,40 @@ pub fn settle_side_effects(
         }
     } else {
         // Epoch mismatch (spec §5.3 step 5)
-        let side_mode = get_side_mode(market, side);
-        if side_mode != SideState::ResetPending {
-            return Err(PerkError::CorruptState.into());
-        }
-        if epoch_snap.checked_add(1) != Some(epoch_side) {
-            return Err(PerkError::CorruptState.into());
-        }
+        //
+        // v1.5.1: Relaxed two checks for the auto-heal flow:
+        //
+        // 1. Side mode: Previously required ResetPending. With the relaxed
+        //    finalize (OI-only check), the side may have transitioned back to
+        //    Normal before this stale position settled. That's fine — the
+        //    settlement math is epoch-based and independent of side mode.
+        //
+        // 2. Epoch gap: Previously required exactly +1. With auto-heal, the
+        //    side can go Normal → new ADL → another epoch bump, creating a
+        //    gap of 2+. Intermediate K-epoch values are overwritten, so we
+        //    can't compute exact PnL for skipped epochs. Safe fallback: zero
+        //    PnL delta (ADL already socialized losses). User keeps remaining
+        //    collateral.
+        let single_epoch_gap = epoch_snap.checked_add(1) == Some(epoch_side);
 
-        let k_epoch_start = get_k_epoch_start(market, side);
-        let k_snap = position.k_snapshot;
+        let pnl_delta = if single_epoch_gap {
+            // Normal case: compute PnL from K-epoch start values
+            let k_epoch_start = get_k_epoch_start(market, side);
+            let k_snap = position.k_snapshot;
+            let den = a_basis.checked_mul(POS_SCALE).ok_or(PerkError::MathOverflow)?;
+            wide_signed_mul_div_floor_from_k_pair(abs_basis, k_epoch_start, k_snap, den)
+        } else {
+            // Multi-epoch gap: intermediate K values lost. Zero PnL delta.
+            // Position was ADL'd — losses already socialized. Remaining
+            // collateral is the user's to withdraw.
+            msg!(
+                "Multi-epoch settle: epoch_snap={}, epoch_side={}, gap={}. Zero PnL delta.",
+                epoch_snap, epoch_side, epoch_side.saturating_sub(epoch_snap),
+            );
+            0i128
+        };
 
         let old_r = position.reserved_pnl;
-
-        let den = a_basis.checked_mul(POS_SCALE).ok_or(PerkError::MathOverflow)?;
-        let pnl_delta = wide_signed_mul_div_floor_from_k_pair(abs_basis, k_epoch_start, k_snap, den);
 
         let old_pnl = position.pnl;
         let new_pnl = old_pnl.checked_add(pnl_delta).ok_or(PerkError::MathOverflow)?;
@@ -523,8 +542,6 @@ pub fn settle_side_effects(
         set_position_basis_q(position, market, 0i128);
 
         // H1 (Pashov2): Zero base_size and quote_entry_amount alongside basis.
-        // After epoch reset, the vAMM position tracking is meaningless.
-        // Also decrement total_positions and total_long/short_position counters.
         if position.base_size != 0 {
             let was_long = position.base_size > 0;
             let abs_base = (position.base_size as i64).unsigned_abs() as u128;
@@ -538,10 +555,11 @@ pub fn settle_side_effects(
             position.quote_entry_amount = 0;
         }
 
-        // Decrement stale count
+        // Decrement stale count (saturating — multi-epoch may have reset counts)
         let old_stale = get_stale_count(market, side);
-        let new_stale = old_stale.checked_sub(1).ok_or(PerkError::CorruptState)?;
-        set_stale_count(market, side, new_stale);
+        if old_stale > 0 {
+            set_stale_count(market, side, old_stale - 1);
+        }
 
         // Reset to canonical zero-position defaults
         position.a_snapshot = ADL_ONE;
@@ -833,6 +851,8 @@ pub fn begin_full_drain_reset(market: &mut Market, side: Side) {
 }
 
 /// finalize_side_reset (spec §2.7)
+/// v1.5.1: Relaxed to match maybe_finalize_ready_reset_sides — OI-only check.
+/// Retained for spec compliance but not actively called (preflight version used).
 pub fn finalize_side_reset(market: &mut Market, side: Side) -> Result<()> {
     if get_side_mode(market, side) != SideState::ResetPending {
         return Err(PerkError::CorruptState.into());
@@ -840,30 +860,25 @@ pub fn finalize_side_reset(market: &mut Market, side: Side) -> Result<()> {
     if get_oi_eff(market, side) != 0 {
         return Err(PerkError::CorruptState.into());
     }
-    if get_stale_count(market, side) != 0 {
-        return Err(PerkError::CorruptState.into());
-    }
-    if get_stored_pos_count(market, side) != 0 {
-        return Err(PerkError::CorruptState.into());
-    }
     set_side_mode(market, side, SideState::Normal);
     Ok(())
 }
 
-/// Preflight finalize: if a side is ResetPending with OI=0, stale=0, pos_count=0,
-/// transition it back to Normal.
+/// Preflight finalize: if a side is ResetPending with OI=0, transition back to Normal.
+///
+/// v1.5.1: Removed stale_count and stored_pos_count requirements. After ADL
+/// epoch-bumps a side, effective OI is already zero. Stale positions are just
+/// bookkeeping — they settle correctly via epoch-mismatch path in
+/// settle_side_effects regardless of side state. Requiring all stale positions
+/// to settle first meant one inactive user could permanently brick a market side.
 pub fn maybe_finalize_ready_reset_sides(market: &mut Market) {
     if market.long_state == SideState::ResetPending
         && get_oi_eff(market, Side::Long) == 0
-        && get_stale_count(market, Side::Long) == 0
-        && get_stored_pos_count(market, Side::Long) == 0
     {
         set_side_mode(market, Side::Long, SideState::Normal);
     }
     if market.short_state == SideState::ResetPending
         && get_oi_eff(market, Side::Short) == 0
-        && get_stale_count(market, Side::Short) == 0
-        && get_stored_pos_count(market, Side::Short) == 0
     {
         set_side_mode(market, Side::Short, SideState::Normal);
     }

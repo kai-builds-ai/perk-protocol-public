@@ -80,6 +80,9 @@ pub fn handler(ctx: Context<ReclaimEmptyAccount>) -> Result<()> {
     risk::resolve_flat_negative(position, market);
 
     // ── Validate position is empty ──
+    // NOTE: settle_side_effects above handles ghost positions (non-zero base_size,
+    // epoch mismatch after ADL). It zeros base_size and decrements stale/stored
+    // counts via the epoch-mismatch path. No special ghost handling needed here.
     require!(position.base_size == 0, PerkError::PositionNotEmpty);
     require!(position.open_trigger_orders == 0, PerkError::PositionHasOpenOrders);
 

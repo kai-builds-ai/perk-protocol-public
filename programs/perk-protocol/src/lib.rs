@@ -202,6 +202,20 @@ pub mod perk_protocol {
         instructions::admin_reset_k_indices::handler(ctx)
     }
 
+    /// Permissionless: Settle a stale position's side effects without closing it.
+    /// Unblocks market sides stuck in ResetPending due to ghost positions.
+    pub fn settle_stale_position(ctx: Context<SettleStalePosition>) -> Result<()> {
+        instructions::settle_stale_position::handler(ctx)
+    }
+
+    /// Admin-only: Override side state on a market (Normal/DrainOnly/ResetPending).
+    pub fn admin_set_side_state(
+        ctx: Context<AdminSetSideState>,
+        params: AdminSetSideStateParams,
+    ) -> Result<()> {
+        instructions::admin_set_side_state::handler(ctx, params)
+    }
+
     /// Update PerkOracle config (price banding). Admin only.
     pub fn update_oracle_config(
         ctx: Context<UpdateOracleConfig>,
