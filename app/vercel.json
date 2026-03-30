@@ -1,4 +1,0 @@
-{
-  "installCommand": "npm install && cd ../sdk && npm install && npm run build && cd ../app",
-  "buildCommand": "next build"
-}
