@@ -1458,13 +1458,73 @@ pub fn update_oi_delta(
 // Margin checks (spec §9.1)
 // ============================================================================
 
-/// is_above_maintenance_margin: Eq_net_i > MM_req_i
+/// Oracle-derived equity for liquidation checks (v1.5.0).
+///
+/// Uses oracle price + entry data to compute unrealized PNL, instead of
+/// K-settled `position.pnl` which can accumulate phantom PNL from K-index
+/// shifts unrelated to actual price movement.
+///
+///   entry_notional = quote_entry_amount * peg_at_entry / POS_SCALE
+///   oracle_notional = |base_size| * oracle_price / POS_SCALE
+///   unrealized_pnl  = oracle_notional - entry_notional  (long)
+///                    = entry_notional - oracle_notional  (short)
+///   equity = max(0, collateral + unrealized_pnl - fee_debt)
+fn oracle_equity_net(
+    position: &UserPosition,
+    market: &Market,
+    oracle_price: u64,
+) -> i128 {
+    if position.base_size == 0 {
+        // Flat position — equity is just collateral minus fee debt
+        let fee_debt = fee_debt_u128_checked(position.fee_credits);
+        let raw = (position.deposited_collateral as i128)
+            .saturating_sub(fee_debt as i128);
+        return if raw < 0 { 0i128 } else { raw };
+    }
+
+    let is_long = position.base_size > 0;
+    let abs_base = (position.base_size as i64).unsigned_abs() as u128;
+
+    // Oracle notional: |baseSize| * oraclePrice / POS_SCALE
+    let oracle_notional = mul_div_floor_u128(abs_base, oracle_price as u128, POS_SCALE);
+
+    // Entry notional: quoteEntryAmount * peg / POS_SCALE
+    // Use peg_at_entry if available (v1.4.0+), fall back to market peg for legacy
+    let peg = if position.peg_at_entry != 0 {
+        position.peg_at_entry
+    } else {
+        market.peg_multiplier
+    };
+    let entry_notional = mul_div_floor_u128(position.quote_entry_amount, peg, POS_SCALE);
+
+    // Unrealized PNL (signed)
+    let unrealized_pnl: i128 = if is_long {
+        (oracle_notional as i128).saturating_sub(entry_notional as i128)
+    } else {
+        (entry_notional as i128).saturating_sub(oracle_notional as i128)
+    };
+
+    // Equity = collateral + unrealized_pnl - fee_debt
+    let fee_debt = fee_debt_u128_checked(position.fee_credits);
+    let equity = (position.deposited_collateral as i128)
+        .saturating_add(unrealized_pnl)
+        .saturating_sub(fee_debt as i128);
+
+    if equity < 0 { 0i128 } else { equity }
+}
+
+/// is_above_maintenance_margin: oracle_equity > MM_req
+///
+/// v1.5.0: Uses oracle-derived equity instead of K-settled PNL.
+/// K-settled PNL can diverge from reality due to phantom PNL from
+/// K-index shifts, making positions appear healthier than they are
+/// and preventing liquidation.
 pub fn is_above_maintenance_margin(
     position: &UserPosition,
     market: &Market,
     oracle_price: u64,
 ) -> bool {
-    let eq_net = account_equity_net(position);
+    let eq_net = oracle_equity_net(position, market, oracle_price);
     let not = notional(position, market, oracle_price);
     let proportional = mul_div_floor_u128(not, market.maintenance_margin_bps as u128, 10_000);
 
