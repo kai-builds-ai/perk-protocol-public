@@ -1014,6 +1014,23 @@ export class PerkClient {
       .preInstructions(this.preInstructions).rpc();
   }
 
+  /** Build an updateAmm instruction without sending (for TX composition). */
+  buildUpdateAmmIx(
+    marketAddress: PublicKey,
+    oracle: PublicKey,
+    fallbackOracle?: PublicKey,
+  ): Promise<TransactionInstruction> {
+    return this.program.methods
+      .updateAmm()
+      .accounts({
+        market: marketAddress,
+        oracle,
+        fallbackOracle: fallbackOracle ?? SystemProgram.programId,
+        caller: this.wallet.publicKey,
+      })
+      .instruction();
+  }
+
   /** Reclaim an empty/abandoned position account (permissionless). */
   async reclaimEmptyAccount(
     marketAddress: PublicKey,

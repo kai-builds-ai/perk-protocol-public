@@ -45,7 +45,7 @@ export function calculateMarkPrice(market: MarketAccount): number {
   // Use high-precision: multiply numerator by 1e12 first, divide, then divide by 1e12
   const PRECISION = new BN("1000000000000");
   const scaled = numerator.mul(PRECISION).div(denominator);
-  return scaled.toNumber() / 1e12;
+  return parseFloat(scaled.toString()) / 1e12;
 }
 
 /** Estimate execution price for a trade (constant product, returns human-readable). */
@@ -308,6 +308,41 @@ export function estimateLiquidationPrice(
 /** Calculate trading fee for a given notional. */
 export function calculateFee(notional: number, feeBps: number): number {
   return Math.ceil((notional * feeBps) / BPS_DENOMINATOR);
+}
+
+/** Calculate funding PnL from K-coefficient difference.
+ *  fundingPnl = |basis| * (kSide - kSnapshot) / (aSnapshot * POS_SCALE)
+ *  where kSide = longKIndex for longs, shortKIndex for shorts.
+ *  Returns a signed BN in collateral-token units (positive = earned, negative = paid). */
+export function calculateFundingPnl(
+  position: UserPositionAccount,
+  market: MarketAccount,
+): BN {
+  const basis = position.basis;
+  if (basis.isZero()) return ZERO;
+
+  const isLong = !basis.isNeg();
+  const absBasis = basis.abs();
+  const aBasis = position.aSnapshot;
+  if (aBasis.isZero()) return ZERO;
+
+  // Epoch mismatch → position was wiped, no pending funding
+  const epochSide = isLong ? market.longEpoch : market.shortEpoch;
+  if (!position.epochSnapshot.eq(epochSide)) return ZERO;
+
+  const kSide = isLong ? market.longKIndex : market.shortKIndex;
+  const kSnap = position.kSnapshot;
+  const kDiff = kSide.sub(kSnap);
+
+  if (kDiff.isZero()) return ZERO;
+
+  // pnl = |basis| * kDiff / (aBasis * POS_SCALE)
+  const den = aBasis.mul(BN_POS_SCALE);
+  const num = absBasis.mul(kDiff);
+  // Signed division (floor toward negative infinity for negative numerator)
+  const isNeg = num.isNeg();
+  const absResult = num.abs().div(den);
+  return isNeg ? absResult.neg() : absResult;
 }
 
 /** Calculate funding rate (annualized %). */

@@ -29,6 +29,7 @@ export {
   isLiquidatable,
   estimateLiquidationPrice,
   calculateFee,
+  calculateFundingPnl,
   fundingRateAnnualized,
   warmupProgress,
   haircutRatio,

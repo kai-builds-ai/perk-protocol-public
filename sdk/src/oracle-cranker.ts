@@ -45,6 +45,13 @@ export interface OracleCrankerConfig {
      *  at the cost of missed updates when Jito is down. Default: false. */
     jitoOnly?: boolean;
   };
+  /** Auto-discover new token mints from active markets on-chain.
+   *  When enabled, the cranker periodically fetches all active markets and
+   *  adds any new token mints to its list automatically. Default: false. */
+  autoDiscover?: boolean;
+  /** How often to check for new markets in ms (default: 30000 = 30s).
+   *  Only used when autoDiscover is true. */
+  discoveryIntervalMs?: number;
   /** Callback for logging. */
   onLog?: (msg: string) => void;
   /** Callback for errors. */
@@ -289,6 +296,7 @@ export class PerkOracleCranker {
   private config: OracleCrankerConfig;
   private running = false;
   private intervalId: ReturnType<typeof setInterval> | null = null;
+  private discoveryIntervalId: ReturnType<typeof setInterval> | null = null;
   private tickInProgress = false;
 
 
@@ -412,11 +420,47 @@ export class PerkOracleCranker {
 
   // ── Lifecycle ──
 
+  /** Discover new token mints from active on-chain markets and add them to the cranker. */
+  private async discoverMints() {
+    try {
+      const markets = await this.client.fetchAllMarkets();
+      const existingSet = new Set(this.config.tokenMints.map((m) => m.toBase58()));
+      let added = 0;
+
+      for (const m of markets) {
+        if (!m.account.active) continue;
+        const mintStr = m.account.tokenMint.toBase58();
+        if (!existingSet.has(mintStr)) {
+          this.config.tokenMints.push(new PublicKey(mintStr));
+          existingSet.add(mintStr);
+          added++;
+          this.log(`Discovered new mint: ${mintStr.slice(0, 8)}...`);
+        }
+      }
+
+      if (added > 0) {
+        this.log(`Auto-discovery: added ${added} new mint(s). Total: ${this.config.tokenMints.length}`);
+      }
+    } catch (err) {
+      this.handleError(err as Error, "discoverMints");
+    }
+  }
+
   /** Start the oracle cranker loop. */
   start() {
     if (this.running) return;
     this.running = true;
     this.log("Starting oracle cranker...");
+
+    // Auto-discover new mints from on-chain markets
+    if (this.config.autoDiscover) {
+      const discoveryInterval = this.config.discoveryIntervalMs ?? 30_000;
+      this.discoverMints(); // run immediately (async, non-blocking)
+      this.discoveryIntervalId = setInterval(
+        () => this.discoverMints(),
+        discoveryInterval
+      );
+    }
 
     const interval = this.config.updateIntervalMs ?? 3000;
     this.tick();
@@ -429,6 +473,10 @@ export class PerkOracleCranker {
     if (this.intervalId) {
       clearInterval(this.intervalId);
       this.intervalId = null;
+    }
+    if (this.discoveryIntervalId) {
+      clearInterval(this.discoveryIntervalId);
+      this.discoveryIntervalId = null;
     }
     this.log("Oracle cranker stopping...");
 

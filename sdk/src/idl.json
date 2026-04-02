@@ -133,6 +133,58 @@
       "args": []
     },
     {
+      "name": "admin_pause",
+      "docs": [
+        "Emergency pause/unpause. Admin only."
+      ],
+      "discriminator": [
+        13,
+        109,
+        240,
+        129,
+        86,
+        245,
+        182,
+        45
+      ],
+      "accounts": [
+        {
+          "name": "protocol",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "admin",
+          "signer": true,
+          "relations": [
+            "protocol"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "paused",
+          "type": "bool"
+        }
+      ]
+    },
+    {
       "name": "admin_reset_k_indices",
       "docs": [
         "Reset K indices on a market with zero open interest. Admin only."
@@ -206,58 +258,6 @@
         }
       ],
       "args": []
-    },
-    {
-      "name": "admin_pause",
-      "docs": [
-        "Emergency pause/unpause. Admin only."
-      ],
-      "discriminator": [
-        13,
-        109,
-        240,
-        129,
-        86,
-        245,
-        182,
-        45
-      ],
-      "accounts": [
-        {
-          "name": "protocol",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  116,
-                  111,
-                  99,
-                  111,
-                  108
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "name": "admin",
-          "signer": true,
-          "relations": [
-            "protocol"
-          ]
-        }
-      ],
-      "args": [
-        {
-          "name": "paused",
-          "type": "bool"
-        }
-      ]
     },
     {
       "name": "admin_set_fallback_oracle",
@@ -395,6 +395,87 @@
         {
           "name": "new_authority",
           "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "admin_set_side_state",
+      "docs": [
+        "Admin-only: Override the side state (long_state / short_state) on a market."
+      ],
+      "discriminator": [
+        62,
+        253,
+        57,
+        9,
+        44,
+        43,
+        39,
+        170
+      ],
+      "accounts": [
+        {
+          "name": "protocol",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  116,
+                  111,
+                  99,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market.token_mint",
+                "account": "Market"
+              },
+              {
+                "kind": "account",
+                "path": "market.creator",
+                "account": "Market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "admin",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "AdminSetSideStateParams"
+            }
+          }
         }
       ]
     },
@@ -2304,6 +2385,190 @@
       "args": []
     },
     {
+      "name": "settle_funding",
+      "docs": [
+        "Settle accrued funding PnL into collateral without closing the position."
+      ],
+      "discriminator": [
+        11,
+        251,
+        12,
+        161,
+        199,
+        228,
+        133,
+        87
+      ],
+      "accounts": [
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market.token_mint",
+                "account": "Market"
+              },
+              {
+                "kind": "account",
+                "path": "market.creator",
+                "account": "Market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user_position",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              },
+              {
+                "kind": "account",
+                "path": "user"
+              }
+            ]
+          }
+        },
+        {
+          "name": "oracle"
+        },
+        {
+          "name": "fallback_oracle"
+        },
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "user",
+          "signer": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "settle_stale_position",
+      "docs": [
+        "Permissionless: Settle a stale position's side effects without closing it."
+      ],
+      "discriminator": [
+        164,
+        102,
+        138,
+        47,
+        227,
+        109,
+        20,
+        216
+      ],
+      "accounts": [
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market.token_mint",
+                "account": "Market"
+              },
+              {
+                "kind": "account",
+                "path": "market.creator",
+                "account": "Market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user_position",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              },
+              {
+                "kind": "account",
+                "path": "position_owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "oracle"
+        },
+        {
+          "name": "fallback_oracle"
+        },
+        {
+          "name": "position_owner"
+        },
+        {
+          "name": "caller",
+          "docs": [
+            "Anyone can call this"
+          ],
+          "signer": true
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "transfer_oracle_authority",
       "docs": [
         "Transfer PerkOracle authority. Current authority only."
@@ -3093,6 +3358,22 @@
     }
   ],
   "types": [
+    {
+      "name": "AdminSetSideStateParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "side",
+            "type": "u8"
+          },
+          {
+            "name": "state",
+            "type": "u8"
+          }
+        ]
+      }
+    },
     {
       "name": "AdminUpdateMarketParams",
       "type": {
@@ -3946,6 +4227,15 @@
             "type": {
               "option": "u16"
             }
+          },
+          {
+            "name": "max_confidence_bps",
+            "docs": [
+              "v1.4.0: Per-oracle max confidence band in bps. 0 = use global default (200 bps)."
+            ],
+            "type": {
+              "option": "u16"
+            }
           }
         ]
       }
@@ -4058,6 +4348,10 @@
           {
             "name": "bump",
             "type": "u8"
+          },
+          {
+            "name": "peg_at_entry",
+            "type": "u128"
           }
         ]
       }

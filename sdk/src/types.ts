@@ -168,6 +168,7 @@ export interface UserPositionAccount {
   nextOrderId: BN;
   lastActivitySlot: BN;
   bump: number;
+  pegAtEntry: BN; // v1.4.0: peg multiplier at position open (0 = legacy)
 }
 
 export interface TriggerOrderAccount {
@@ -226,6 +227,8 @@ export interface UpdateOracleConfigParams {
   maxStalenessSeconds: number | null;
   /** Circuit breaker: max deviation from EMA in bps. 0 = disabled. null = don't change. */
   circuitBreakerDeviationBps: number | null;
+  /** v1.4.0: Per-oracle max confidence band in bps. 0 = use global default. null = don't change. */
+  maxConfidenceBps: number | null;
 }
 
 export interface SetFallbackOracleParams {
