@@ -123,26 +123,40 @@ class WalletAdapterProvider extends AnchorProvider {
       tx.partialSign(...(signers as any));
     }
 
-    // Send via wallet adapter (uses signAndSendTransaction internally)
-    const sig = await this._sendTx(tx, this.connection, {
-      skipPreflight: opts?.skipPreflight,
+    const commitment = opts?.commitment ?? this.opts.commitment ?? "confirmed";
+
+    // Always fetch a fresh blockhash right before signing — Anchor or earlier code
+    // may have set a stale one. This guarantees maximum validity window.
+    const bh = await this.connection.getLatestBlockhash(commitment);
+    tx.recentBlockhash = bh.blockhash;
+    tx.lastValidBlockHeight = bh.lastValidBlockHeight;
+    tx.feePayer = this.wallet.publicKey;
+
+    // Sign via wallet (Phantom popup) — do NOT use sendTransaction which routes
+    // through Phantom's own RPC. We want to send through OUR Helius connection
+    // so send + confirm use the same RPC view.
+    const signed = await this.wallet.signTransaction(tx);
+
+    // Send through our RPC connection directly
+    const sig = await this.connection.sendRawTransaction(signed.serialize(), {
+      skipPreflight: opts?.skipPreflight ?? false,
+      preflightCommitment: commitment,
+      maxRetries: 3,
     });
 
-    // Wait for confirmation and check for on-chain errors
-    const commitment = opts?.commitment ?? this.opts.commitment ?? "confirmed";
-    const latestBlockhash = await this.connection.getLatestBlockhash(commitment);
+    // Confirm using the TX's original blockhash (same validity window)
     const confirmation = await this.connection.confirmTransaction(
       {
         signature: sig,
-        blockhash: latestBlockhash.blockhash,
-        lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+        blockhash: tx.recentBlockhash!,
+        lastValidBlockHeight: tx.lastValidBlockHeight!,
       },
       commitment,
     );
 
     if (confirmation.value.err) {
       throw new Error(
-        `Transaction confirmed but failed on-chain: ${JSON.stringify(confirmation.value.err)}`
+        `Transaction confirmed but failed on-chain: ${JSON.stringify(confirmation.value.err)} [sig: ${sig}]`
       );
     }
 
@@ -433,9 +447,38 @@ export class PerkClient {
     const protocol = this.getProtocolAddress();
     const [market] = findMarketAddress(tokenMint, this.wallet.publicKey, this.programId);
     const [vault] = findVaultAddress(market, this.programId);
-    // Vault holds collateral, so use the collateral mint's token program
-    const tokenProgramId = await this.getTokenProgramForMint(collateralMint);
+    // Known collateral mints are all standard SPL Token — skip the RPC lookup
+    // to avoid mobile wallet failures from flaky getAccountInfo calls
+    const KNOWN_SPL_MINTS = [
+      "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", // USDC
+      "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB", // USDT
+      "2b1kV6DkPAnxd5ixfnxCpjxmKwqjjaYmCZfHsFu24GXo", // PYUSD
+    ];
+    const tokenProgramId = KNOWN_SPL_MINTS.includes(collateralMint.toBase58())
+      ? TOKEN_PROGRAM_ID
+      : await this.getTokenProgramForMint(collateralMint);
 
+    const accounts = {
+      protocol,
+      market,
+      tokenMint,
+      collateralMint,
+      oracle,
+      vault,
+      creator: this.wallet.publicKey,
+      systemProgram: SystemProgram.programId,
+      tokenProgram: tokenProgramId,
+      rent: SYSVAR_RENT_PUBKEY,
+    };
+    console.log('[createMarket] accounts:', Object.fromEntries(
+      Object.entries(accounts).map(([k, v]) => [k, v.toBase58()])
+    ));
+    console.log('[createMarket] params:', {
+      oracleSource: ORACLE_SOURCE_MAP[params.oracleSource],
+      maxLeverage: params.maxLeverage,
+      tradingFeeBps: params.tradingFeeBps,
+      initialK: params.initialK.toString(),
+    });
     return this.program.methods
       .createMarket({
         oracleSource: ORACLE_SOURCE_MAP[params.oracleSource],
@@ -443,18 +486,7 @@ export class PerkClient {
         tradingFeeBps: params.tradingFeeBps,
         initialK: params.initialK,
       })
-      .accounts({
-        protocol,
-        market,
-        tokenMint,
-        collateralMint,
-        oracle,
-        vault,
-        creator: this.wallet.publicKey,
-        systemProgram: SystemProgram.programId,
-        tokenProgram: tokenProgramId,
-        rent: SYSVAR_RENT_PUBKEY,
-      })
+      .accounts(accounts)
       .preInstructions(this.preInstructions).rpc();
   }
 
@@ -613,6 +645,162 @@ export class PerkClient {
         user: this.wallet.publicKey,
       })
       .preInstructions(this.preInstructions).rpc();
+  }
+
+  // ═══════════════════════════════════════════════
+  // Instruction Builders (for composing multi-IX transactions)
+  // ═══════════════════════════════════════════════
+
+  /** Build an initializePosition instruction without sending. */
+  async buildInitializePositionIx(
+    tokenMint: PublicKey,
+    creator: PublicKey,
+  ): Promise<TransactionInstruction> {
+    const protocol = this.getProtocolAddress();
+    const market = this.getMarketAddress(tokenMint, creator);
+    const position = this.getPositionAddress(market, this.wallet.publicKey);
+
+    return this.program.methods
+      .initializePosition()
+      .accounts({
+        protocol,
+        market,
+        userPosition: position,
+        user: this.wallet.publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .instruction();
+  }
+
+  /** Build a deposit instruction without sending. */
+  async buildDepositIx(
+    tokenMint: PublicKey,
+    creator: PublicKey,
+    oracle: PublicKey,
+    amount: BN,
+    fallbackOracle?: PublicKey,
+  ): Promise<TransactionInstruction> {
+    const protocol = this.getProtocolAddress();
+    const market = this.getMarketAddress(tokenMint, creator);
+    const position = this.getPositionAddress(market, this.wallet.publicKey);
+    const [vault] = findVaultAddress(market, this.programId);
+    const collateralMint = await this.getCollateralMint(tokenMint, creator);
+    const tokenProgramId = await this.getTokenProgramForMint(collateralMint);
+    const userAta = await getAssociatedTokenAddress(collateralMint, this.wallet.publicKey, false, tokenProgramId);
+
+    return this.program.methods
+      .deposit(amount)
+      .accounts({
+        protocol,
+        market,
+        userPosition: position,
+        oracle,
+        fallbackOracle: fallbackOracle ?? SystemProgram.programId,
+        collateralMint,
+        userTokenAccount: userAta,
+        vault,
+        user: this.wallet.publicKey,
+        systemProgram: SystemProgram.programId,
+        tokenProgram: tokenProgramId,
+      })
+      .instruction();
+  }
+
+  /** Build an openPosition instruction without sending. */
+  async buildOpenPositionIx(
+    tokenMint: PublicKey,
+    creator: PublicKey,
+    oracle: PublicKey,
+    side: Side,
+    baseSize: BN,
+    leverage: number,
+    maxSlippageBps: number = 500,
+    fallbackOracle?: PublicKey,
+  ): Promise<TransactionInstruction> {
+    if (leverage < MIN_LEVERAGE || leverage > MAX_LEVERAGE) {
+      throw new Error(`leverage must be ${MIN_LEVERAGE}-${MAX_LEVERAGE} (${MIN_LEVERAGE / LEVERAGE_SCALE}x-${MAX_LEVERAGE / LEVERAGE_SCALE}x), got ${leverage}`);
+    }
+    if (maxSlippageBps < 0 || maxSlippageBps > 65535) {
+      throw new Error(`maxSlippageBps must be 0-65535 (u16), got ${maxSlippageBps}`);
+    }
+    if (!Number.isInteger(leverage) || !Number.isInteger(maxSlippageBps)) {
+      throw new Error("leverage and maxSlippageBps must be integers");
+    }
+    const protocol = this.getProtocolAddress();
+    const market = this.getMarketAddress(tokenMint, creator);
+    const position = this.getPositionAddress(market, this.wallet.publicKey);
+    return this.program.methods
+      .openPosition(SIDE_MAP[side], baseSize, leverage, maxSlippageBps)
+      .accounts({
+        protocol,
+        market,
+        userPosition: position,
+        oracle,
+        fallbackOracle: fallbackOracle ?? SystemProgram.programId,
+        authority: this.wallet.publicKey,
+        user: this.wallet.publicKey,
+      })
+      .instruction();
+  }
+
+  /** Build a closePosition instruction without sending. */
+  async buildClosePositionIx(
+    tokenMint: PublicKey,
+    creator: PublicKey,
+    oracle: PublicKey,
+    baseSizeToClose?: BN,
+    fallbackOracle?: PublicKey,
+  ): Promise<TransactionInstruction> {
+    const protocol = this.getProtocolAddress();
+    const market = this.getMarketAddress(tokenMint, creator);
+    const position = this.getPositionAddress(market, this.wallet.publicKey);
+
+    return this.program.methods
+      .closePosition(baseSizeToClose ?? null)
+      .accounts({
+        protocol,
+        market,
+        userPosition: position,
+        oracle,
+        fallbackOracle: fallbackOracle ?? SystemProgram.programId,
+        authority: this.wallet.publicKey,
+        user: this.wallet.publicKey,
+      })
+      .instruction();
+  }
+
+  /** Build a withdraw instruction without sending. */
+  async buildWithdrawIx(
+    tokenMint: PublicKey,
+    creator: PublicKey,
+    oracle: PublicKey,
+    amount: BN,
+    fallbackOracle?: PublicKey,
+  ): Promise<TransactionInstruction> {
+    const protocol = this.getProtocolAddress();
+    const market = this.getMarketAddress(tokenMint, creator);
+    const position = this.getPositionAddress(market, this.wallet.publicKey);
+    const [vault] = findVaultAddress(market, this.programId);
+    const collateralMint = await this.getCollateralMint(tokenMint, creator);
+    const tokenProgramId = await this.getTokenProgramForMint(collateralMint);
+    const userAta = await getAssociatedTokenAddress(collateralMint, this.wallet.publicKey, false, tokenProgramId);
+
+    return this.program.methods
+      .withdraw(amount)
+      .accounts({
+        protocol,
+        market,
+        userPosition: position,
+        oracle,
+        fallbackOracle: fallbackOracle ?? SystemProgram.programId,
+        collateralMint,
+        userTokenAccount: userAta,
+        vault,
+        authority: this.wallet.publicKey,
+        user: this.wallet.publicKey,
+        tokenProgram: tokenProgramId,
+      })
+      .instruction();
   }
 
   // ═══════════════════════════════════════════════
@@ -908,6 +1096,78 @@ export class PerkClient {
       .preInstructions(this.preInstructions).rpc();
   }
 
+  /** Settle accrued funding PnL into collateral without closing the position.
+   *  Credits matured profit (or deducts losses) to deposited_collateral. */
+  async settleFunding(
+    tokenMint: PublicKey,
+    creator: PublicKey,
+    oracle: PublicKey,
+    fallbackOracle?: PublicKey,
+  ): Promise<TransactionSignature> {
+    const market = this.getMarketAddress(tokenMint, creator);
+    const position = this.getPositionAddress(market, this.wallet.publicKey);
+
+    return this.program.methods
+      .settleFunding()
+      .accounts({
+        market,
+        userPosition: position,
+        oracle,
+        fallbackOracle: fallbackOracle ?? SystemProgram.programId,
+        authority: this.wallet.publicKey,
+        user: this.wallet.publicKey,
+      })
+      .preInstructions(this.preInstructions).rpc();
+  }
+
+  /** Permissionless: Settle a stale position's side effects.
+   *  Unblocks market sides stuck in ResetPending after ADL. */
+  async settleStalePosition(
+    tokenMint: PublicKey,
+    creator: PublicKey,
+    positionOwner: PublicKey,
+    oracleAddress: PublicKey,
+    fallbackOracleAddress?: PublicKey,
+  ): Promise<TransactionSignature> {
+    const market = this.getMarketAddress(tokenMint, creator);
+    const [userPosition] = PublicKey.findProgramAddressSync(
+      [Buffer.from("position"), market.toBuffer(), positionOwner.toBuffer()],
+      this.programId,
+    );
+    return this.program.methods
+      .settleStalePosition()
+      .accounts({
+        market,
+        userPosition,
+        oracle: oracleAddress,
+        fallbackOracle: fallbackOracleAddress ?? this.wallet.publicKey,
+        positionOwner,
+        caller: this.wallet.publicKey,
+      })
+      .preInstructions(this.preInstructions).rpc();
+  }
+
+  /** Admin-only: Override the side state on a market.
+   *  side: 0 = long, 1 = short
+   *  state: 0 = Normal, 1 = DrainOnly, 2 = ResetPending */
+  async adminSetSideState(
+    tokenMint: PublicKey,
+    creator: PublicKey,
+    side: number,
+    state: number,
+  ): Promise<TransactionSignature> {
+    const protocol = this.getProtocolAddress();
+    const market = this.getMarketAddress(tokenMint, creator);
+    return this.program.methods
+      .adminSetSideState({ side, state })
+      .accounts({
+        protocol,
+        market,
+        admin: this.wallet.publicKey,
+      })
+      .preInstructions(this.preInstructions).rpc();
+  }
+
   /** Initialize a PerkOracle price feed. Permissionless — anyone pays rent.
    *  Oracle authority is inherited from Protocol.oracle_authority. */
   async initializePerkOracle(
@@ -1094,6 +1354,14 @@ export class PerkClient {
         throw new Error(`maxStalenessSeconds must be null or between 5 and 300`);
       }
     }
+    if (params.maxConfidenceBps !== null && params.maxConfidenceBps !== undefined) {
+      if (params.maxConfidenceBps < 0 || params.maxConfidenceBps > 65535) {
+        throw new Error(`maxConfidenceBps out of u16 range`);
+      }
+      if (params.maxConfidenceBps !== 0 && (params.maxConfidenceBps < 50 || params.maxConfidenceBps > 2000)) {
+        throw new Error(`maxConfidenceBps must be 0, null, or between 50 and 2000`);
+      }
+    }
 
     const protocol = this.getProtocolAddress();
     const perkOracle = this.getPerkOracleAddress(tokenMint);
@@ -1104,6 +1372,7 @@ export class PerkClient {
         minSources: params.minSources,
         maxStalenessSeconds: params.maxStalenessSeconds,
         circuitBreakerDeviationBps: params.circuitBreakerDeviationBps,
+        maxConfidenceBps: params.maxConfidenceBps ?? null,
       })
       .accounts({
         protocol,
