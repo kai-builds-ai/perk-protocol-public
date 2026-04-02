@@ -13,7 +13,7 @@ pub const TRIGGER_EXECUTION_FEE_BPS: u16 = 1; // 0.01% to executor
 pub const DEFAULT_MAX_LEVERAGE: u32 = 2000; // 20x
 pub const MAINTENANCE_MARGIN_BPS: u16 = 500; // 5%
 pub const DEFAULT_FUNDING_PERIOD: u32 = 3600; // 1 hour
-pub const FUNDING_RATE_CAP_BPS: u16 = 10; // 0.1% per period
+pub const FUNDING_RATE_CAP_BPS: u16 = 50; // 0.5% per period
 pub const WARMUP_PERIOD_SLOTS: u64 = 1000; // ~400 seconds
 pub const MAX_TRIGGER_ORDERS_PER_USER: u8 = 8;
 
@@ -27,7 +27,7 @@ pub const PRICE_SCALE: u64 = 1_000_000; // 6 decimals
 pub const K_SCALE: u128 = 1_000_000_000_000; // 12 decimals for k precision
 
 // M9 fix: Minimum k raised to 1e18 for meaningful depth (sqrt(1e18) = 1e9 base reserve)
-pub const MIN_INITIAL_K: u128 = 1_000_000_000_000_000_000;
+pub const MIN_INITIAL_K: u128 = 10_000_000_000_000_000_000_000_000;
 pub const PEG_SCALE: u128 = 1_000_000; // 6 decimals
 
 // Percolator risk engine — core scales (spec §1.2-1.4)

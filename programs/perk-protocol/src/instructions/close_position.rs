@@ -239,6 +239,11 @@ pub fn handler(ctx: Context<ClosePosition>, base_size_to_close: Option<u64>) -> 
         risk::do_profit_conversion(position, market);
         risk::settle_losses(position, market);
         risk::resolve_flat_negative(position, market);
+        // H5 (Apex R6): Sweep fee debt after profit conversion.
+        // Without this, a user whose close fee exceeded collateral (routed via
+        // charge_fee_to_insurance) could withdraw profit-converted collateral
+        // without repaying the insurance fund.
+        risk::fee_debt_sweep(position, market);
         // M2 fix: Removed unconditional set_pnl(0). The conversion/settle/resolve
         // sequence should leave PnL at 0. Verify with debug_assert.
         // M2 (R3): PnL may be slightly positive due to rounding; only negative is wrong

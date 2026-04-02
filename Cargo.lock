@@ -1137,6 +1137,7 @@ dependencies = [
  "blake3",
  "pyth-solana-receiver-sdk",
  "rand 0.8.5",
+ "solana-security-txt",
 ]
 
 [[package]]

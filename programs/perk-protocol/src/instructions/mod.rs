@@ -28,6 +28,7 @@ pub mod admin_fix_market_accrue;
 pub mod admin_reset_k_indices;
 pub mod admin_set_side_state;
 pub mod settle_stale_position;
+pub mod settle_funding;
 
 #[allow(ambiguous_glob_reexports)]
 pub use initialize_protocol::*;
@@ -60,3 +61,4 @@ pub use admin_fix_market_accrue::*;
 pub use admin_reset_k_indices::*;
 pub use admin_set_side_state::*;
 pub use settle_stale_position::*;
+pub use settle_funding::*;

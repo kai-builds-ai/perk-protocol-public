@@ -216,6 +216,12 @@ pub mod perk_protocol {
         instructions::admin_set_side_state::handler(ctx, params)
     }
 
+    /// Settle accrued funding PnL into collateral without closing the position.
+    /// Credits matured profit (or deducts losses) to deposited_collateral.
+    pub fn settle_funding(ctx: Context<SettleFunding>) -> Result<()> {
+        instructions::settle_funding::handler(ctx)
+    }
+
     /// Update PerkOracle config (price banding). Admin only.
     pub fn update_oracle_config(
         ctx: Context<UpdateOracleConfig>,
