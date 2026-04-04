@@ -2476,6 +2476,96 @@
       "args": []
     },
     {
+      "name": "settle_position_permissionless",
+      "docs": [
+        "Permissionless: Settle a position when market conditions allow."
+      ],
+      "discriminator": [
+        200,
+        10,
+        20,
+        30,
+        40,
+        50,
+        60,
+        70
+      ],
+      "accounts": [
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market.token_mint",
+                "account": "Market"
+              },
+              {
+                "kind": "account",
+                "path": "market.creator",
+                "account": "Market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user_position",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              },
+              {
+                "kind": "account",
+                "path": "position_owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "oracle"
+        },
+        {
+          "name": "fallback_oracle"
+        },
+        {
+          "name": "position_owner"
+        },
+        {
+          "name": "caller",
+          "signer": true
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "settle_stale_position",
       "docs": [
         "Permissionless: Settle a stale position's side effects without closing it."
@@ -3355,6 +3445,16 @@
       "code": 6055,
       "name": "OracleCircuitBreakerTripped",
       "msg": "Oracle circuit breaker tripped — price deviation from EMA exceeds threshold"
+    },
+    {
+      "code": 6056,
+      "name": "MarketHasOpenPositions",
+      "msg": "Market has open positions — cannot reset K indices"
+    },
+    {
+      "code": 6057,
+      "name": "MarketNotEmpty",
+      "msg": "Market still has open positions"
     }
   ],
   "types": [
@@ -3847,6 +3947,14 @@
           {
             "name": "fallback_oracle_address",
             "type": "pubkey"
+          },
+          {
+            "name": "long_reward_accumulator",
+            "type": "u128"
+          },
+          {
+            "name": "short_reward_accumulator",
+            "type": "u128"
           }
         ]
       }
@@ -4352,6 +4460,14 @@
           {
             "name": "peg_at_entry",
             "type": "u128"
+          },
+          {
+            "name": "reward_snapshot",
+            "type": "u128"
+          },
+          {
+            "name": "cumulative_rewards_claimed",
+            "type": "u64"
           }
         ]
       }

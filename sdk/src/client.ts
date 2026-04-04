@@ -13,6 +13,8 @@ import {
   TOKEN_PROGRAM_ID,
   TOKEN_2022_PROGRAM_ID,
   getAssociatedTokenAddress,
+  createAssociatedTokenAccountIdempotentInstruction,
+  ASSOCIATED_TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import { Program, AnchorProvider, Idl, BN, Wallet } from "@coral-xyz/anchor";
 
@@ -565,6 +567,16 @@ export class PerkClient {
     const tokenProgramId = await this.getTokenProgramForMint(collateralMint);
     const userAta = await getAssociatedTokenAddress(collateralMint, this.wallet.publicKey, false, tokenProgramId);
 
+    // Ensure the user's ATA exists before withdrawing (idempotent — no-op if it exists)
+    const createAtaIx = createAssociatedTokenAccountIdempotentInstruction(
+      this.wallet.publicKey, // payer
+      userAta,              // ATA address
+      this.wallet.publicKey, // owner
+      collateralMint,       // mint
+      tokenProgramId,       // token program
+      ASSOCIATED_TOKEN_PROGRAM_ID,
+    );
+
     return this.program.methods
       .withdraw(amount)
       .accounts({
@@ -580,7 +592,7 @@ export class PerkClient {
         user: this.wallet.publicKey,
         tokenProgram: tokenProgramId,
       })
-      .preInstructions(this.preInstructions).rpc();
+      .preInstructions([...this.preInstructions, createAtaIx]).rpc();
   }
 
   /** Open a leveraged position. */
@@ -1158,6 +1170,32 @@ export class PerkClient {
         userPosition,
         oracle: oracleAddress,
         fallbackOracle: fallbackOracleAddress ?? this.wallet.publicKey,
+        positionOwner,
+        caller: this.wallet.publicKey,
+      })
+      .preInstructions(this.preInstructions).rpc();
+  }
+
+  /** Permissionless: Settle a position when market conditions allow. */
+  async settlePositionPermissionless(
+    marketAddress: PublicKey,
+    positionOwner: PublicKey,
+  ): Promise<string> {
+    const market = await this.fetchMarketByAddress(marketAddress);
+    const [userPosition] = PublicKey.findProgramAddressSync(
+      [Buffer.from("position"), marketAddress.toBuffer(), positionOwner.toBuffer()],
+      this.programId,
+    );
+    const fallbackOracle = market.fallbackOracleAddress.equals(PublicKey.default)
+      ? marketAddress
+      : market.fallbackOracleAddress;
+    return this.program.methods
+      .settlePositionPermissionless()
+      .accounts({
+        market: marketAddress,
+        userPosition,
+        oracle: market.oracleAddress,
+        fallbackOracle,
         positionOwner,
         caller: this.wallet.publicKey,
       })

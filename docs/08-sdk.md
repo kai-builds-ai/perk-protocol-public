@@ -291,6 +291,9 @@ await client.executeTriggerOrder(
 // Re-peg the vAMM
 await client.updateAmm(marketAddress, oracleAddress);
 
+// Settle any position permissionlessly (v2.1)
+await client.settlePositionPermissionless(marketAddress, positionOwnerPubkey);
+
 // Reclaim an empty position account
 await client.reclaimEmptyAccount(
   marketAddress,

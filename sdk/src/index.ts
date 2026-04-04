@@ -33,6 +33,7 @@ export {
   fundingRateAnnualized,
   warmupProgress,
   haircutRatio,
+  predictSettleFunding,
   priceToNumber,
   numberToPrice,
   amountToNumber,
@@ -40,6 +41,7 @@ export {
   calculateNotionalBN,
   isAboveMaintenanceMargin,
 } from "./math";
+export type { SettleFundingPrediction } from "./math";
 
 export {
   PERK_PROGRAM_ID,

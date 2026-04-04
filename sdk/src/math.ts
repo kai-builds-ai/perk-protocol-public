@@ -410,3 +410,198 @@ export function haircutRatio(market: MarketAccount): number {
   const scaled = hNum.mul(RATIO_PRECISION).div(hDen);
   return scaled.toNumber() / 1e12;
 }
+
+// ── Settle Funding Prediction ──
+
+export interface SettleFundingPrediction {
+  /** Human-readable USD change to collateral (can be negative) */
+  collateralDelta: number;
+  /** The raw K-diff funding PnL (what we currently show) */
+  grossFundingPnl: number;
+  /** Amount deducted by settle_losses */
+  lossSettled: number;
+  /** Amount added by do_profit_conversion (after haircut) */
+  profitConverted: number;
+  /** Amount deducted by fee_debt_sweep */
+  feeDebtSwept: number;
+  /** Haircut percentage applied (0 = no haircut, 100 = full haircut) */
+  haircutPercent: number;
+}
+
+/**
+ * Predict what `settle_funding` will actually do to collateral.
+ *
+ * Replicates the on-chain flow:
+ *   1. Accrue funding PnL (K-diff) → add to position.pnl
+ *   2. Advance warmup → release matured reserved PnL
+ *   3. Settle losses → if pnl < 0, deduct from collateral
+ *   4. Profit conversion → released matured PnL * haircut → add to collateral
+ *   5. Fee debt sweep → deduct outstanding fee debt from collateral
+ *
+ * All intermediate math uses BN (arbitrary precision). Only converts to
+ * human-readable numbers at the very end.
+ */
+export function predictSettleFunding(
+  position: UserPositionAccount,
+  market: MarketAccount,
+  currentSlot: number,
+): SettleFundingPrediction {
+  // ── Step 0: Snapshot initial collateral ──
+  const initialCollateral = new BN(position.depositedCollateral.toString());
+
+  // ── Step 1: Compute K-diff funding PnL (same as calculateFundingPnl) ──
+  const fundingPnlBN = calculateFundingPnl(position, market);
+
+  // ── Step 1b: Simulate set_pnl (on-chain settle_side_effects calls set_pnl) ──
+  // set_pnl modifies reserved_pnl: new profit goes to reserved, losses shrink reserved.
+  const oldPnl = new BN(position.pnl.toString());
+  const oldPosPnl = oldPnl.isNeg() ? ZERO : new BN(oldPnl.toString());
+  const oldR = new BN(position.reservedPnl.toString());
+
+  // Post-accrue PnL = position.pnl + fundingPnl
+  let pnl = oldPnl.add(fundingPnlBN);
+  const newPosPnl = pnl.isNeg() ? ZERO : new BN(pnl.toString());
+
+  // Replicate set_pnl's reserved_pnl logic (spec §4.4 steps 7-8):
+  // If positive PnL increased: all new positive goes to reserved
+  // If positive PnL decreased: reserved shrinks by the loss (saturating)
+  let reservedPnl: BN;
+  if (newPosPnl.gt(oldPosPnl)) {
+    const reserveAdd = newPosPnl.sub(oldPosPnl);
+    reservedPnl = oldR.add(reserveAdd);
+  } else {
+    const posLoss = oldPosPnl.sub(newPosPnl);
+    reservedPnl = oldR.gt(posLoss) ? oldR.sub(posLoss) : ZERO;
+  }
+
+  // ── Step 2: Advance warmup (release matured reserved PnL) ──
+  const warmupPeriod = market.warmupPeriodSlots;
+  const currentSlotBN = new BN(currentSlot);
+
+  if (!reservedPnl.isZero()) {
+    const rIncreased = reservedPnl.gt(oldR);
+
+    if (warmupPeriod.isZero()) {
+      // Instant release: all reserved PnL matures
+      // On-chain: advance_warmup sets R = 0 when warmup_period = 0
+      // If R increased, restart_warmup_after_reserve_increase also sets R = 0 when t = 0
+      reservedPnl = ZERO;
+    } else if (rIncreased) {
+      // After set_pnl increases R, settle_side_effects calls restart_warmup.
+      // restart_warmup sets: slope = max(1, new_R / period), started_at = market.current_slot
+      // Then advance_warmup runs with clock.slot = market.current_slot → elapsed = 0.
+      // Nothing is released. reservedPnl stays as-is.
+    } else {
+      // R did not increase — use existing slope and warmup state
+      const elapsed = currentSlotBN.sub(position.warmupStartedAtSlot);
+      if (elapsed.gtn(0)) {
+        // On-chain uses position.warmup_slope directly (no fallback)
+        const slope = position.warmupSlope;
+        const cap = slope.mul(elapsed);
+        const release = BN.min(reservedPnl, cap);
+        reservedPnl = reservedPnl.sub(release);
+      }
+    }
+  }
+
+  // ── Step 3: Settle losses (if pnl < 0, deduct from collateral) ──
+  let collateral = new BN(initialCollateral.toString());
+  let lossSettled = ZERO;
+
+  if (pnl.isNeg()) {
+    const need = pnl.abs();
+    const pay = BN.min(need, collateral);
+    if (pay.gtn(0)) {
+      collateral = collateral.sub(pay);
+      pnl = pnl.add(pay);
+      lossSettled = pay;
+    }
+  }
+
+  // ── Step 4: Released pos = max(pnl, 0) - reserved_pnl ──
+  const posPnl = pnl.isNeg() ? ZERO : pnl;
+  const released = posPnl.gt(reservedPnl) ? posPnl.sub(reservedPnl) : ZERO;
+
+  // ── Step 5: Haircut ratio + profit conversion ──
+  let profitConverted = ZERO;
+  let haircutNum = ZERO;
+  let haircutDen = ZERO;
+
+  if (released.gtn(0)) {
+    // Compute haircut ratio: h = min(residual, matured_pos_tot) / matured_pos_tot
+    const maturedPosTot = new BN(market.pnlMaturedPosTot.toString());
+
+    if (maturedPosTot.isZero()) {
+      // No matured positions → ratio is 1/1 (no haircut)
+      haircutNum = new BN(1);
+      haircutDen = new BN(1);
+    } else {
+      // Senior claims: c_tot + insurance + claimable fees
+      const claimable = market.creatorClaimableFees.add(market.protocolClaimableFees);
+      const seniorSum = market.cTot
+        .add(new BN(market.insuranceFundBalance.toString()))
+        .add(claimable);
+      const vaultBal = new BN(market.vaultBalance.toString());
+      const residual = vaultBal.gt(seniorSum) ? vaultBal.sub(seniorSum) : ZERO;
+
+      haircutNum = BN.min(residual, maturedPosTot);
+      haircutDen = maturedPosTot;
+    }
+
+    // y = released * h_num / h_den (floor division)
+    if (haircutDen.isZero()) {
+      profitConverted = released;
+    } else {
+      profitConverted = released.mul(haircutNum).div(haircutDen);
+    }
+
+    // On-chain: consume_released_pnl subtracts released (x) from pnl
+    // Then adds profitConverted (y) to collateral
+    collateral = collateral.add(profitConverted);
+    pnl = pnl.sub(released);
+  }
+
+  // ── Step 6: Fee debt sweep ──
+  // fee_credits is i128. Negative = debt.
+  let feeDebtSwept = ZERO;
+  const feeCredits = new BN(position.feeCredits.toString());
+  if (feeCredits.isNeg()) {
+    const debt = feeCredits.abs();
+    const pay = BN.min(debt, collateral);
+    if (pay.gtn(0)) {
+      collateral = collateral.sub(pay);
+      feeDebtSwept = pay;
+    }
+  }
+
+  // ── Convert to human-readable (USDC has 6 decimals) ──
+  const USDC_DECIMALS = 6;
+  const scale = Math.pow(10, USDC_DECIMALS);
+
+  const collateralDeltaBN = collateral.sub(initialCollateral);
+  // For BN → number conversion, handle sign properly
+  const collateralDelta = collateralDeltaBN.isNeg()
+    ? -(collateralDeltaBN.abs().toNumber() / scale)
+    : collateralDeltaBN.toNumber() / scale;
+
+  const grossFundingPnl = fundingPnlBN.isNeg()
+    ? -(fundingPnlBN.abs().toNumber() / scale)
+    : fundingPnlBN.toNumber() / scale;
+
+  // Haircut percent: 0 = no haircut (100% converted), 100 = full haircut (0% converted)
+  let haircutPercent = 0;
+  if (!haircutDen.isZero()) {
+    const PREC = new BN("10000"); // basis points precision
+    const ratio = haircutNum.mul(PREC).div(haircutDen);
+    haircutPercent = 100 - (ratio.toNumber() / 100); // convert basis points to percent
+  }
+
+  return {
+    collateralDelta,
+    grossFundingPnl,
+    lossSettled: lossSettled.toNumber() / scale,
+    profitConverted: profitConverted.toNumber() / scale,
+    feeDebtSwept: feeDebtSwept.toNumber() / scale,
+    haircutPercent: Math.max(0, Math.min(100, haircutPercent)),
+  };
+}

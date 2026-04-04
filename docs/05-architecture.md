@@ -92,6 +92,38 @@ When cascading liquidations stress one side of the market, recovery is fully aut
 
 Recovery is fully autonomous — no admin intervention or governance vote required.
 
+### Liquidation Reward Distribution (v2.1)
+
+When a position is liquidated, any surplus collateral (after covering the deficit, liquidator reward, and insurance fee) is distributed to all positions on the opposite side:
+
+```
+surplus = collateral - deficit - liquidator_reward - insurance_fee
+delta = surplus × REWARD_PRECISION / opposite_side_OI
+reward_accumulator[opposite_side] += delta
+```
+
+Claims are O(1) per position — on any interaction (trade, settle, close), each position computes:
+
+```
+reward = (market.reward_accumulator[my_side] - position.reward_snapshot) × |base_size| / REWARD_PRECISION
+```
+
+The reward is added to `deposited_collateral`. If there are no positions on the opposite side, surplus goes to the insurance fund.
+
+This means liquidation proceeds are never dead capital — they flow to the winning side proportionally.
+
+### Permissionless Position Settlement (v2.1)
+
+Anyone can settle any open position by calling `settle_position_permissionless`. This:
+- Accrues market state (oracle + funding)
+- Settles K-diff PNL into warmup
+- Claims pending liquidation rewards
+- Advances the warmup timer
+
+It deliberately does NOT run `settle_losses` or `do_profit_conversion` — those change collateral and could push a position below maintenance margin, which would let a malicious caller set up liquidations.
+
+The cranker uses this to keep all positions fresh without requiring position owners to interact.
+
 ### Warmup Window
 
 New profit doesn't mature instantly. It enters `reservedPnl` and converts to matured profit linearly over `warmup_period_slots` (default: 1000 slots ≈ 400 seconds).
@@ -259,7 +291,7 @@ MAX_TRADING_FEE_BPS       = 100            // 1%
 LIQUIDATION_FEE_BPS       = 100            // 1%
 MAINTENANCE_MARGIN_BPS    = 500            // 5%
 DEFAULT_FUNDING_PERIOD     = 3600          // 1 hour
-FUNDING_RATE_CAP_BPS      = 10             // 0.1% per period
+FUNDING_RATE_CAP_BPS      = 50             // 0.5% per period
 WARMUP_PERIOD_SLOTS       = 1000           // ~400 seconds
 MAX_TRIGGER_ORDERS        = 8              // Per user per market
 ORACLE_STALENESS_SECONDS  = 15             // Max age for oracle prices

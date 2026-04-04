@@ -20,7 +20,7 @@ Positions are isolated per market. Your SOL-PERP position is independent of your
 
 ## Leverage
 
-Leverage ranges from 2x to 20x, configurable per market by the creator. The leverage you choose determines how much margin is required to open a position.
+Leverage ranges from 1x to 20x, configurable per market by the creator. The leverage you choose determines how much margin is required to open a position.
 
 ```
 Required margin = notional value / leverage
@@ -154,7 +154,7 @@ premium = (mark_price - index_price) / index_price
 funding_rate = clamp(premium, -cap, +cap)
 ```
 
-The cap is ±0.1% per funding period (default: 1 hour).
+The cap is ±0.5% per funding period (default: 1 hour).
 
 ### Payment Direction
 
@@ -167,7 +167,7 @@ Funding is settled lazily. The protocol tracks cumulative funding indices per ma
 
 ### Cost
 
-At the maximum funding rate (0.1% per hour), holding a position costs 2.4% per day. In practice, funding rates are much smaller — typically a few basis points per hour.
+At the maximum funding rate (0.5% per hour), holding a position costs 12% per day. In practice, funding rates are much smaller — typically a few basis points per hour.
 
 ---
 

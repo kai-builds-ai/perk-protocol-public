@@ -81,6 +81,8 @@ liquidation_fee = notional_value × 100 / 10,000
 
 The liquidation fee is not configurable. `LIQUIDATION_FEE_BPS = 100` is a protocol constant.
 
+> **v2.1:** After the liquidation fee is distributed, any remaining surplus collateral flows proportionally to all open positions on the opposite side via the liquidation reward accumulator. If no opposite-side positions exist, surplus goes to the insurance fund. See [Architecture — Liquidation Reward Distribution](05-architecture.md#liquidation-reward-distribution-v21).
+
 ---
 
 ## Trigger Execution Fee
@@ -125,7 +127,7 @@ funding_rate = clamp(premium, -cap, +cap)
 | Parameter | Value |
 |---|---|
 | Funding period | 3,600 seconds (1 hour) |
-| Rate cap | ±10 bps (0.1%) per period |
+| Rate cap | ±50 bps (0.5%) per period |
 | Max annualized | ~876% at constant max rate |
 
 ### Payment Direction
@@ -148,7 +150,7 @@ Funding is settled lazily:
 At the maximum funding rate:
 
 ```
-0.1% per hour × 24 hours = 2.4% per day
+0.5% per hour × 24 hours = 12% per day
 ```
 
 In practice, funding rates are typically much lower (a few basis points per hour). They only spike when there's a large imbalance between long and short open interest.
@@ -163,4 +165,4 @@ In practice, funding rates are typically much lower (a few basis points per hour
 | Liquidation fee | 1% | Liquidated user | 50% liquidator, 50% insurance | No (protocol constant) |
 | Trigger execution | 0.01% | Trader | Executor | No (protocol constant) |
 | Market creation | 1 SOL | Creator | Protocol | No (protocol constant) |
-| Funding rate | ±0.1% max/hr | Majority side | Minority side | No (protocol constant) |
+| Funding rate | ±0.5% max/hr | Majority side | Minority side | No (protocol constant) |

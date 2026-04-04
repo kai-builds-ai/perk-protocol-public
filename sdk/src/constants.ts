@@ -14,7 +14,7 @@ export const VAULT_SEED = Buffer.from("vault");
 export const TRIGGER_SEED = Buffer.from("trigger");
 
 // On-chain constants (mirrored from constants.rs)
-export const MIN_LEVERAGE = 200; // 2x
+export const MIN_LEVERAGE = 100; // 1x
 export const MAX_LEVERAGE = 2000; // 20x
 export const LEVERAGE_SCALE = 100;
 export const MIN_TRADING_FEE_BPS = 3;
@@ -51,6 +51,7 @@ export const LIQUIDATOR_SHARE_BPS = 5000;
 export const TRIGGER_EXECUTION_FEE_BPS = 1;
 export const MIN_DEPOSIT_AMOUNT = 1_000;
 export const MIN_A_SIDE = 1_000;
+export const REWARD_PRECISION = 1_000_000;
 
 export const PERK_ORACLE_SEED = Buffer.from("perk_oracle");
 

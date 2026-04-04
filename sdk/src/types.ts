@@ -144,6 +144,10 @@ export interface MarketAccount {
   creationFeePaid: BN;
   fallbackOracleSource: OracleSource;
   fallbackOracleAddress: PublicKey;
+
+  // v2.1: Liquidation reward accumulators
+  longRewardAccumulator: BN;
+  shortRewardAccumulator: BN;
 }
 
 export interface UserPositionAccount {
@@ -169,6 +173,10 @@ export interface UserPositionAccount {
   lastActivitySlot: BN;
   bump: number;
   pegAtEntry: BN; // v1.4.0: peg multiplier at position open (0 = legacy)
+
+  // v2.1: Liquidation reward tracking
+  rewardSnapshot: BN;
+  cumulativeRewardsClaimed: BN;
 }
 
 export interface TriggerOrderAccount {
