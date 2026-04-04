@@ -35,6 +35,9 @@ pub const POS_SCALE: u128 = 1_000_000;
 pub const ADL_ONE: u128 = 1_000_000;
 pub const MIN_A_SIDE: u128 = 1_000;
 
+// v2.1: Liquidation reward distribution precision (matches POS_SCALE)
+pub const REWARD_PRECISION: u128 = 1_000_000;
+
 // Percolator normative bounds (spec §1.4)
 pub const MAX_ORACLE_PRICE: u64 = 1_000_000_000_000;
 pub const MAX_FUNDING_DT: u64 = u16::MAX as u64;
@@ -53,7 +56,7 @@ pub const MAX_LIQUIDATION_FEE_BPS: u64 = 10_000;
 pub const MAX_PROTOCOL_FEE_ABS: u128 = MAX_ACCOUNT_NOTIONAL;
 
 // Leverage bounds
-pub const MIN_LEVERAGE: u32 = 200; // 2x
+pub const MIN_LEVERAGE: u32 = 100; // 1x
 pub const MAX_LEVERAGE: u32 = 2000; // 20x
 
 // BPS denominator

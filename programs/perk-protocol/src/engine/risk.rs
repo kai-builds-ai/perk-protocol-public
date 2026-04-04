@@ -424,10 +424,59 @@ pub fn notional(position: &UserPosition, market: &Market, oracle_price: u64) -> 
 // settle_side_effects (spec §5.3)
 // ============================================================================
 
+/// v2.1: Settle pending liquidation rewards into position collateral.
+/// Uses raw base_size (not effective) to match distribution denominator (total_long/short_position).
+/// Only increases collateral — always safe to call at any point.
+pub fn settle_pending_rewards(
+    position: &mut UserPosition,
+    market: &mut Market,
+) -> Result<()> {
+    // Skip if position is flat (no side to claim from)
+    if position.base_size == 0 {
+        return Ok(());
+    }
+
+    let is_long = position.base_size > 0;
+    let accumulator = if is_long {
+        market.long_reward_accumulator
+    } else {
+        market.short_reward_accumulator
+    };
+
+    let delta = accumulator.saturating_sub(position.reward_snapshot);
+    if delta > 0 {
+        let abs_size = (position.base_size as i64).unsigned_abs() as u128;
+        let reward = delta
+            .checked_mul(abs_size)
+            .ok_or(PerkError::MathOverflow)?
+            / crate::constants::REWARD_PRECISION;
+        if reward > 0 {
+            // Pashov F3/F4: Use checked conversion to prevent u128→u64 truncation mismatch
+            let reward_u64: u64 = reward.try_into().map_err(|_| PerkError::MathOverflow)?;
+            position.deposited_collateral = position.deposited_collateral
+                .checked_add(reward_u64)
+                .ok_or(PerkError::MathOverflow)?;
+            position.cumulative_rewards_claimed = position.cumulative_rewards_claimed
+                .checked_add(reward_u64)
+                .ok_or(PerkError::MathOverflow)?;
+            market.c_tot = market.c_tot
+                .checked_add(reward)
+                .ok_or(PerkError::MathOverflow)?;
+        }
+    }
+    position.reward_snapshot = accumulator;
+    Ok(())
+}
+
 pub fn settle_side_effects(
     position: &mut UserPosition,
     market: &mut Market,
 ) -> Result<()> {
+    // v2.1: Settle liquidation rewards FIRST — before basis check, before epoch check.
+    // Must run at full position size before anything can zero base_size.
+    // Reward claims only increase collateral, never decrease — always safe.
+    settle_pending_rewards(position, market)?;
+
     let basis = position.basis;
     if basis == 0 { return Ok(()); }
 

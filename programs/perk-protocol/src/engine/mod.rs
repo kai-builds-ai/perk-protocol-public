@@ -34,5 +34,6 @@ pub use risk::{
     account_equity_maint_raw_wide, account_equity_maint_raw,
     account_equity_net, account_equity_init_raw,
     finalize_pending_resets,
+    settle_pending_rewards,
 };
 pub use liquidation::*;

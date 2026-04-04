@@ -148,6 +148,54 @@ pub fn handler(ctx: Context<Liquidate>) -> Result<()> {
         .insurance_fund_balance
         .saturating_add(actual_insurance_fee as u64);
 
+    // v2.1: Distribute liquidation surplus to opposite side as rewards.
+    // Must happen BEFORE total_long/short_position update (we use raw OI as denominator).
+    // surplus = collateral left over after deficit + liq reward + insurance fee
+    {
+        let surplus = old_collateral
+            .saturating_sub(deficit)
+            .saturating_sub(actual_liq_reward)
+            .saturating_sub(actual_insurance_fee);
+        if surplus > 0 {
+            let opp_side = risk::opposite_side(liq_side);
+            // CRITICAL: Use raw OI (total_long/short_position), NOT oi_eff.
+            // Claims use raw base_size. Denominator must match to prevent overclaim.
+            let opp_oi = match opp_side {
+                risk::Side::Long => market.total_long_position,
+                risk::Side::Short => market.total_short_position,
+            };
+            if opp_oi > 0 {
+                let delta = surplus
+                    .checked_mul(crate::constants::REWARD_PRECISION)
+                    .ok_or(PerkError::MathOverflow)?
+                    / opp_oi;
+                let overflow = match opp_side {
+                    risk::Side::Long => {
+                        match market.long_reward_accumulator.checked_add(delta) {
+                            Some(v) => { market.long_reward_accumulator = v; false }
+                            None => true,
+                        }
+                    }
+                    risk::Side::Short => {
+                        match market.short_reward_accumulator.checked_add(delta) {
+                            Some(v) => { market.short_reward_accumulator = v; false }
+                            None => true,
+                        }
+                    }
+                };
+                if overflow {
+                    // Accumulator overflow (u128 exhausted) — route to insurance instead
+                    market.insurance_fund_balance = market.insurance_fund_balance
+                        .saturating_add(surplus as u64);
+                }
+            } else {
+                // No opposite positions — surplus goes to insurance fund
+                market.insurance_fund_balance = market.insurance_fund_balance
+                    .saturating_add(surplus as u64);
+            }
+        }
+    }
+
     // Update total_long/short_position using raw abs_base for raw tracking
     let abs_base = (position.base_size as i64).unsigned_abs() as u128;
     if is_long {

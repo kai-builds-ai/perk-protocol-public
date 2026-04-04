@@ -243,10 +243,29 @@ pub fn handler(
     protocol_mut.total_volume = protocol_mut.total_volume.saturating_add(notional);
     protocol_mut.total_fees_collected = protocol_mut.total_fees_collected.saturating_add(total_fee);
 
-    // v1.4.0: Snapshot peg at entry for accurate entry price reconstruction.
+    // v1.4.0+: Snapshot peg at entry + reset stale state for new positions.
     // Only set on NEW positions (old_base_size == 0), not add-to-position.
     if old_base_size == 0 {
         position.peg_at_entry = market.peg_multiplier;
+        // v2.1 CRITICAL: Reset stale K-state from previous position lifecycle.
+        // Without this, k_snapshot from a closed position leaks phantom PNL.
+        position.k_snapshot = risk::get_k_side(market, if is_long { risk::Side::Long } else { risk::Side::Short });
+        // Pashov F1: Use set_pnl/set_reserved_pnl to properly decrement aggregates
+        if position.reserved_pnl != 0 {
+            risk::set_reserved_pnl(position, market, 0);
+        }
+        if position.pnl != 0 {
+            risk::set_pnl(position, market, 0);
+        }
+        position.warmup_slope = 0;
+        position.warmup_started_at_slot = clock.slot;
+        position.fee_credits = 0;
+        // v2.1: Set reward snapshot to correct side's accumulator (prevents free reward claim)
+        position.reward_snapshot = if is_long {
+            market.long_reward_accumulator
+        } else {
+            market.short_reward_accumulator
+        };
     }
 
     // C5: Update last activity slot

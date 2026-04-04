@@ -171,6 +171,10 @@ pub struct Market {
     // Fallback oracle (PerkOracle spec)
     pub fallback_oracle_source: OracleSource,
     pub fallback_oracle_address: Pubkey,
+
+    // v2.1: Liquidation reward accumulators (reward per unit of raw OI)
+    pub long_reward_accumulator: u128,
+    pub short_reward_accumulator: u128,
 }
 
 impl Market {

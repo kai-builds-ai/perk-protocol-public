@@ -43,6 +43,10 @@ pub struct UserPosition {
     // v1.4.0: Peg multiplier snapshot at position open time.
     // 0 = legacy position (opened before v1.4.0) — frontend falls back to historical lookup.
     pub peg_at_entry: u128,
+
+    // v2.1: Liquidation reward tracking
+    pub reward_snapshot: u128,              // Captures reward accumulator at last interaction
+    pub cumulative_rewards_claimed: u64,    // Running total of rewards claimed (for display)
 }
 
 impl UserPosition {

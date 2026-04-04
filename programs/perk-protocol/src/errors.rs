@@ -122,4 +122,7 @@ pub enum PerkError {
     OracleCircuitBreakerTripped,
     #[msg("Market has open positions — cannot reset K indices")]
     MarketHasOpenPositions,
+    // v2.1: Liquidation rewards
+    #[msg("Market still has open positions")]
+    MarketNotEmpty,
 }

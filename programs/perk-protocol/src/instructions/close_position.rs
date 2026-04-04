@@ -248,6 +248,11 @@ pub fn handler(ctx: Context<ClosePosition>, base_size_to_close: Option<u64>) -> 
         // sequence should leave PnL at 0. Verify with debug_assert.
         // M2 (R3): PnL may be slightly positive due to rounding; only negative is wrong
         debug_assert!(position.pnl >= 0, "PnL should be non-negative after full close settlement");
+        // v2.1: Defensive reset of K-state so reopen starts clean.
+        // Prevents stale k_snapshot from leaking phantom PNL into next position.
+        position.k_snapshot = 0;
+        position.warmup_slope = 0;
+        position.warmup_started_at_slot = 0;
     } else {
         // M10 fix: Call do_profit_conversion on partial closes too (when released PnL exists)
         // This prevents warmup bypass by partial-closing to extract unreleased profit.

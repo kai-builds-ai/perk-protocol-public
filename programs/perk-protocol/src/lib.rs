@@ -222,6 +222,13 @@ pub mod perk_protocol {
         instructions::settle_funding::handler(ctx)
     }
 
+    /// v2.1: Permissionless position settlement — anyone can settle any position.
+    /// Settles K-diff PNL + liquidation rewards + advances warmup.
+    /// Does NOT run settle_losses/do_profit_conversion (safety constraint).
+    pub fn settle_position_permissionless(ctx: Context<SettlePositionPermissionless>) -> Result<()> {
+        instructions::settle_position_permissionless::handler(ctx)
+    }
+
     /// Update PerkOracle config (price banding). Admin only.
     pub fn update_oracle_config(
         ctx: Context<UpdateOracleConfig>,
