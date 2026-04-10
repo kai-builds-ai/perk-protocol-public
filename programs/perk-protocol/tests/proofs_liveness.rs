@@ -52,33 +52,34 @@ fn p4_1_maybe_finalize_auto_finalizes() {
 }
 
 // ============================================================================
-// P4.1b: maybe_finalize does NOT finalize when counters are nonzero
+// P4.1b: maybe_finalize does NOT finalize when OI is nonzero
+//
+// v1.5.1: Stale/stored counts no longer block finalization -- only OI matters.
+// This proof verifies that nonzero effective OI prevents finalization.
 // ============================================================================
 
 #[kani::proof]
 #[kani::unwind(30)]
 #[kani::solver(cadical)]
-fn p4_1b_no_finalize_with_nonzero_counters() {
+fn p4_1b_no_finalize_with_nonzero_oi() {
     let mut m = test_market();
 
     m.long_state = SideState::ResetPending;
-    m.oi_eff_long_q = 0;
 
-    // Symbolic nonzero counter: either stale or stored_pos
-    let stale: u64 = kani::any();
-    let stored: u64 = kani::any();
-    kani::assume(stale > 0 || stored > 0);
-    kani::assume(stale <= 100);
-    kani::assume(stored <= 100);
+    // Nonzero OI prevents finalization
+    let oi: u128 = kani::any();
+    kani::assume(oi >= 1 && oi <= 1_000_000);
+    m.oi_eff_long_q = oi;
 
-    m.stale_account_count_long = stale;
-    m.stored_pos_count_long = stored;
+    // Stale/stored counts are irrelevant to finalization (v1.5.1 relaxation)
+    m.stale_account_count_long = 0;
+    m.stored_pos_count_long = 0;
 
     maybe_finalize_ready_reset_sides(&mut m);
 
-    // Should remain ResetPending
+    // Should remain ResetPending because OI > 0
     assert_eq!(m.long_state, SideState::ResetPending,
-        "P4.1b: must NOT finalize with nonzero counters");
+        "P4.1b: must NOT finalize with nonzero effective OI");
 }
 
 // ============================================================================
